@@ -1,6 +1,8 @@
 import React from 'react';
 import { Link } from 'wouter';
-import { ArrowRight, ShieldCheck, Scale, FileBadge, Code2, Cpu } from 'lucide-react';
+import { ArrowRight, ShieldCheck, Scale, FileBadge, Code2, Cpu, CreditCard } from 'lucide-react';
+
+const PAY_INVOICE_URL = 'https://secure.lawpay.com/pages/zilkakotabpc/operating';
 import { SEO } from '@/components/SEO';
 import { FadeIn } from '@/components/FadeIn';
 import { AnimatedCounter } from '@/components/AnimatedCounter';
@@ -231,9 +233,20 @@ export default function Home() {
               <p className="text-xl text-secondary-foreground/80 mb-12 max-w-2xl mx-auto font-light">
                 Position your intellectual property for maximum value and defensibility. Schedule a confidential consultation with our partners.
               </p>
-              <Link href="/contact" className="inline-flex h-14 items-center justify-center rounded-sm bg-primary px-10 text-lg font-medium text-white shadow-xl transition-transform hover:scale-105 active:scale-95">
-                Contact Our Office
-              </Link>
+              <div className="flex flex-wrap items-center justify-center gap-4">
+                <Link href="/contact" className="inline-flex h-14 items-center justify-center rounded-sm bg-primary px-10 text-lg font-medium text-white shadow-xl transition-transform hover:scale-105 active:scale-95">
+                  Contact Our Office
+                </Link>
+                <a
+                  href={PAY_INVOICE_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex h-14 items-center justify-center gap-2 rounded-sm border border-white/20 bg-white/5 backdrop-blur-sm px-8 text-lg font-medium text-white transition-colors hover:bg-white/10 hover:border-white/40"
+                >
+                  <CreditCard className="w-5 h-5" />
+                  Pay Invoice
+                </a>
+              </div>
             </FadeIn>
           </div>
         </section>
