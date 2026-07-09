@@ -162,10 +162,10 @@ export default function Home() {
 
               <FadeIn delay={0.3} className="text-center px-4">
                 <p className="text-4xl md:text-5xl font-display font-bold text-white mb-2 leading-none">
-                  IAM
+                  Top&nbsp;300
                 </p>
                 <p className="text-primary-foreground/80 text-sm font-medium uppercase tracking-wider">
-                  Strategy 300 Ranked
+                  IP Strategists Worldwide
                 </p>
               </FadeIn>
 
@@ -174,7 +174,7 @@ export default function Home() {
                   Top&nbsp;10
                 </p>
                 <p className="text-primary-foreground/80 text-sm font-medium uppercase tracking-wider">
-                  USPTO Allowance Rate
+                  Allowance Rate — Multiple Tech Centers
                 </p>
               </FadeIn>
             </div>
