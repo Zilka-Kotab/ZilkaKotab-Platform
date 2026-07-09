@@ -1,0 +1,20 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "iSh0Z0ymf_lRzE4L2N-Vq"
+uri = "file://artifacts/zilka-kotab/public/images/hero-new.jpg"
+type = "image"
+title = "New Hero Background"
+
+[[outputs]]
+id = "VZGT0wEOxXawVBfH92BWE"
+uri = "file://artifacts/zilka-kotab/public/images/patent-doc.jpg"
+type = "image"
+title = "Patent Document Image"
+
+[[outputs]]
+id = "uiL9h5JhsY6J6mzDmB0Mj"
+uri = "file://artifacts/zilka-kotab/public/images/ai-patents.jpg"
+type = "image"
+title = "AI + Patents Section Image"
