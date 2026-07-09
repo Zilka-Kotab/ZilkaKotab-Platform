@@ -1,36 +1,41 @@
-# [Project name]
+# Zilka-Kotab PC
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+A modern, SEO-optimized marketing website for Zilka-Kotab PC — a Silicon Valley intellectual property law firm specializing in patent strategy and prosecution.
 
 ## Run & Operate
 
-- `pnpm --filter @workspace/api-server run dev` — run the API server (port 5000)
+- `pnpm --filter @workspace/zilka-kotab run dev` — run the website (managed via workflow `artifacts/zilka-kotab: web`)
 - `pnpm run typecheck` — full typecheck across all packages
-- `pnpm run build` — typecheck + build all packages
-- `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
-- `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
-- Required env: `DATABASE_URL` — Postgres connection string
+- `pnpm --filter @workspace/zilka-kotab run build` — build static output to `artifacts/zilka-kotab/dist/public/`
 
 ## Stack
 
 - pnpm workspaces, Node.js 24, TypeScript 5.9
-- API: Express 5
-- DB: PostgreSQL + Drizzle ORM
-- Validation: Zod (`zod/v4`), `drizzle-zod`
-- API codegen: Orval (from OpenAPI spec)
-- Build: esbuild (CJS bundle)
+- Frontend: React + Vite (react-vite artifact at `/`)
+- Routing: Wouter (SPA)
+- Styling: Tailwind CSS v4
+- Animation: Framer Motion (scroll-reveal, animated counters)
+- SEO: react-helmet-async (per-page meta, OG tags, Twitter cards, JSON-LD)
+- Forms: react-hook-form + zod validation
 
 ## Where things live
 
-_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
+- `artifacts/zilka-kotab/src/pages/` — Home, About, Services, Team, Contact
+- `artifacts/zilka-kotab/src/components/` — Navbar, Footer, SEO, FadeIn, AnimatedCounter
+- `artifacts/zilka-kotab/src/index.css` — theme tokens and global styles
+- `artifacts/zilka-kotab/public/images/` — AI-generated site images (hero, services, team portraits)
+- `artifacts/zilka-kotab/index.html` — base HTML with default SEO meta
 
 ## Architecture decisions
 
-_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
+- **No backend**: purely static SPA; contact form simulates submission client-side
+- **SEO via react-helmet-async**: per-page Helmet with unique title/description/OG/Twitter tags; Schema.org LegalService JSON-LD on home page
+- **AI-generated images**: hero, patent concept, and team portraits generated at build time and served from `public/images/`
+- **Wouter** for routing (lightweight, no React Router dependency)
 
 ## Product
 
-_Describe the high-level user-facing capabilities of this app once they exist._
+Five pages: Home (hero + stats + services overview + CTA), About (firm story + location), Services (detailed practice areas), Our Team (attorney profiles), Contact (validated form + contact info).
 
 ## User preferences
 
@@ -38,7 +43,9 @@ _Populate as you build — explicit user instructions worth remembering across s
 
 ## Gotchas
 
-_Populate as you build — sharp edges, "always run X before Y" rules._
+- Brand primary color: `#1B268C` (navy/indigo) — preserve in theme updates
+- Images referenced as `${import.meta.env.BASE_URL}images/filename` (not via `@assets`) since they are in `public/`
+- Logo imported via `@assets/zilka-logo.png` (alias points to `attached_assets/`)
 
 ## Pointers
 

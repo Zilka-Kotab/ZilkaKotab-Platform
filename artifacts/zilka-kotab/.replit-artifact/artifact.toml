@@ -1,0 +1,27 @@
+kind = "web"
+previewPath = "/"
+title = "Zilka-Kotab PC Website"
+version = "1.0.0"
+id = "artifacts/zilka-kotab"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 22346
+
+[services.development]
+run = "pnpm --filter @workspace/zilka-kotab run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/zilka-kotab", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/zilka-kotab/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "22346"
+BASE_PATH = "/"
