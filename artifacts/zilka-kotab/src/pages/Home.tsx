@@ -256,10 +256,10 @@ export default function Home() {
                   claim drafting, and portfolio analysis — delivering sharper results in less time.
                 </p>
                 <Link
-                  href="/services"
+                  href="/about"
                   className="inline-flex items-center gap-2 text-primary-foreground font-medium hover:opacity-80 group"
                 >
-                  Learn about our AI patent practice
+                  Learn more about our firm
                   <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
                 </Link>
               </FadeIn>
@@ -295,85 +295,73 @@ export default function Home() {
 
         {/* ── TECHNICAL EXPERTISE ── */}
         <section className="py-24 bg-muted overflow-hidden relative">
-          <div className="container mx-auto px-4 relative z-10">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-              <FadeIn direction="right">
-                <h2 className="text-3xl md:text-5xl font-display font-bold mb-6 text-balance">
-                  Speaking the language of{' '}
-                  <span className="text-primary">innovation</span>.
-                </h2>
-                <p className="text-lg text-muted-foreground mb-8 leading-relaxed">
-                  Our attorneys are engineers and scientists first. Across every technology domain we
-                  serve, we understand the invention deeply before we draft a single claim.
-                </p>
-                <ul className="space-y-3 mb-10">
-                  {techAreas.map(({ label, icon: Icon }) => (
-                    <li key={label} className="flex items-center gap-3">
-                      <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                        <Icon className="w-4 h-4 text-primary" />
-                      </div>
-                      <span className="font-medium text-foreground">{label}</span>
-                    </li>
-                  ))}
-                </ul>
-                <Link
-                  href="/about"
-                  className="inline-flex h-12 items-center justify-center rounded-sm bg-secondary px-8 text-sm font-medium text-secondary-foreground shadow-sm transition-colors hover:bg-secondary/90"
-                >
-                  Read Our Story
-                </Link>
-              </FadeIn>
-
-              <FadeIn direction="left">
-                <div className="relative">
-                  <div className="absolute inset-0 bg-primary/5 rounded-3xl translate-x-4 translate-y-4" />
-                  <img
-                    src={`${baseUrl}/images/patent-doc.jpg`}
-                    alt="Official US patent certificate with technology elements"
-                    className="relative rounded-3xl shadow-2xl object-cover aspect-square md:aspect-[4/3] w-full"
-                  />
-                </div>
-              </FadeIn>
+          <div className="container mx-auto px-4 relative z-10 max-w-4xl">
+            <FadeIn>
+              <h2 className="text-3xl md:text-5xl font-display font-bold mb-6 text-balance">
+                Speaking the language of{' '}
+                <span className="text-primary">innovation</span>.
+              </h2>
+              <p className="text-lg text-muted-foreground mb-10 leading-relaxed max-w-2xl">
+                Our attorneys are engineers and scientists first. Across every technology domain we
+                serve, we understand the invention deeply before we draft a single claim.
+              </p>
+            </FadeIn>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-12">
+              {techAreas.map(({ label, icon: Icon }, i) => (
+                <FadeIn key={label} delay={i * 0.07}>
+                  <div className="flex flex-col items-center text-center gap-3 p-5 rounded-2xl bg-background border border-border hover:border-primary/30 hover:shadow-md transition-all duration-300">
+                    <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                      <Icon className="w-5 h-5 text-primary" />
+                    </div>
+                    <span className="text-sm font-semibold text-foreground leading-tight">{label}</span>
+                  </div>
+                </FadeIn>
+              ))}
             </div>
+            <FadeIn delay={0.4}>
+              <Link
+                href="/about"
+                className="inline-flex h-12 items-center justify-center rounded-sm bg-secondary px-8 text-sm font-medium text-secondary-foreground shadow-sm transition-colors hover:bg-secondary/90"
+              >
+                Read Our Story
+              </Link>
+            </FadeIn>
           </div>
         </section>
 
         {/* ── ACCOLADES BAND ── */}
-        <section className="py-16 bg-background border-y border-border">
+        <section className="py-20 bg-background border-y border-border">
           <div className="container mx-auto px-4">
             <FadeIn>
-              <p className="text-center text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-10">
+              <p className="text-center text-sm font-semibold uppercase tracking-widest text-muted-foreground mb-14">
                 Recognition &amp; Rankings
               </p>
             </FadeIn>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 max-w-4xl mx-auto text-center">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-10 max-w-5xl mx-auto text-center">
               {[
                 {
                   icon: Award,
-                  headline: 'IAM Strategy 300',
-                  sub: "World's Leading IP Strategists",
+                  headline: 'Top 300 IP Strategists',
+                  sub: 'Ranked among the world\'s best by IAM Strategy 300',
                 },
                 {
                   icon: Award,
                   headline: 'Super Lawyers',
-                  sub: 'Northern California — IP Law',
+                  sub: 'Repeatedly honored in Northern California IP Law',
                 },
                 {
                   icon: Award,
-                  headline: 'Top 10 Nation',
-                  sub: 'USPTO Allowance Rate — TC2100 &amp; TC2600',
+                  headline: 'Top 10 Allowance Rate',
+                  sub: 'Nationally ranked across multiple USPTO Tech Centers',
                 },
               ].map((item, i) => (
                 <FadeIn key={item.headline} delay={i * 0.1}>
-                  <div className="flex flex-col items-center gap-3">
-                    <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                      <item.icon className="w-6 h-6 text-primary" />
+                  <div className="flex flex-col items-center gap-4">
+                    <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center">
+                      <item.icon className="w-7 h-7 text-primary" />
                     </div>
-                    <p className="font-display font-bold text-foreground text-lg">{item.headline}</p>
-                    <p
-                      className="text-sm text-muted-foreground"
-                      dangerouslySetInnerHTML={{ __html: item.sub }}
-                    />
+                    <p className="font-display font-bold text-foreground text-2xl leading-tight">{item.headline}</p>
+                    <p className="text-base text-muted-foreground leading-snug max-w-[200px]">{item.sub}</p>
                   </div>
                 </FadeIn>
               ))}
