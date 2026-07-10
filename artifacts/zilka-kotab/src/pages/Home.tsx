@@ -139,42 +139,42 @@ export default function Home() {
         </section>
 
         {/* ── STATS BAR ── */}
-        <section className="bg-primary py-12 relative z-20 -mt-8 mx-4 md:mx-8 lg:mx-auto max-w-6xl rounded-lg shadow-xl">
-          <div className="container mx-auto px-8">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-8 divide-x divide-white/10">
-              <FadeIn delay={0.1} className="text-center px-4">
+        <section className="bg-primary py-10 relative z-20 -mt-8 mx-4 md:mx-8 lg:mx-auto max-w-6xl rounded-lg shadow-xl">
+          <div className="container mx-auto px-6">
+            <div className="grid grid-cols-2 md:grid-cols-4">
+              <FadeIn delay={0.1} className="text-center px-6 py-2 border-r border-white/10">
                 <p className="text-4xl md:text-5xl font-display font-bold text-white mb-2">
                   <AnimatedCounter value={5500} suffix="+" />
                 </p>
-                <p className="text-primary-foreground/80 text-sm font-medium uppercase tracking-wider">
+                <p className="text-primary-foreground/70 text-xs font-semibold uppercase tracking-widest">
                   Issued Patents
                 </p>
               </FadeIn>
 
-              <FadeIn delay={0.2} className="text-center px-4">
+              <FadeIn delay={0.2} className="text-center px-6 py-2 md:border-r border-white/10">
                 <p className="text-4xl md:text-5xl font-display font-bold text-white mb-2">
                   <AnimatedCounter value={yearsInBusiness} suffix="+" />
                 </p>
-                <p className="text-primary-foreground/80 text-sm font-medium uppercase tracking-wider">
+                <p className="text-primary-foreground/70 text-xs font-semibold uppercase tracking-widest">
                   Years in Business
                 </p>
               </FadeIn>
 
-              <FadeIn delay={0.3} className="text-center px-4">
+              <FadeIn delay={0.3} className="text-center px-6 py-2 border-r border-white/10">
                 <p className="text-4xl md:text-5xl font-display font-bold text-white mb-2 leading-none">
                   Top&nbsp;300
                 </p>
-                <p className="text-primary-foreground/80 text-sm font-medium uppercase tracking-wider">
+                <p className="text-primary-foreground/70 text-xs font-semibold uppercase tracking-widest">
                   IP Strategists Worldwide
                 </p>
               </FadeIn>
 
-              <FadeIn delay={0.4} className="text-center px-4">
+              <FadeIn delay={0.4} className="text-center px-6 py-2">
                 <p className="text-4xl md:text-5xl font-display font-bold text-white mb-2 leading-none">
                   Top&nbsp;10
                 </p>
-                <p className="text-primary-foreground/80 text-sm font-medium uppercase tracking-wider">
-                  Allowance Rate — Multiple Tech Centers
+                <p className="text-primary-foreground/70 text-xs font-semibold uppercase tracking-widest">
+                  USPTO Allowance Rate
                 </p>
               </FadeIn>
             </div>
