@@ -164,8 +164,8 @@ export default function Home() {
                 <p className="text-4xl md:text-5xl font-display font-bold text-white mb-2 leading-none">
                   Top&nbsp;300
                 </p>
-                <p className="text-primary-foreground/70 text-xs font-semibold uppercase tracking-widest">
-                  IP Strategists Worldwide
+                <p className="text-primary-foreground/70 text-xs font-semibold uppercase tracking-widest leading-relaxed">
+                  IP Strategists<br />Worldwide
                 </p>
               </FadeIn>
 
@@ -173,8 +173,8 @@ export default function Home() {
                 <p className="text-4xl md:text-5xl font-display font-bold text-white mb-2 leading-none">
                   Top&nbsp;10
                 </p>
-                <p className="text-primary-foreground/70 text-xs font-semibold uppercase tracking-widest">
-                  USPTO Allowance Rate
+                <p className="text-primary-foreground/70 text-xs font-semibold uppercase tracking-widest leading-relaxed">
+                  USPTO<br />Allowance Rate
                 </p>
               </FadeIn>
             </div>
