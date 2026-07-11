@@ -3,7 +3,7 @@ import { Link } from 'wouter';
 import {
   ArrowRight, ShieldCheck, Scale, FileBadge,
   Code2, Cpu, Settings2, Layers, FlaskConical,
-  CreditCard, Brain, Award,
+  CreditCard, Brain, Award, PlayCircle,
 } from 'lucide-react';
 import { SEO } from '@/components/SEO';
 import { FadeIn } from '@/components/FadeIn';
@@ -369,6 +369,77 @@ export default function Home() {
                   </div>
                 </FadeIn>
               ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ── FIRM PHILOSOPHY ── */}
+        <section className="py-24 md:py-32 bg-muted">
+          <div className="container mx-auto px-4">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center max-w-6xl mx-auto">
+
+              {/* Video placeholder */}
+              <FadeIn direction="right">
+                <div className="relative rounded-2xl overflow-hidden shadow-2xl aspect-video bg-secondary group cursor-pointer">
+                  {/* Replace this <video> src with your actual video file */}
+                  <video
+                    className="w-full h-full object-cover opacity-60"
+                    poster=""
+                    preload="none"
+                  />
+                  {/* Dark overlay */}
+                  <div className="absolute inset-0 bg-secondary/50" />
+                  {/* Placeholder text behind play button */}
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-4">
+                    <div className="w-20 h-20 rounded-full bg-white/10 border-2 border-white/30 flex items-center justify-center backdrop-blur-sm group-hover:bg-white/20 group-hover:scale-110 transition-all duration-300">
+                      <PlayCircle className="w-10 h-10 text-white" />
+                    </div>
+                    <p className="text-white/50 text-sm font-medium uppercase tracking-widest">Video coming soon</p>
+                  </div>
+                  {/* Gold accent corner */}
+                  <div className="absolute top-4 left-4 w-12 h-px bg-accent" />
+                  <div className="absolute top-4 left-4 w-px h-12 bg-accent" />
+                  <div className="absolute bottom-4 right-4 w-12 h-px bg-accent" />
+                  <div className="absolute bottom-4 right-4 w-px h-12 bg-accent" />
+                </div>
+              </FadeIn>
+
+              {/* Philosophy text */}
+              <FadeIn direction="left">
+                <div className="inline-flex items-center gap-3 mb-6">
+                  <span className="w-8 h-px bg-accent" />
+                  <span className="text-xs font-semibold uppercase tracking-widest text-accent">Our Philosophy</span>
+                </div>
+                <h2 className="text-3xl md:text-4xl font-display font-bold text-foreground mb-6 leading-tight text-balance">
+                  Patents are a business tool,<br className="hidden md:block" /> not just a legal formality.
+                </h2>
+                <div className="space-y-4 text-muted-foreground leading-relaxed">
+                  <p>
+                    At Zilka-Kotab, we believe that great IP strategy begins long before a patent is filed.
+                    We immerse ourselves in our clients' technology, their markets, and their competitive
+                    landscape — so every patent we craft is engineered to do real business work.
+                  </p>
+                  <p>
+                    Our goal is simple: build patent portfolios that create durable competitive moats,
+                    support licensing revenue, and hold up under the scrutiny of litigation. We measure
+                    success not by volume, but by the strategic value each asset delivers.
+                  </p>
+                  <p>
+                    We are scientists and engineers who became lawyers — and that perspective shapes
+                    every engagement. Precision, depth, and relentless attention to the claims that matter.
+                  </p>
+                </div>
+                <div className="mt-8">
+                  <Link
+                    href="/about"
+                    className="inline-flex items-center gap-2 text-primary font-semibold hover:text-primary/80 group"
+                  >
+                    Learn more about our firm
+                    <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+                  </Link>
+                </div>
+              </FadeIn>
+
             </div>
           </div>
         </section>
