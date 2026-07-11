@@ -146,35 +146,35 @@ export default function Home() {
                 <p className="text-4xl md:text-5xl font-display font-bold text-white mb-2">
                   <AnimatedCounter value={5500} suffix="+" />
                 </p>
-                <p className="text-primary-foreground/70 text-xs font-semibold uppercase tracking-widest">
-                  Issued Patents
+                <p className="text-primary-foreground/70 text-xs font-semibold uppercase tracking-widest leading-relaxed">
+                  Patents<br />Issued
                 </p>
               </FadeIn>
 
               <FadeIn delay={0.2} className="text-center px-6 py-2 md:border-r border-white/10">
-                <p className="text-4xl md:text-5xl font-display font-bold text-white mb-2">
-                  <AnimatedCounter value={yearsInBusiness} suffix="+" />
+                <p className="text-4xl md:text-5xl font-display font-bold text-white mb-2 leading-none">
+                  $<AnimatedCounter value={130} suffix="M+" />
                 </p>
-                <p className="text-primary-foreground/70 text-xs font-semibold uppercase tracking-widest">
-                  Years in Business
+                <p className="text-primary-foreground/70 text-xs font-semibold uppercase tracking-widest leading-relaxed">
+                  Patent<br />Licensing Value
                 </p>
               </FadeIn>
 
               <FadeIn delay={0.3} className="text-center px-6 py-2 border-r border-white/10">
                 <p className="text-4xl md:text-5xl font-display font-bold text-white mb-2 leading-none">
-                  Top&nbsp;300
+                  <AnimatedCounter value={500} suffix="+" />
                 </p>
                 <p className="text-primary-foreground/70 text-xs font-semibold uppercase tracking-widest leading-relaxed">
-                  IP Strategists<br />Worldwide
+                  Active Patent<br />Families Managed
                 </p>
               </FadeIn>
 
               <FadeIn delay={0.4} className="text-center px-6 py-2">
                 <p className="text-4xl md:text-5xl font-display font-bold text-white mb-2 leading-none">
-                  Top&nbsp;10
+                  <AnimatedCounter value={yearsInBusiness} suffix="+" />&nbsp;Yrs
                 </p>
                 <p className="text-primary-foreground/70 text-xs font-semibold uppercase tracking-widest leading-relaxed">
-                  USPTO<br />Allowance Rate
+                  Helping Companies<br />Innovate
                 </p>
               </FadeIn>
             </div>
