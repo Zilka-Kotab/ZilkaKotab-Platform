@@ -178,8 +178,8 @@ export default function Contact() {
                   <h3 className="text-lg font-display font-semibold uppercase tracking-wider text-muted-foreground mb-6">Contact Info</h3>
                   <ul className="space-y-6">
                     <li className="flex items-start gap-4">
-                      <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                        <MapPin className="w-5 h-5 text-primary" />
+                      <div className="w-12 h-12 rounded-full bg-accent/15 flex items-center justify-center shrink-0">
+                        <MapPin className="w-5 h-5 text-accent" />
                       </div>
                       <div>
                         <p className="font-semibold text-foreground mb-1">Headquarters</p>
@@ -187,8 +187,8 @@ export default function Contact() {
                       </div>
                     </li>
                     <li className="flex items-start gap-4">
-                      <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                        <Phone className="w-5 h-5 text-primary" />
+                      <div className="w-12 h-12 rounded-full bg-accent/15 flex items-center justify-center shrink-0">
+                        <Phone className="w-5 h-5 text-accent" />
                       </div>
                       <div>
                         <p className="font-semibold text-foreground mb-1">Phone</p>
@@ -196,8 +196,8 @@ export default function Contact() {
                       </div>
                     </li>
                     <li className="flex items-start gap-4">
-                      <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                        <Mail className="w-5 h-5 text-primary" />
+                      <div className="w-12 h-12 rounded-full bg-accent/15 flex items-center justify-center shrink-0">
+                        <Mail className="w-5 h-5 text-accent" />
                       </div>
                       <div>
                         <p className="font-semibold text-foreground mb-1">Email</p>
@@ -205,8 +205,8 @@ export default function Contact() {
                       </div>
                     </li>
                     <li className="flex items-start gap-4">
-                      <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                        <Clock className="w-5 h-5 text-primary" />
+                      <div className="w-12 h-12 rounded-full bg-accent/15 flex items-center justify-center shrink-0">
+                        <Clock className="w-5 h-5 text-accent" />
                       </div>
                       <div>
                         <p className="font-semibold text-foreground mb-1">Office Hours</p>

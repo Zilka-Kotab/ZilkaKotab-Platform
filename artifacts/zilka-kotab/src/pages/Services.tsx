@@ -75,8 +75,8 @@ export default function Services() {
                     
                     <div className="lg:w-1/2 w-full">
                       <FadeIn delay={0.1} direction={isEven ? "right" : "left"}>
-                        <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-8">
-                          <service.icon className="w-8 h-8 text-primary" />
+                        <div className="w-16 h-16 rounded-2xl bg-accent/15 flex items-center justify-center mb-8">
+                          <service.icon className="w-8 h-8 text-accent" />
                         </div>
                         <h2 className="text-3xl md:text-4xl font-display font-bold mb-6">{service.title}</h2>
                         <p className="text-xl text-foreground font-medium mb-6 leading-relaxed">

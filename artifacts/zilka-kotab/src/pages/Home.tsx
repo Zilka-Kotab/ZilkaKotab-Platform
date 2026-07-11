@@ -97,9 +97,9 @@ export default function Home() {
           <div className="container mx-auto px-4 relative z-10">
             <div className="max-w-3xl">
               <FadeIn delay={0.1}>
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/20 border border-primary/30 text-primary-foreground backdrop-blur-sm mb-8">
-                  <span className="w-2 h-2 rounded-full bg-primary-foreground animate-pulse" />
-                  <span className="text-sm font-medium tracking-wide">Silicon Valley IP Strategists</span>
+                <div className="inline-flex items-center gap-3 mb-8">
+                  <span className="w-8 h-px bg-accent" />
+                  <span className="text-xs font-semibold uppercase tracking-widest text-accent">Silicon Valley IP Strategists</span>
                 </div>
               </FadeIn>
 
@@ -200,8 +200,8 @@ export default function Home() {
               {services.map((service, index) => (
                 <FadeIn key={service.title} delay={index * 0.1}>
                   <div className="group h-full bg-card p-8 rounded-2xl border border-border shadow-sm hover:shadow-xl transition-all duration-300 hover:border-primary/20">
-                    <div className="w-14 h-14 rounded-xl bg-primary/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
-                      <service.icon className="w-7 h-7 text-primary" />
+                    <div className="w-14 h-14 rounded-xl bg-accent/15 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
+                      <service.icon className="w-7 h-7 text-accent" />
                     </div>
                     <h3 className="text-xl font-display font-semibold mb-4 text-foreground">
                       {service.title}
@@ -237,9 +237,9 @@ export default function Home() {
           <div className="container mx-auto px-4 relative z-10">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
               <FadeIn direction="right">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/20 border border-primary/30 text-primary-foreground mb-6">
-                  <Brain className="w-4 h-4" />
-                  <span className="text-xs font-medium tracking-widest uppercase">AI &amp; Patents</span>
+                <div className="inline-flex items-center gap-3 mb-6">
+                  <span className="w-8 h-px bg-accent" />
+                  <span className="text-xs font-semibold uppercase tracking-widest text-accent">AI &amp; Patents</span>
                 </div>
                 <h2 className="text-3xl md:text-5xl font-display font-bold mb-6 text-balance text-white">
                   At the frontier of{' '}
@@ -310,8 +310,8 @@ export default function Home() {
               {techAreas.map(({ label, icon: Icon }, i) => (
                 <FadeIn key={label} delay={i * 0.07}>
                   <div className="flex flex-col items-center text-center gap-3 p-5 rounded-2xl bg-background border border-border hover:border-primary/30 hover:shadow-md transition-all duration-300">
-                    <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                      <Icon className="w-5 h-5 text-primary" />
+                    <div className="w-10 h-10 rounded-xl bg-accent/15 flex items-center justify-center">
+                      <Icon className="w-5 h-5 text-accent" />
                     </div>
                     <span className="text-sm font-semibold text-foreground leading-tight">{label}</span>
                   </div>
@@ -333,9 +333,13 @@ export default function Home() {
         <section className="py-20 bg-background border-y border-border">
           <div className="container mx-auto px-4">
             <FadeIn>
-              <p className="text-center text-sm font-semibold uppercase tracking-widest text-muted-foreground mb-14">
-                Recognition &amp; Rankings
-              </p>
+              <div className="flex items-center justify-center gap-3 mb-14">
+                <span className="w-8 h-px bg-accent opacity-70" />
+                <p className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
+                  Recognition &amp; Rankings
+                </p>
+                <span className="w-8 h-px bg-accent opacity-70" />
+              </div>
             </FadeIn>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-10 max-w-5xl mx-auto text-center">
               {[
@@ -357,8 +361,8 @@ export default function Home() {
               ].map((item, i) => (
                 <FadeIn key={item.headline} delay={i * 0.1}>
                   <div className="flex flex-col items-center gap-4">
-                    <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center">
-                      <item.icon className="w-7 h-7 text-primary" />
+                    <div className="w-14 h-14 rounded-full bg-accent/15 flex items-center justify-center">
+                      <item.icon className="w-7 h-7 text-accent" />
                     </div>
                     <p className="font-display font-bold text-foreground text-2xl leading-tight">{item.headline}</p>
                     <p className="text-base text-muted-foreground leading-snug max-w-[200px]">{item.sub}</p>
