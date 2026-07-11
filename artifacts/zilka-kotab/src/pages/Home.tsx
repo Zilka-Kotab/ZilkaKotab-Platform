@@ -346,7 +346,7 @@ export default function Home() {
                 {
                   icon: Award,
                   headline: 'Top 300 IP Strategists',
-                  sub: 'Ranked among the world\'s best by IAM Strategy 300',
+                  sub: 'Repeatedly ranked 10+ years among the world\'s best by IAM Strategy 300',
                 },
                 {
                   icon: Award,
@@ -356,7 +356,7 @@ export default function Home() {
                 {
                   icon: Award,
                   headline: 'Top 10 Allowance Rate',
-                  sub: 'Nationally ranked across multiple USPTO Tech Centers',
+                  sub: 'Top ranked across multiple USPTO Tech Centers',
                 },
               ].map((item, i) => (
                 <FadeIn key={item.headline} delay={i * 0.1}>
