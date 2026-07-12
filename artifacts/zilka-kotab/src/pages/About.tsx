@@ -85,6 +85,40 @@ export default function About() {
 
           </div>
         </section>
+        {/* Representative Clients */}
+        <section className="container mx-auto px-4 mt-24">
+          <FadeIn>
+            <div className="text-center max-w-2xl mx-auto mb-14">
+              <div className="inline-flex items-center gap-3 mb-4">
+                <span className="w-8 h-px bg-accent" />
+                <span className="text-xs font-semibold uppercase tracking-widest text-accent">Representative Clients</span>
+                <span className="w-8 h-px bg-accent" />
+              </div>
+              <h2 className="text-3xl md:text-4xl font-display font-bold text-foreground mb-4">
+                Trusted Across Industries
+              </h2>
+              <p className="text-muted-foreground leading-relaxed">
+                Our clients include companies of all sizes — from select high-tech start-ups and mid-sized manufacturing firms to some of the largest and best-known companies in the world.
+              </p>
+            </div>
+          </FadeIn>
+
+          <div className="flex flex-wrap justify-center gap-3 max-w-4xl mx-auto">
+            {[
+              'Amdocs', 'AWID', 'Clorox', 'IBM', 'Intelleflex', 'JustAnswer',
+              'Monolithic Power Systems', 'Kofax', 'Kynded', 'Method',
+              'NVIDIA', 'Reverse Risk', 'Saisei', 'Semphonic', 'TiKL',
+              'Pricelite', 'Morisawa', 'Lawrence Livermore National Laboratory',
+            ].map((name, i) => (
+              <FadeIn key={name} delay={i * 0.04}>
+                <span className="inline-block px-5 py-2.5 rounded-full border border-border bg-muted text-sm font-medium text-foreground/80 hover:border-accent/40 hover:text-foreground transition-colors">
+                  {name}
+                </span>
+              </FadeIn>
+            ))}
+          </div>
+        </section>
+
       </main>
     </>
   );
