@@ -18,7 +18,7 @@ export function Footer() {
               className="h-9 w-auto object-contain brightness-0 invert opacity-90"
             />
             <p className="text-primary-foreground/60 text-sm leading-relaxed">
-              Silicon Valley IP Strategists. Absolute precision in patent procurement, strategy, and litigation support.
+              Absolute precision in patent procurement, strategy, and litigation support.
             </p>
           </div>
 

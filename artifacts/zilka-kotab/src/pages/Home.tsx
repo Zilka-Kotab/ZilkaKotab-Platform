@@ -435,6 +435,11 @@ export default function Home() {
               {[
                 {
                   icon: Award,
+                  headline: 'Top 300 IP Strategists',
+                  sub: 'Repeatedly ranked 10+ years among the world\'s best by IAM Strategy 300',
+                },
+                {
+                  icon: Award,
                   headline: 'Super Lawyers',
                   sub: 'Repeatedly honored in Northern California IP Law',
                 },
