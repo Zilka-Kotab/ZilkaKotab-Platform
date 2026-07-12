@@ -14,7 +14,7 @@ export default function Team() {
   return (
     <>
       <SEO
-        title="Our Team"
+        title="Team"
         description="Meet the principals and patent agents at Zilka-Kotab PC — registered patent attorneys with deep technical expertise in Silicon Valley IP law."
         url="/team"
       />
@@ -23,7 +23,7 @@ export default function Team() {
         {/* Page Header */}
         <section className="container mx-auto px-4 mb-20">
           <FadeIn>
-            <h1 className="text-5xl md:text-7xl font-display font-bold text-foreground mb-6">Our Team</h1>
+            <h1 className="text-5xl md:text-7xl font-display font-bold text-foreground mb-6">Team</h1>
             <p className="text-xl md:text-2xl text-muted-foreground max-w-3xl leading-relaxed">
               Engineers and scientists first, attorneys second. Our team combines deep technical fluency with relentless legal precision.
             </p>

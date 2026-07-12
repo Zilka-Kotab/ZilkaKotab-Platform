@@ -10,7 +10,7 @@ const navLinks = [
   { name: 'Home', path: '/' },
   { name: 'About', path: '/about' },
   { name: 'Services', path: '/services' },
-  { name: 'Our Team', path: '/team' },
+  { name: 'Team', path: '/team' },
 ];
 
 export function Navbar() {

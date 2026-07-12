@@ -1,5 +1,4 @@
 import React from 'react';
-import { Link } from 'wouter';
 import { Mail, MapPin, Phone } from 'lucide-react';
 import zilkaLogo from '@assets/zilka-logo.png';
 
@@ -38,21 +37,6 @@ export function Footer() {
               <a href="mailto:patent@zilkakotab.com" className="hover:text-white transition-colors">patent@zilkakotab.com</a>
             </li>
           </ul>
-
-          {/* Nav links */}
-          <nav className="flex flex-col gap-3">
-            {[
-              { href: '/', label: 'Home' },
-              { href: '/about', label: 'About' },
-              { href: '/services', label: 'Services' },
-              { href: '/team', label: 'Our Team' },
-              { href: '/contact', label: 'Contact' },
-            ].map(({ href, label }) => (
-              <Link key={href} href={href} className="text-sm text-primary-foreground/70 hover:text-white transition-colors">
-                {label}
-              </Link>
-            ))}
-          </nav>
 
         </div>
 
