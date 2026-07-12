@@ -253,14 +253,14 @@ export default function Home() {
         </section>
 
         {/* ── SERVICES OVERVIEW ── */}
-        <section className="py-24 md:py-32 bg-background">
+        <section className="py-24 md:py-32 bg-primary">
           <div className="container mx-auto px-4">
             <div className="text-center max-w-3xl mx-auto mb-20">
               <FadeIn>
-                <h2 className="text-3xl md:text-5xl font-display font-bold text-foreground mb-6">
+                <h2 className="text-3xl md:text-5xl font-display font-bold text-white mb-6">
                   Strategic Legal Action
                 </h2>
-                <p className="text-lg text-muted-foreground">
+                <p className="text-lg text-white/70">
                   We don't just write patents. We fuse IP procurement with a deep understanding of
                   your business objectives, competitors, and market landscape.
                 </p>
@@ -270,14 +270,14 @@ export default function Home() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               {services.map((service, index) => (
                 <FadeIn key={service.title} delay={index * 0.1}>
-                  <div className="group h-full bg-card p-8 rounded-2xl border border-border shadow-sm hover:shadow-xl transition-all duration-300 hover:border-primary/20">
-                    <div className="w-14 h-14 rounded-xl bg-accent/15 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
+                  <div className="group h-full bg-white/5 p-8 rounded-2xl border border-white/10 hover:bg-white/10 transition-all duration-300">
+                    <div className="w-14 h-14 rounded-xl bg-accent/20 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
                       <service.icon className="w-7 h-7 text-accent" />
                     </div>
-                    <h3 className="text-xl font-display font-semibold mb-4 text-foreground">
+                    <h3 className="text-xl font-display font-semibold mb-4 text-white">
                       {service.title}
                     </h3>
-                    <p className="text-muted-foreground leading-relaxed">{service.description}</p>
+                    <p className="text-white/65 leading-relaxed">{service.description}</p>
                   </div>
                 </FadeIn>
               ))}
@@ -286,7 +286,7 @@ export default function Home() {
             <FadeIn delay={0.4} className="mt-16 text-center">
               <Link
                 href="/services"
-                className="inline-flex items-center text-primary font-medium hover:text-primary/80 group"
+                className="inline-flex items-center text-accent font-medium hover:text-accent/80 group"
               >
                 View all practice areas
                 <ArrowRight className="ml-2 w-4 h-4 transition-transform group-hover:translate-x-1" />
@@ -296,14 +296,13 @@ export default function Home() {
         </section>
 
         {/* ── AI + PATENTS ── */}
-        <section className="py-24 bg-secondary text-secondary-foreground overflow-hidden relative">
+        <section className="py-24 bg-muted overflow-hidden relative">
           <div className="absolute inset-0 z-0">
             <img
               src={`${baseUrl}/images/ai-patents.jpg`}
               alt="AI and patent integration concept"
-              className="w-full h-full object-cover opacity-20"
+              className="w-full h-full object-cover opacity-5"
             />
-            <div className="absolute inset-0 bg-gradient-to-r from-secondary via-secondary/95 to-secondary/70" />
           </div>
           <div className="container mx-auto px-4 relative z-10">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
@@ -312,23 +311,23 @@ export default function Home() {
                   <span className="w-8 h-px bg-accent" />
                   <span className="text-xs font-semibold uppercase tracking-widest text-accent">AI &amp; Patents</span>
                 </div>
-                <h2 className="text-3xl md:text-5xl font-display font-bold mb-6 text-balance text-white">
+                <h2 className="text-3xl md:text-5xl font-display font-bold mb-6 text-balance text-foreground">
                   At the frontier of{' '}
-                  <span className="text-primary-foreground">AI-driven IP.</span>
+                  <span className="text-primary">AI-driven IP.</span>
                 </h2>
-                <p className="text-lg text-white/75 mb-6 leading-relaxed">
+                <p className="text-lg text-muted-foreground mb-6 leading-relaxed">
                   Artificial intelligence is reshaping every industry — and patent law is no exception.
                   We are at the forefront of AI-related patent strategy, helping clients protect
                   machine learning systems, neural network architectures, and AI-powered products
                   before competitors stake their claim.
                 </p>
-                <p className="text-lg text-white/75 mb-10 leading-relaxed">
+                <p className="text-lg text-muted-foreground mb-10 leading-relaxed">
                   We also leverage AI-assisted tools internally to accelerate prior art searches,
                   claim drafting, and portfolio analysis — delivering sharper results in less time.
                 </p>
                 <Link
                   href="/about"
-                  className="inline-flex items-center gap-2 text-primary-foreground font-medium hover:opacity-80 group"
+                  className="inline-flex items-center gap-2 text-primary font-medium hover:text-primary/80 group"
                 >
                   Learn more about our firm
                   <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
@@ -352,9 +351,9 @@ export default function Home() {
                     },
                   ].map((item, i) => (
                     <FadeIn key={item.title} delay={i * 0.1}>
-                      <div className="p-6 rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm">
-                        <h3 className="font-display font-semibold text-white mb-2">{item.title}</h3>
-                        <p className="text-sm text-white/65 leading-relaxed">{item.body}</p>
+                      <div className="p-6 rounded-xl border border-border bg-card shadow-sm">
+                        <h3 className="font-display font-semibold text-foreground mb-2">{item.title}</h3>
+                        <p className="text-sm text-muted-foreground leading-relaxed">{item.body}</p>
                       </div>
                     </FadeIn>
                   ))}
@@ -365,14 +364,14 @@ export default function Home() {
         </section>
 
         {/* ── TECHNICAL EXPERTISE ── */}
-        <section className="py-24 bg-muted overflow-hidden relative">
+        <section className="py-24 bg-primary overflow-hidden relative">
           <div className="container mx-auto px-4 relative z-10 max-w-4xl">
             <FadeIn>
-              <h2 className="text-3xl md:text-5xl font-display font-bold mb-6 text-balance">
+              <h2 className="text-3xl md:text-5xl font-display font-bold mb-6 text-balance text-white">
                 Speaking the language of{' '}
-                <span className="text-primary">innovation</span>.
+                <span className="text-accent">innovation</span>.
               </h2>
-              <p className="text-lg text-muted-foreground mb-10 leading-relaxed max-w-2xl">
+              <p className="text-lg text-white/70 mb-10 leading-relaxed max-w-2xl">
                 Our attorneys are engineers and scientists first. Across every technology domain we
                 serve, we understand the invention deeply before we draft a single claim.
               </p>
@@ -380,11 +379,11 @@ export default function Home() {
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-12">
               {techAreas.map(({ label, icon: Icon }, i) => (
                 <FadeIn key={label} delay={i * 0.07}>
-                  <div className="flex flex-col items-center text-center gap-3 p-5 rounded-2xl bg-background border border-border hover:border-primary/30 hover:shadow-md transition-all duration-300">
-                    <div className="w-10 h-10 rounded-xl bg-accent/15 flex items-center justify-center">
+                  <div className="flex flex-col items-center text-center gap-3 p-5 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all duration-300">
+                    <div className="w-10 h-10 rounded-xl bg-accent/20 flex items-center justify-center">
                       <Icon className="w-5 h-5 text-accent" />
                     </div>
-                    <span className="text-sm font-semibold text-foreground leading-tight">{label}</span>
+                    <span className="text-sm font-semibold text-white leading-tight">{label}</span>
                   </div>
                 </FadeIn>
               ))}
@@ -392,7 +391,7 @@ export default function Home() {
             <FadeIn delay={0.4}>
               <Link
                 href="/about"
-                className="inline-flex h-12 items-center justify-center rounded-sm bg-secondary px-8 text-sm font-medium text-secondary-foreground shadow-sm transition-colors hover:bg-secondary/90"
+                className="inline-flex h-12 items-center justify-center rounded-sm bg-white px-8 text-sm font-medium text-primary shadow-sm transition-colors hover:bg-white/90"
               >
                 Read Our Story
               </Link>
