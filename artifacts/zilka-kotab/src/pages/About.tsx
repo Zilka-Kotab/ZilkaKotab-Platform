@@ -49,7 +49,7 @@ export default function About() {
             {/* Sidebar / Location Info */}
             <div className="lg:col-span-5">
               <FadeIn delay={0.15}>
-                <div className="rounded-2xl overflow-hidden shadow-xl mb-8 aspect-[3/2]">
+                <div className="rounded-2xl overflow-hidden shadow-xl mb-6 h-32">
                   <img
                     src={`${baseUrl}/images/office.jpg`}
                     alt="Zilka-Kotab PC office building in San Jose"
@@ -63,7 +63,7 @@ export default function About() {
                 <p className="text-foreground/80 leading-relaxed mb-5 text-sm">
                   Our First Street headquarters is located in the 30,000+ sq ft Zilka-Kotab building, conveniently situated near the Silicon Valley Satellite Office of the USPTO on Fourth Street in San Jose.
                 </p>
-                <div className="aspect-[16/9] rounded-xl overflow-hidden bg-background mb-4">
+                <div className="h-40 rounded-xl overflow-hidden bg-background mb-4">
                   <iframe 
                     title="Map of Zilka-Kotab PC"
                     src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3171.306079978713!2d-121.90807768469463!3d37.35914597983697!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x808fccf0e2101211%3A0xcda6dc79e51c86fc!2s1155%20N%201st%20St%20%23104%2C%20San%20Jose%2C%20CA%2095112!5e0!3m2!1sen!2sus!4v1684346857121!5m2!1sen!2sus" 
