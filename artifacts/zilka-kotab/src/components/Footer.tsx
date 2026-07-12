@@ -40,13 +40,10 @@ export function Footer() {
 
         </div>
 
-        <div className="mt-10 pt-6 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-3">
-          <p className="text-xs text-primary-foreground/40">
+        <div className="mt-10 pt-6 border-t border-white/10">
+          <p className="text-xs text-primary-foreground/40 text-center">
             &copy; {currentYear} Zilka-Kotab PC. All rights reserved.
           </p>
-          <a href="mailto:patent@zilkakotab.com" className="text-xs text-primary-foreground/40 hover:text-white transition-colors">
-            patent@zilkakotab.com
-          </a>
         </div>
       </div>
     </footer>
