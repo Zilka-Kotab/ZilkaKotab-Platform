@@ -97,10 +97,6 @@ export default function Home() {
           <div className="container mx-auto px-4 relative z-10">
             <div className="max-w-3xl">
               <FadeIn delay={0.1}>
-                <div className="inline-flex items-center gap-3 mb-8">
-                  <span className="w-8 h-px bg-accent" />
-                  <span className="text-xs font-semibold uppercase tracking-widest text-accent">Silicon Valley IP Strategists</span>
-                </div>
               </FadeIn>
 
               <FadeIn delay={0.2}>
@@ -437,11 +433,6 @@ export default function Home() {
             </FadeIn>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-10 max-w-5xl mx-auto text-center">
               {[
-                {
-                  icon: Award,
-                  headline: 'Top 300 IP Strategists',
-                  sub: 'Repeatedly ranked 10+ years among the world\'s best by IAM Strategy 300',
-                },
                 {
                   icon: Award,
                   headline: 'Super Lawyers',
