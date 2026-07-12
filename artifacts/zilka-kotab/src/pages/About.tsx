@@ -105,7 +105,7 @@ export default function About() {
 
           <div className="flex flex-wrap justify-center gap-3 max-w-4xl mx-auto">
             {[
-              'Amdocs', 'AWID', 'Clorox', 'IBM', 'Intelleflex', 'JustAnswer',
+              'Amdocs', 'AWID', 'Bill.com', 'Clorox', 'Intelleflex', 'JustAnswer', 'Lyten',
               'Monolithic Power Systems', 'Kofax', 'Kynded', 'Method',
               'NVIDIA', 'Reverse Risk', 'Saisei', 'Semphonic', 'TiKL',
               'Pricelite', 'Morisawa', 'Lawrence Livermore National Laboratory',
