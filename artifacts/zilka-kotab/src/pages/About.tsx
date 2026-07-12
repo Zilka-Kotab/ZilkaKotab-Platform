@@ -37,7 +37,7 @@ export default function About() {
                     Zilka-Kotab, PC is an intellectual property law firm dedicated to providing the utmost in quality and service for the intellectual property needs of high technology companies.
                   </p>
                   <p>
-                    While we work with mechanical and chemical technologies, our firm specializes in cutting-edge computer-related hardware and software technology. In an era where software patents face immense scrutiny, generic descriptions fail. We speak the language of engineers and developers, ensuring that technical nuance is perfectly captured and legally protected.
+                    Our attorneys are engineers and scientists first, with deep expertise spanning software &amp; algorithms, semiconductors &amp; hardware, mechanical systems, materials science, and chemical technologies. We are also at the forefront of AI-related patent strategy — protecting machine learning systems, neural network architectures, and AI-powered products. In an era where software and AI patents face immense scrutiny, generic descriptions fail. We speak the language of engineers and developers, ensuring that every technical nuance is precisely captured and legally protected.
                   </p>
                   <p>
                     We go beyond ordinary IP procurement — we fuse it with a deep understanding of your business, your competitors, and your market. An issued patent is only as valuable as its ability to be enforced, licensed, or leveraged. We build portfolios with these end-goals in mind from day one.
