@@ -51,7 +51,7 @@ export default function About() {
               <FadeIn delay={0.2} className="bg-muted p-6 rounded-2xl">
                 <h3 className="text-xl font-display font-semibold mb-3">Strategic Location</h3>
                 <p className="text-foreground/80 leading-relaxed mb-4 text-sm">
-                  Our headquarters is located in the 30,000+ sq ft Zilka-Kotab building at 1155 North 1st St, conveniently situated near the Silicon Valley Satellite Office of the USPTO on Fourth Street in San Jose.
+                  Our headquarters is located in the 30,000+ sq ft Zilka-Kotab building, conveniently situated near the Silicon Valley Satellite Office of the USPTO on Fourth Street in San Jose.
                 </p>
                 <div className="rounded-xl overflow-hidden shadow-md">
                   <img
@@ -59,6 +59,10 @@ export default function About() {
                     alt="Zilka-Kotab PC office building in San Jose"
                     className="w-full h-full object-cover object-top"
                   />
+                </div>
+                <div className="mt-3 text-sm text-foreground/70 space-y-0.5">
+                  <p>1155 North 1st St, Suite 104</p>
+                  <p>San Jose, CA 95112</p>
                 </div>
               </FadeIn>
             </div>
