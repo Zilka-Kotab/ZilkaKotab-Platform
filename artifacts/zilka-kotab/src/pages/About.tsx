@@ -13,11 +13,11 @@ export default function About() {
         url="/about"
       />
 
-      <main className="flex-1 w-full pt-32 pb-24">
+      <main className="flex-1 w-full pt-28 pb-24">
         {/* Page Header */}
-        <section className="container mx-auto px-4 mb-20">
+        <section className="container mx-auto px-4 mb-12">
           <FadeIn>
-            <h1 className="text-5xl md:text-7xl font-display font-bold text-foreground mb-6">Our Firm</h1>
+            <h1 className="text-5xl md:text-7xl font-display font-bold text-foreground mb-4">Our Firm</h1>
             <p className="text-xl md:text-2xl text-muted-foreground max-w-3xl leading-relaxed">
               Based in the heart of Silicon Valley, we deliver the utmost in quality and service for the intellectual property needs of high-technology companies.
             </p>
@@ -26,7 +26,7 @@ export default function About() {
 
         {/* Main Content */}
         <section className="container mx-auto px-4">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-16">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
             
             {/* Story */}
             <div className="lg:col-span-7 space-y-8">
@@ -58,12 +58,12 @@ export default function About() {
                 </div>
               </FadeIn>
 
-              <FadeIn delay={0.2} className="bg-muted p-8 md:p-12 rounded-2xl">
-                <h3 className="text-2xl font-display font-semibold mb-6">Strategic Location</h3>
-                <p className="text-foreground/80 leading-relaxed mb-8">
+              <FadeIn delay={0.2} className="bg-muted p-6 md:p-8 rounded-2xl">
+                <h3 className="text-xl font-display font-semibold mb-3">Strategic Location</h3>
+                <p className="text-foreground/80 leading-relaxed mb-5 text-sm">
                   Our First Street headquarters is located in the 30,000+ sq ft Zilka-Kotab building, conveniently situated near the Silicon Valley Satellite Office of the USPTO on Fourth Street in San Jose.
                 </p>
-                <div className="aspect-[4/3] rounded-xl overflow-hidden bg-background mb-6">
+                <div className="aspect-[16/9] rounded-xl overflow-hidden bg-background mb-4">
                   <iframe 
                     title="Map of Zilka-Kotab PC"
                     src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3171.306079978713!2d-121.90807768469463!3d37.35914597983697!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x808fccf0e2101211%3A0xcda6dc79e51c86fc!2s1155%20N%201st%20St%20%23104%2C%20San%20Jose%2C%20CA%2095112!5e0!3m2!1sen!2sus!4v1684346857121!5m2!1sen!2sus" 
