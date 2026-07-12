@@ -43,7 +43,7 @@ export default function Team() {
                     <img
                       src={`${baseUrl}${member.photo}`}
                       alt={member.name}
-                      className="w-full h-full object-cover object-top transition-transform duration-500 group-hover:scale-105 filter grayscale group-hover:grayscale-0"
+                      className="w-full h-full object-cover object-top transition-transform duration-500 group-hover:scale-105"
                     />
                   </Link>
 
@@ -100,7 +100,7 @@ export default function Team() {
                       <img
                         src={`${baseUrl}${member.photo}`}
                         alt={member.name}
-                        className="w-full h-full object-cover object-top transition-transform duration-500 group-hover:scale-105 filter grayscale group-hover:grayscale-0"
+                        className="w-full h-full object-cover object-top transition-transform duration-500 group-hover:scale-105"
                       />
                     </Link>
                     <div className="flex items-start justify-between gap-2 mb-1">
