@@ -288,7 +288,7 @@ export default function Home() {
                 href="/services"
                 className="inline-flex items-center text-accent font-medium hover:text-accent/80 group"
               >
-                View all practice areas
+                View services offered
                 <ArrowRight className="ml-2 w-4 h-4 transition-transform group-hover:translate-x-1" />
               </Link>
             </FadeIn>
