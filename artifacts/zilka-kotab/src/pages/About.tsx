@@ -48,6 +48,16 @@ export default function About() {
 
             {/* Sidebar / Location Info */}
             <div className="lg:col-span-5">
+              <FadeIn delay={0.15}>
+                <div className="rounded-2xl overflow-hidden shadow-xl mb-8 aspect-[3/2]">
+                  <img
+                    src={`${baseUrl}/images/office.jpg`}
+                    alt="Zilka-Kotab PC office building in San Jose"
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              </FadeIn>
+
               <FadeIn delay={0.2} className="bg-muted p-8 md:p-12 rounded-2xl">
                 <h3 className="text-2xl font-display font-semibold mb-6">Strategic Location</h3>
                 <p className="text-foreground/80 leading-relaxed mb-8">
