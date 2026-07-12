@@ -83,7 +83,7 @@ export default function Home() {
 
       <main className="flex-1 w-full">
         {/* ── HERO ── */}
-        <section className="relative min-h-[90dvh] flex items-center pt-20 pb-32 overflow-hidden">
+        <section className="relative min-h-[90dvh] flex items-center pt-20 pb-16 overflow-hidden">
           <div className="absolute inset-0 z-0">
             <img
               src={`${baseUrl}/images/hero-new.jpg`}
@@ -182,7 +182,7 @@ export default function Home() {
         </section>
 
         {/* ── FIRM PHILOSOPHY ── */}
-        <section className="py-24 md:py-32 bg-muted">
+        <section className="pt-20 pb-24 md:pb-32 bg-muted -mt-6">
           <div className="container mx-auto px-4">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center max-w-6xl mx-auto">
 
