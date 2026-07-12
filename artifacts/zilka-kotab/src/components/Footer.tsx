@@ -7,8 +7,8 @@ export function Footer() {
 
   return (
     <footer className="bg-primary text-primary-foreground">
-      <div className="container mx-auto px-4 py-12">
-        <div className="flex flex-col md:flex-row items-start justify-between gap-10">
+      <div className="container mx-auto px-4 py-8">
+        <div className="flex flex-col md:flex-row items-center justify-between gap-6">
 
           {/* Logo + tagline */}
           <div className="space-y-4 max-w-xs">
@@ -23,7 +23,7 @@ export function Footer() {
           </div>
 
           {/* Contact */}
-          <ul className="space-y-3">
+          <ul className="space-y-2">
             <li className="flex items-start gap-3 text-sm text-primary-foreground/70">
               <MapPin className="w-4 h-4 text-accent shrink-0 mt-0.5" />
               <span>1155 North 1st St #104, San Jose, CA 95112</span>
@@ -40,7 +40,7 @@ export function Footer() {
 
         </div>
 
-        <div className="mt-10 pt-6 border-t border-white/10">
+        <div className="mt-6 pt-4 border-t border-white/10">
           <p className="text-xs text-primary-foreground/40 text-center">
             &copy; {currentYear} Zilka-Kotab PC. All rights reserved.
           </p>
