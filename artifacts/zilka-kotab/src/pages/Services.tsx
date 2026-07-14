@@ -17,7 +17,7 @@ const whyUs = [
   {
     icon: Cpu,
     title: 'Technical depth.',
-    body: 'Registered patent attorneys with engineering and science backgrounds — spanning software and AI, semiconductors, battery and energy storage, advanced materials, medical devices, and telecommunications — who speak the language of your inventors.',
+    body: 'Registered patent practitioners with engineering and science backgrounds — spanning software and AI, semiconductors, battery and energy storage, advanced materials, medical devices, and telecommunications — who speak the language of your inventors.',
   },
   {
     icon: Target,
@@ -37,7 +37,7 @@ const whyUs = [
   {
     icon: Zap,
     title: 'Boutique speed and value.',
-    body: 'A 2–4 week target turnaround on application drafts, without the overhead that burdens large general-practice firms. We have been the consolidation point for hundreds of files transferred from larger firms and other boutiques.',
+    body: 'Industry-leading turnaround on application drafts, without the overhead that burdens large general-practice firms. We have been the consolidation point for hundreds of files transferred from larger firms and other boutiques.',
   },
 ];
 
@@ -97,7 +97,7 @@ const coreServices = [
     icon: Scale,
     label: 'Defend',
     title: 'Protecting the Position',
-    body: 'When patents are challenged or asserted, we bring a prosecution-grounded understanding of how claims are built — and how they break. We represent clients in post-grant proceedings before the PTAB and USPTO, and provide high-leverage litigation support to in-house counsel and trial teams, from invalidity searching to portfolio mining for defensive counterclaims.',
+    body: 'When patents are challenged or asserted, we bring a prosecution-grounded understanding of how claims are built — and how they break. We represent clients in PTAB/USPTO proceedings, and provide high-leverage litigation support to in-house counsel and trial teams, from invalidity searching to portfolio mining for defensive counterclaims.',
   },
 ];
 
@@ -169,24 +169,35 @@ export default function Services() {
         {/* ── AI-Enabled Patent Operations ── */}
         <section className="py-24 bg-background">
           <div className="container mx-auto px-4">
-            <FadeIn>
-              <div className="max-w-3xl mb-6">
-                <div className="inline-flex items-center gap-3 mb-4">
-                  <span className="w-8 h-px bg-accent" />
-                  <span className="text-xs font-semibold uppercase tracking-widest text-accent">AI-Enabled Operations</span>
-                  <span className="w-8 h-px bg-accent" />
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center mb-6">
+              <FadeIn>
+                <div>
+                  <div className="inline-flex items-center gap-3 mb-4">
+                    <span className="w-8 h-px bg-accent" />
+                    <span className="text-xs font-semibold uppercase tracking-widest text-accent">AI-Enabled Operations</span>
+                    <span className="w-8 h-px bg-accent" />
+                  </div>
+                  <h2 className="text-3xl md:text-4xl font-display font-bold text-foreground mb-6">
+                    AI-Enabled Patent Operations
+                  </h2>
+                  <p className="text-foreground/70 leading-relaxed">
+                    AI hasn't eliminated the need for patent counsel — it has moved the bottleneck upstream. The constraint on portfolio quality is no longer drafting speed; it's the organization's ability to capture, qualify, and prepare inventions in the first place. Engineers don't always know when to disclose. Disclosures arrive inconsistent and incomplete. In-house counsel spend their time rewriting submissions instead of making strategic decisions. And AI tools get introduced without standardized prompting, review, or governance. These are workflow problems before they are legal problems — and we solve them.
+                  </p>
+                  <p className="text-foreground/70 leading-relaxed mt-4">
+                    Zilka-Kotab serves as an operational extension of the in-house IP department, optimizing the entire patent pipeline from invention conception to issued asset:
+                  </p>
                 </div>
-                <h2 className="text-3xl md:text-4xl font-display font-bold text-foreground mb-6">
-                  AI-Enabled Patent Operations
-                </h2>
-                <p className="text-foreground/70 leading-relaxed">
-                  AI hasn't eliminated the need for patent counsel — it has moved the bottleneck upstream. The constraint on portfolio quality is no longer drafting speed; it's the organization's ability to capture, qualify, and prepare inventions in the first place. Engineers don't always know when to disclose. Disclosures arrive inconsistent and incomplete. In-house counsel spend their time rewriting submissions instead of making strategic decisions. And AI tools get introduced without standardized prompting, review, or governance. These are workflow problems before they are legal problems — and we solve them.
-                </p>
-                <p className="text-foreground/70 leading-relaxed mt-4">
-                  Zilka-Kotab serves as an operational extension of the in-house IP department, optimizing the entire patent pipeline from invention conception to issued asset:
-                </p>
-              </div>
-            </FadeIn>
+              </FadeIn>
+              <FadeIn delay={0.15}>
+                <div className="rounded-2xl overflow-hidden shadow-lg aspect-[4/3]">
+                  <img
+                    src={`${baseUrl}/images/ai-patents.jpg`}
+                    alt="AI-enabled patent operations"
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              </FadeIn>
+            </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-10">
               {aiServices.map((item, i) => (
