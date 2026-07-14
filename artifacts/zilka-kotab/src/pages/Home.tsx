@@ -299,12 +299,13 @@ export default function Home() {
           </div>
         </section>
 
-        {/* ── AI + PATENTS ── */}
+        {/* ── AI-POWERED PRACTICE ── */}
         <section className="py-24 bg-muted overflow-hidden relative">
           <div className="absolute inset-0 z-0">
             <img
-              src={`${baseUrl}/images/ai-patents.jpg`}
-              alt="AI and patent integration concept"
+              src={`${baseUrl}/images/tech-bg.jpg`}
+              alt=""
+              aria-hidden="true"
               className="w-full h-full object-cover opacity-5"
             />
           </div>
@@ -313,27 +314,23 @@ export default function Home() {
               <FadeIn direction="right">
                 <div className="inline-flex items-center gap-3 mb-6">
                   <span className="w-8 h-px bg-accent" />
-                  <span className="text-xs font-semibold uppercase tracking-widest text-accent">AI &amp; Patents</span>
+                  <span className="text-xs font-semibold uppercase tracking-widest text-accent">AI-Powered Practice</span>
                 </div>
                 <h2 className="text-3xl md:text-5xl font-display font-bold mb-6 text-balance text-foreground">
-                  At the frontier of{' '}
-                  <span className="text-primary">AI-driven IP.</span>
+                  The same AI tools.{' '}
+                  <span className="text-primary">A completely different outcome.</span>
                 </h2>
                 <p className="text-lg text-muted-foreground mb-6 leading-relaxed">
-                  Artificial intelligence is reshaping every industry — and patent law is no exception.
-                  We are at the forefront of AI-related patent strategy, helping clients protect
-                  machine learning systems, neural network architectures, and AI-powered products
-                  before competitors stake their claim.
+                  Every firm has access to AI. What separates Zilka-Kotab is what happens after you turn it on. Our practitioners are IP specialists first — engineers and scientists who understand the technology at a level that allows them to direct, validate, and refine AI-assisted work in ways generalist attorneys simply cannot.
                 </p>
                 <p className="text-lg text-muted-foreground mb-10 leading-relaxed">
-                  We also leverage AI-assisted tools internally to accelerate prior art searches,
-                  claim drafting, and portfolio analysis — delivering sharper results in less time.
+                  We have integrated AI-assisted tools across prior art searching, claim drafting, prosecution strategy, and portfolio analysis — delivering faster turnaround, sharper claims, and strategic insight at a scale previously out of reach for boutique practices.
                 </p>
                 <Link
-                  href="/about"
+                  href="/services"
                   className="inline-flex items-center gap-2 text-primary font-medium hover:text-primary/80 group"
                 >
-                  Learn more about our firm
+                  See how we work
                   <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
                 </Link>
               </FadeIn>
@@ -342,16 +339,16 @@ export default function Home() {
                 <div className="grid grid-cols-1 gap-4">
                   {[
                     {
-                      title: 'Machine Learning & Neural Networks',
-                      body: 'Drafting claims that capture the novel elements of AI systems while anticipating future design-arounds.',
+                      title: 'AI-Accelerated Search & Analysis',
+                      body: 'What once took weeks is now returned in hours. We use AI-assisted tools to uncover prior art, map the competitive landscape, and surface strategic insights earlier in the decision cycle.',
                     },
                     {
-                      title: 'AI-Powered Product Patents',
-                      body: 'Protecting the unique applications of AI in consumer electronics, medical devices, robotics, and enterprise software.',
+                      title: 'AI-Assisted Drafting, Specialist-Reviewed',
+                      body: 'AI can generate a first draft. It cannot exercise judgment. Our attorneys use AI tooling to accelerate drafting while applying the technical and legal expertise to ensure every claim is precise and defensible.',
                     },
                     {
-                      title: 'Data & Training Set IP',
-                      body: 'Advising on the intersection of trade secrets, copyright, and patents for proprietary datasets and training pipelines.',
+                      title: 'Portfolio Intelligence at Scale',
+                      body: 'We use AI to benchmark portfolios against competitor filings, identify claim gaps, and surface licensing opportunities — insight previously reserved for the largest in-house teams.',
                     },
                   ].map((item, i) => (
                     <FadeIn key={item.title} delay={i * 0.1}>
