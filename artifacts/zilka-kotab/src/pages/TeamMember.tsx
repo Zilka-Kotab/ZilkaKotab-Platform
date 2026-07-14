@@ -3,7 +3,7 @@ import { Link, useParams } from 'wouter';
 import { ArrowLeft, Linkedin, Mail } from 'lucide-react';
 import { SEO } from '@/components/SEO';
 import { FadeIn } from '@/components/FadeIn';
-import { getMemberBySlug, team } from '@/data/team';
+import { getMemberBySlug } from '@/data/team';
 
 export default function TeamMember() {
   const { slug } = useParams<{ slug: string }>();
@@ -19,9 +19,6 @@ export default function TeamMember() {
       </main>
     );
   }
-
-  // Other team members for the "Also meet" section
-  const others = team.filter((m) => m.slug !== member.slug).slice(0, 3);
 
   return (
     <>
@@ -61,7 +58,7 @@ export default function TeamMember() {
                     className="inline-flex items-center gap-2 h-10 px-4 rounded-sm bg-primary text-white text-sm font-medium hover:bg-primary/90 transition-colors"
                   >
                     <Mail className="w-4 h-4" />
-                    {member.email}
+                    Email
                   </a>
                   {member.linkedin && (
                     <a
@@ -76,18 +73,6 @@ export default function TeamMember() {
                   )}
                 </div>
 
-                {/* Focus areas */}
-                <div>
-                  <h3 className="text-xs font-display font-semibold uppercase tracking-widest text-foreground/50 mb-3">Areas of Focus</h3>
-                  <ul className="space-y-2">
-                    {member.focus.map((area) => (
-                      <li key={area} className="flex items-center gap-2 text-sm text-foreground/80">
-                        <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
-                        {area}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
               </div>
             </FadeIn>
 
@@ -106,29 +91,6 @@ export default function TeamMember() {
           </div>
         </section>
 
-        {/* Also meet section */}
-        <section className="container mx-auto px-4 mt-12 pt-12 border-t border-border">
-          <FadeIn>
-            <h2 className="text-2xl font-display font-bold mb-8 text-foreground">Also Meet Our Team</h2>
-          </FadeIn>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
-            {others.map((other, i) => (
-              <FadeIn key={other.slug} delay={i * 0.1}>
-                <Link href={`/team/${other.slug}`} className="group block">
-                  <div className="overflow-hidden rounded-xl aspect-square bg-muted mb-4">
-                    <img
-                      src={`${baseUrl}${other.photo}`}
-                      alt={other.name}
-                      className="w-full h-full object-cover object-top transition-transform duration-500 group-hover:scale-105 filter grayscale group-hover:grayscale-0"
-                    />
-                  </div>
-                  <p className="font-display font-semibold text-foreground group-hover:text-primary transition-colors">{other.name}</p>
-                  <p className="text-sm text-muted-foreground">{other.role}</p>
-                </Link>
-              </FadeIn>
-            ))}
-          </div>
-        </section>
       </main>
     </>
   );
