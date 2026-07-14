@@ -484,12 +484,12 @@ export default function Home() {
                 confidential consultation with our partners.
               </p>
               <div className="flex flex-wrap items-center justify-center gap-4">
-                <Link
-                  href="/contact"
+                <a
+                  href="mailto:patent@zilkakotab.com"
                   className="inline-flex h-14 items-center justify-center rounded-sm bg-primary px-10 text-lg font-medium text-white shadow-xl transition-transform hover:scale-105 active:scale-95"
                 >
-                  Contact Our Office
-                </Link>
+                  Contact Our Team
+                </a>
                 <a
                   href={PAY_INVOICE_URL}
                   target="_blank"
