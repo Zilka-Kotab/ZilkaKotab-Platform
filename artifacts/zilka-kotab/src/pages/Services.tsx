@@ -189,11 +189,11 @@ export default function Services() {
                 </div>
               </FadeIn>
               <FadeIn delay={0.15}>
-                <div className="rounded-2xl overflow-hidden shadow-lg aspect-[4/3]">
+                <div className="rounded-2xl overflow-hidden shadow-lg h-64">
                   <img
-                    src={`${baseUrl}/images/ai-patents.jpg`}
+                    src={`${baseUrl}/images/tech-bg.jpg`}
                     alt="AI-enabled patent operations"
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover object-center"
                   />
                 </div>
               </FadeIn>

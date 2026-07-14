@@ -91,21 +91,33 @@ export default function About() {
                   Trusted Across Industries
                 </h2>
                 <p className="text-white/65 leading-relaxed">
-                  Our clients include companies of all sizes — from select high-tech start-ups and mid-sized manufacturing firms to some of the largest and best-known companies in the world.
+                  Our clients include companies of all sizes — from select high-tech start-ups and mid-sized manufacturing firms to some of the largest and best-known companies in the world. We are particularly proud of the depth and breadth of our knowledge across a wide range of technologies, including:
                 </p>
               </div>
             </FadeIn>
 
             <div className="flex flex-wrap justify-center gap-3 max-w-4xl mx-auto">
               {[
-                'Amdocs', 'AWID', 'Bill.com', 'Clorox', 'Intelleflex', 'JustAnswer', 'Lyten',
-                'Monolithic Power Systems', 'Kofax', 'Kynded', 'Method',
-                'NVIDIA', 'Reverse Risk', 'Saisei', 'Semphonic', 'TiKL',
-                'Pricelite', 'Morisawa', 'Lawrence Livermore National Laboratory',
-              ].map((name, i) => (
-                <FadeIn key={name} delay={i * 0.04}>
+                'Artificial Intelligence & Machine Learning',
+                'Battery & Energy Storage',
+                'Communication Systems',
+                'Data Storage Technology',
+                'Electronics & Semiconductors',
+                'Internet & Software',
+                'Materials Science',
+                'Medical Devices',
+                'MEMS Technology',
+                'Nanotechnology',
+                'Networking & Wireless Technology',
+                'Optics & Photonics',
+                'Quantum Technology',
+                'Robotics & Automation',
+                'Satellite Technology',
+                'Wearable Electronics',
+              ].map((tech, i) => (
+                <FadeIn key={tech} delay={i * 0.04}>
                   <span className="inline-block px-5 py-3 rounded-sm border border-white/15 bg-white/8 text-sm font-semibold text-white/85 hover:bg-white/15 hover:border-accent/50 hover:text-white transition-all duration-200 backdrop-blur-sm">
-                    {name}
+                    {tech}
                   </span>
                 </FadeIn>
               ))}
