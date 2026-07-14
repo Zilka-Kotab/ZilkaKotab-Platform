@@ -51,11 +51,11 @@ export default function Contact() {
         </section>
 
         <section className="container mx-auto px-4">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+          <div className="grid grid-cols-1 lg:grid-cols-[auto_1fr] gap-12 items-start">
 
             {/* Contact details */}
             <FadeIn delay={0.1}>
-              <ul className="space-y-8 lg:pl-16">
+              <ul className="space-y-8">
                 {contactItems.map(({ icon: Icon, label, content }) => (
                   <li key={label} className="flex items-start gap-5">
                     <div className="w-14 h-14 rounded-2xl bg-accent/15 flex items-center justify-center shrink-0">
