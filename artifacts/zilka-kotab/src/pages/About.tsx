@@ -136,12 +136,12 @@ export default function About() {
               <p className="text-lg text-muted-foreground mb-10 max-w-xl mx-auto leading-relaxed">
                 Let's discuss how our expertise aligns with your business objectives.
               </p>
-              <Link
-                href="/contact"
+              <a
+                href="mailto:patent@zilkakotab.com"
                 className="inline-flex h-14 items-center justify-center rounded-sm bg-primary px-10 text-base font-semibold text-white shadow-lg transition-transform hover:scale-105 active:scale-95"
               >
                 Contact Our Team
-              </Link>
+              </a>
             </div>
           </FadeIn>
         </section>
