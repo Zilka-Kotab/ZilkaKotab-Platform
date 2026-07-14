@@ -18,3 +18,9 @@ id = "uiL9h5JhsY6J6mzDmB0Mj"
 uri = "file://artifacts/zilka-kotab/public/images/ai-patents.jpg"
 type = "image"
 title = "AI + Patents Section Image"
+
+[[outputs]]
+id = "OGlyoJbQYlvJJ20iNpCWn"
+uri = "file://zilka-kotab-website.zip"
+type = "unspecified"
+title = "Zilka-Kotab Website"
