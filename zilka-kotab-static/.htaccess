@@ -1,15 +1,6 @@
-# ─── URL REWRITING ───
+# ─── DIRECTORY INDEX ───
 Options -Indexes
-RewriteEngine On
-
-# Serve clean URLs: /about/ → /about/index.html (already handled by DirectoryIndex)
 DirectoryIndex index.html
-
-# Remove trailing slash for files that exist (optional hygiene)
-# Force trailing slash on directories
-RewriteCond %{REQUEST_FILENAME} !-f
-RewriteCond %{REQUEST_FILENAME} !-d
-RewriteRule ^(.+)/$ /$1 [R=301,L]
 
 # ─── COMPRESSION ───
 <IfModule mod_deflate.c>
@@ -36,4 +27,4 @@ RewriteRule ^(.+)/$ /$1 [R=301,L]
 </IfModule>
 
 # ─── ERROR PAGES ───
-ErrorDocument 404 /index.html
+ErrorDocument 404 /404.html

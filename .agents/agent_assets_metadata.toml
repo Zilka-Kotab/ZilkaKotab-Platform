@@ -24,3 +24,9 @@ id = "OGlyoJbQYlvJJ20iNpCWn"
 uri = "file://zilka-kotab-website.zip"
 type = "unspecified"
 title = "Zilka-Kotab Website — Pure Static HTML/CSS/JS"
+
+[[outputs]]
+id = "QbrkmZPKASw58m-bPe-MI"
+uri = "file://zilka-kotab-static-final.zip"
+type = "unspecified"
+title = "zilka-kotab-static-final.zip — Ready for cPanel upload"

@@ -1,3 +1,7 @@
+// ─── PROGRESSIVE ENHANCEMENT: mark JS as available ───
+// Must run first so .js-enabled CSS gates apply before paint
+document.documentElement.classList.add('js-enabled');
+
 // ─── MOBILE MENU ───
 (function () {
   const btn = document.getElementById('mobile-menu-btn');
@@ -88,13 +92,21 @@
 })();
 
 // ─── ACTIVE NAV LINK ───
+// Uses resolved absolute href so relative paths work correctly
 (function () {
   const links = document.querySelectorAll('.nav-links a, .mobile-menu a[href]');
-  const path = window.location.pathname.replace(/\/$/, '') || '/';
+  const currentPath = window.location.pathname
+    .replace(/\/index\.html$/, '/')
+    .replace(/([^/])$/, '$1/'); // ensure trailing slash for comparison
+
   links.forEach(a => {
-    const href = a.getAttribute('href').replace(/\/$/, '') || '/';
-    if (href === path || (href !== '/' && path.startsWith(href))) {
-      a.classList.add('active');
-    }
+    try {
+      const linkPath = new URL(a.href).pathname
+        .replace(/\/index\.html$/, '/')
+        .replace(/([^/])$/, '$1/');
+      const isCurrent = linkPath === currentPath;
+      const isParent  = linkPath !== '/' && currentPath.startsWith(linkPath);
+      if (isCurrent || isParent) a.classList.add('active');
+    } catch (e) { /* external links: skip */ }
   });
 })();
