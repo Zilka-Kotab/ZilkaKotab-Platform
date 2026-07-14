@@ -51,7 +51,7 @@ export default function Contact() {
         </section>
 
         <section className="container mx-auto px-4">
-          <div className="grid grid-cols-1 lg:grid-cols-[auto_1fr] gap-12 items-start">
+          <div className="grid grid-cols-1 lg:grid-cols-[auto_minmax(0,500px)] gap-12 items-start justify-center">
 
             {/* Contact details */}
             <FadeIn delay={0.1}>
