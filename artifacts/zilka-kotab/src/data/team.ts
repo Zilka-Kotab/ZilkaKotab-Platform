@@ -4,6 +4,7 @@ export interface TeamMember {
   role: string;
   category: 'principal' | 'member';
   photo: string;
+  email: string;
   linkedin?: string;
   shortBio: string;
   fullBio: string[];
@@ -17,6 +18,7 @@ export const team: TeamMember[] = [
     role: 'Principal',
     category: 'principal',
     photo: '/images/team/zilka.jpg',
+    email: 'kevin@zilkakotab.com',
     linkedin: 'https://www.linkedin.com/in/kevinzilka',
     shortBio:
       'Kevin has over 25 years of experience in the intellectual property field and has been repeatedly selected as one of the world\'s leading 300 IP strategists by IAM Strategy 300.',
@@ -38,6 +40,7 @@ export const team: TeamMember[] = [
     role: 'Principal & President',
     category: 'principal',
     photo: '/images/team/kotab.jpg',
+    email: 'dominic@zilkakotab.com',
     linkedin: 'https://www.linkedin.com/in/kotab',
     shortBio:
       'Dominic is a registered patent attorney and co-founder of Zilka-Kotab PC, where he currently serves as President. He brings a background in chemical engineering and broad expertise in computer-based technologies.',
@@ -60,6 +63,7 @@ export const team: TeamMember[] = [
     role: 'Principal',
     category: 'principal',
     photo: '/images/team/rossi.jpg',
+    email: 'jamie@zilkakotab.com',
     linkedin: 'https://www.linkedin.com/in/jamie-rossi-78783b5',
     shortBio:
       'Jamie joined Zilka-Kotab in 2004 and specializes in managing sophisticated patent portfolios for Fortune 500 corporations, innovative startups, and solo inventors.',
@@ -82,6 +86,7 @@ export const team: TeamMember[] = [
     role: 'Principal',
     category: 'principal',
     photo: '/images/team/sessions.jpg',
+    email: 'britten@zilkakotab.com',
     linkedin: 'https://www.linkedin.com/in/brittensessions',
     shortBio:
       'Britten is a registered patent attorney with extensive experience across the full patent lifecycle — from early-stage invention disclosure through portfolio building, licensing, and litigation support.',
@@ -104,6 +109,7 @@ export const team: TeamMember[] = [
     role: 'Patent Agent',
     category: 'member',
     photo: '/images/team/schroeder.jpg',
+    email: 'sally@zilkakotab.com',
     shortBio:
       'Sally is a registered patent agent who supports the firm\'s prosecution practice, working alongside the principals to prepare and prosecute patent applications across a range of technology areas.',
     fullBio: [

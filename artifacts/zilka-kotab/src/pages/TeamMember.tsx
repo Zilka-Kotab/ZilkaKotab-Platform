@@ -57,11 +57,11 @@ export default function TeamMember() {
 
                 <div className="flex gap-3 mb-8">
                   <a
-                    href="mailto:patent@zilkakotab.com"
+                    href={`mailto:${member.email}`}
                     className="inline-flex items-center gap-2 h-10 px-4 rounded-sm bg-primary text-white text-sm font-medium hover:bg-primary/90 transition-colors"
                   >
                     <Mail className="w-4 h-4" />
-                    Email
+                    {member.email}
                   </a>
                   {member.linkedin && (
                     <a

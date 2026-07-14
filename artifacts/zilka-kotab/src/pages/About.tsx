@@ -91,7 +91,7 @@ export default function About() {
                   Trusted Across Industries
                 </h2>
                 <p className="text-white/65 leading-relaxed">
-                  Our clients include companies of all sizes — from select high-tech start-ups and mid-sized manufacturing firms to some of the largest and best-known companies in the world. We are particularly proud of the depth and breadth of our knowledge across a wide range of technologies, including:
+                  Our clients include companies of all sizes — from select high-tech start-ups and mid-sized manufacturing firms to some of the largest and best-known companies in the world. Our attorneys bring genuine technical fluency across a broad spectrum of innovation, including:
                 </p>
               </div>
             </FadeIn>
