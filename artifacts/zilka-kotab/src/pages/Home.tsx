@@ -317,20 +317,23 @@ export default function Home() {
                   <span className="text-xs font-semibold uppercase tracking-widest text-accent">AI-Powered Practice</span>
                 </div>
                 <h2 className="text-3xl md:text-5xl font-display font-bold mb-6 text-balance text-foreground">
-                  The same AI tools.{' '}
-                  <span className="text-primary">A completely different outcome.</span>
+                  We don't just use AI — we help shape{' '}
+                  <span className="text-primary">how AI is used in patent practice.</span>
                 </h2>
                 <p className="text-lg text-muted-foreground mb-6 leading-relaxed">
-                  Every firm has access to AI. What separates Zilka-Kotab is what happens after you turn it on. Our practitioners are IP specialists first — engineers and scientists who understand the technology at a level that allows them to direct, validate, and refine AI-assisted work in ways generalist attorneys simply cannot.
+                  Artificial intelligence is transforming innovation — and the patent process itself. While nearly every firm has access to AI tools, few have the experience of both protecting AI-driven inventions and advising organizations on how to integrate AI into their patent operations.
                 </p>
-                <p className="text-lg text-muted-foreground mb-10 leading-relaxed">
-                  We have integrated AI-assisted tools across prior art searching, claim drafting, prosecution strategy, and portfolio analysis — delivering faster turnaround, sharper claims, and strategic insight at a scale previously out of reach for boutique practices.
+                <p className="text-lg text-muted-foreground mb-6 leading-relaxed">
+                  At Zilka-Kotab, we have extensive experience preparing and prosecuting patent applications covering artificial intelligence and other emerging technologies. We also work with corporate legal departments, innovation teams, and inventors to develop AI-enabled patent workflows that improve efficiency, strengthen collaboration, and accelerate the path from invention disclosure to patent filing.
+                </p>
+                <p className="text-base text-muted-foreground/80 italic mb-10 leading-relaxed">
+                  Our goal is simple: leverage AI where it creates value while ensuring every strategic decision remains guided by experienced patent attorneys.
                 </p>
                 <Link
-                  href="/services"
+                  href="/about"
                   className="inline-flex items-center gap-2 text-primary font-medium hover:text-primary/80 group"
                 >
-                  See how we work
+                  Learn more
                   <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
                 </Link>
               </FadeIn>
@@ -339,16 +342,16 @@ export default function Home() {
                 <div className="grid grid-cols-1 gap-4">
                   {[
                     {
-                      title: 'AI-Accelerated Search & Analysis',
-                      body: 'What once took weeks is now returned in hours. We use AI-assisted tools to uncover prior art, map the competitive landscape, and surface strategic insights earlier in the decision cycle.',
+                      title: 'Protecting AI Innovation',
+                      body: 'Our attorneys have significant experience representing clients developing AI-enabled technologies across a wide range of industries. We understand the unique legal and technical issues surrounding artificial intelligence and help clients build patent portfolios that support long-term business objectives.',
                     },
                     {
-                      title: 'AI-Assisted Drafting, Specialist-Reviewed',
-                      body: 'AI can generate a first draft. It cannot exercise judgment. Our attorneys use AI tooling to accelerate drafting while applying the technical and legal expertise to ensure every claim is precise and defensible.',
+                      title: 'Building AI-Enabled Patent Workflows',
+                      body: 'We help companies and legal teams implement practical AI-assisted workflows that reduce administrative effort, improve consistency, and enable inventors, engineers, and counsel to move innovations through the patent process more efficiently. Our attorneys have also trained corporate legal departments on the effective and responsible integration of AI into patent practice.',
                     },
                     {
-                      title: 'Portfolio Intelligence at Scale',
-                      body: 'We use AI to benchmark portfolios against competitor filings, identify claim gaps, and surface licensing opportunities — insight previously reserved for the largest in-house teams.',
+                      title: 'Attorney Judgment. Technology Advantage.',
+                      body: 'Technology alone is not a competitive advantage — how it is applied is. Every engagement combines advanced AI-enabled processes with the technical expertise, legal judgment, and strategic insight of experienced patent attorneys. The result is a more efficient patent process without compromising quality, accuracy, or long-term portfolio value.',
                     },
                   ].map((item, i) => (
                     <FadeIn key={item.title} delay={i * 0.1}>
