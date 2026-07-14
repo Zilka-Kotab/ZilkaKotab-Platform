@@ -127,6 +127,27 @@ export default function Team() {
             </div>
           </section>
         )}
+
+        {/* CTA */}
+        <section className="container mx-auto px-4 py-24">
+          <FadeIn delay={0.2}>
+            <div className="bg-muted rounded-3xl p-12 md:p-20 text-center border border-border">
+              <h2 className="text-3xl md:text-4xl font-display font-bold text-foreground mb-4">
+                Ready to build a smarter IP program?
+              </h2>
+              <p className="text-lg text-muted-foreground mb-10 max-w-xl mx-auto leading-relaxed">
+                Let's discuss how our expertise aligns with your business objectives.
+              </p>
+              <Link
+                href="/contact"
+                className="inline-flex h-14 items-center justify-center rounded-sm bg-primary px-10 text-base font-semibold text-white shadow-lg transition-transform hover:scale-105 active:scale-95"
+              >
+                Contact Our Team
+              </Link>
+            </div>
+          </FadeIn>
+        </section>
+
       </main>
     </>
   );
