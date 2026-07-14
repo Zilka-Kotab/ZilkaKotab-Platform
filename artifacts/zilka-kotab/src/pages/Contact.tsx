@@ -72,7 +72,7 @@ export default function Contact() {
 
             {/* Map */}
             <FadeIn delay={0.2}>
-              <div className="rounded-2xl overflow-hidden shadow-md border border-border aspect-[4/3]">
+              <div className="rounded-2xl overflow-hidden shadow-md border border-border h-[375px]">
                 <iframe
                   title="Map of Zilka-Kotab PC"
                   src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3171.306079978713!2d-121.90807768469463!3d37.35914597983697!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x808fccf0e2101211%3A0xcda6dc79e51c86fc!2s1155%20N%201st%20St%20%23104%2C%20San%20Jose%2C%20CA%2095112!5e0!3m2!1sen!2sus!4v1684346857121!5m2!1sen!2sus"
