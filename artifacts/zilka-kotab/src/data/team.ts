@@ -28,7 +28,6 @@ export const team: TeamMember[] = [
     education: [
       'MSci, Biochemistry, University of Illinois at Chicago',
       'BS, Biology / BA, English, University of California, Irvine',
-      'Study Abroad, University of East Anglia (1993–1994)',
     ],
     admissions: [],
     fullBio: [
