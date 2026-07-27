@@ -72,13 +72,10 @@ export default function Team() {
 
                     {/* Awards */}
                     {member.awards && member.awards.length > 0 && (
-                      <div className="flex flex-wrap gap-1 mb-4">
-                        {member.awards.map((award, i) => (
-                          <span key={i} className="inline-block text-xs text-muted-foreground">
-                            {award}
-                          </span>
-                        ))}
-                      </div>
+                      <p className="text-xs text-muted-foreground mb-4">
+                        <span className="font-semibold text-foreground/60">Awards: </span>
+                        {member.awards.join(' / ')}
+                      </p>
                     )}
 
                     <Link
