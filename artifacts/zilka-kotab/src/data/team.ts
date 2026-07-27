@@ -26,7 +26,9 @@ export const team: TeamMember[] = [
     email: 'emma@zilkakotab.com',
     shortBio: 'Emma is a patent paralegal at Zilka-Kotab PC with extensive experience supporting patent prosecution across solo inventors, startups, academic researchers, and Fortune 500 companies.',
     education: [
-      'University of California, Irvine',
+      'MSci, Biochemistry, University of Illinois at Chicago',
+      'BS, Biology / BA, English, University of California, Irvine',
+      'Study Abroad, University of East Anglia (1993–1994)',
     ],
     admissions: [],
     fullBio: [
