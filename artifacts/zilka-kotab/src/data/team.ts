@@ -66,6 +66,7 @@ export const team: TeamMember[] = [
     category: 'member',
     photo: '/images/team/schroeder.jpg',
     email: 'sally@zilkakotab.com',
+    linkedin: 'https://www.linkedin.com/in/sallybschroeder/',
     shortBio:
       'Sally is a registered patent agent who supports the firm\'s prosecution practice, working alongside the principals to prepare and prosecute patent applications across a range of technology areas.',
     fullBio: [
@@ -81,7 +82,7 @@ export const team: TeamMember[] = [
   {
     slug: 'britten-sessions',
     name: 'Britten Sessions',
-    role: 'Principal',
+    role: 'Managing Partner',
     category: 'principal',
     photo: '/images/team/sessions.jpg',
     email: 'britten@zilkakotab.com',
@@ -104,7 +105,7 @@ export const team: TeamMember[] = [
   {
     slug: 'kevin-zilka',
     name: 'Kevin J. Zilka',
-    role: 'Managing Partner',
+    role: 'Principal',
     category: 'principal',
     photo: '/images/team/zilka.jpg',
     email: 'kevin@zilkakotab.com',
