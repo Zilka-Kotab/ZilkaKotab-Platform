@@ -8,9 +8,6 @@ import { team } from '@/data/team';
 export default function Team() {
   const baseUrl = import.meta.env.BASE_URL.replace(/\/$/, '');
 
-  const principals = team.filter((m) => m.category === 'principal');
-  const members = team.filter((m) => m.category === 'member');
-
   return (
     <>
       <SEO
@@ -30,13 +27,10 @@ export default function Team() {
           </FadeIn>
         </section>
 
-        {/* Principals */}
+        {/* Team grid — alphabetical by last name */}
         <section className="container mx-auto px-4 mb-20">
-          <FadeIn>
-            <h2 className="text-xs font-display font-semibold uppercase tracking-widest text-foreground/40 mb-10">Principals</h2>
-          </FadeIn>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10">
-            {principals.map((member, index) => (
+            {team.map((member, index) => (
               <FadeIn key={member.slug} delay={index * 0.08}>
                 <div className="group flex flex-col h-full">
                   <Link href={`/team/${member.slug}`} className="block mb-5 overflow-hidden rounded-2xl aspect-square bg-muted">
@@ -85,48 +79,6 @@ export default function Team() {
             ))}
           </div>
         </section>
-
-        {/* Members */}
-        {members.length > 0 && (
-          <section className="container mx-auto px-4 pt-12 border-t border-border">
-            <FadeIn>
-              <h2 className="text-xs font-display font-semibold uppercase tracking-widest text-foreground/40 mb-10">Members</h2>
-            </FadeIn>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10">
-              {members.map((member, index) => (
-                <FadeIn key={member.slug} delay={index * 0.08}>
-                  <div className="group flex flex-col h-full">
-                    <Link href={`/team/${member.slug}`} className="block mb-5 overflow-hidden rounded-2xl aspect-square bg-muted">
-                      <img
-                        src={`${baseUrl}${member.photo}`}
-                        alt={member.name}
-                        className="w-full h-full object-cover object-top transition-transform duration-500 group-hover:scale-105"
-                      />
-                    </Link>
-                    <div className="flex items-start justify-between gap-2 mb-1">
-                      <div>
-                        <Link href={`/team/${member.slug}`}>
-                          <h3 className="text-xl font-display font-bold text-foreground hover:text-primary transition-colors">{member.name}</h3>
-                        </Link>
-                        <p className="text-primary font-medium text-sm">{member.role}</p>
-                      </div>
-                    </div>
-                    <p className="text-muted-foreground text-sm mt-3 mb-5 leading-relaxed flex-1">
-                      {member.shortBio}
-                    </p>
-                    <Link
-                      href={`/team/${member.slug}`}
-                      className="inline-flex items-center gap-1 text-sm text-primary font-medium hover:text-primary/80 group/link mt-auto"
-                    >
-                      Full Profile
-                      <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover/link:translate-x-1" />
-                    </Link>
-                  </div>
-                </FadeIn>
-              ))}
-            </div>
-          </section>
-        )}
 
         {/* CTA */}
         <section className="container mx-auto px-4 py-24">

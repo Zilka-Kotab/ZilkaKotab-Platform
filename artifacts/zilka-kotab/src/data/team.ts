@@ -11,41 +11,20 @@ export interface TeamMember {
   focus: string[];
 }
 
+// Ordered alphabetically by last name: Kotab, Rossi, Schroeder, Sessions, Zilka
 export const team: TeamMember[] = [
-  {
-    slug: 'kevin-zilka',
-    name: 'Kevin J. Zilka',
-    role: 'Principal',
-    category: 'principal',
-    photo: '/images/team/zilka.jpg',
-    email: 'kevin@zilkakotab.com',
-    linkedin: 'https://www.linkedin.com/in/kevinzilka',
-    shortBio:
-      'Kevin has over 25 years of experience in the intellectual property field and has been repeatedly selected as one of the world\'s leading 300 IP strategists by IAM Strategy 300.',
-    fullBio: [
-      'Kevin Zilka has over 25 years of experience in the intellectual property (IP) field and, as a result of his accomplishments in patent law, has been repeatedly selected as one of the world\'s leading 300 IP strategists.',
-      'Kevin\'s practice focuses on developing comprehensive patent strategies for high technology companies, with particular depth in software, semiconductors, networking, and artificial intelligence technologies. He works closely with clients to build patent portfolios that are aligned with their business objectives and positioned for maximum commercial value.',
-      'Kevin is a registered patent attorney before the United States Patent and Trademark Office (USPTO) and is admitted to practice law in the State of California.',
-    ],
-    focus: [
-      'Patent Portfolio Strategy',
-      'Software & AI Technologies',
-      'Semiconductor & Networking',
-      'IP Monetization',
-    ],
-  },
   {
     slug: 'dominic-kotab',
     name: 'Dominic M. Kotab',
-    role: 'Principal & President',
+    role: 'Principal',
     category: 'principal',
     photo: '/images/team/kotab.jpg',
     email: 'dominic@zilkakotab.com',
     linkedin: 'https://www.linkedin.com/in/kotab',
     shortBio:
-      'Dominic is a registered patent attorney and co-founder of Zilka-Kotab PC, where he currently serves as President. He brings a background in chemical engineering and broad expertise in computer-based technologies.',
+      'Dominic is a registered patent attorney and co-founder of Zilka-Kotab PC. He brings a background in chemical engineering and broad expertise in computer-based technologies.',
     fullBio: [
-      'Dominic M. Kotab is a registered patent attorney and co-founder of Zilka-Kotab PC, where he currently serves as President.',
+      'Dominic M. Kotab is a registered patent attorney and co-founder of Zilka-Kotab PC.',
       'With a background in chemical engineering and a strong basis in all types of computer-based technologies, Dominic\'s current practice includes the preparation and prosecution of patent applications, strategic portfolio development, and counseling clients on IP matters ranging from freedom-to-operate analyses to licensing strategy.',
       'Dominic represents a broad range of clients — from Fortune 500 corporations to innovative startups — helping them build and protect IP assets that drive real business value.',
       'Dominic is a registered patent attorney before the USPTO and is admitted to practice law in the State of California.',
@@ -81,6 +60,25 @@ export const team: TeamMember[] = [
     ],
   },
   {
+    slug: 'sally-billstrom-schroeder',
+    name: 'Sally Billstrom Schroeder',
+    role: 'Patent Agent',
+    category: 'member',
+    photo: '/images/team/schroeder.jpg',
+    email: 'sally@zilkakotab.com',
+    shortBio:
+      'Sally is a registered patent agent who supports the firm\'s prosecution practice, working alongside the principals to prepare and prosecute patent applications across a range of technology areas.',
+    fullBio: [
+      'Sally Billstrom Schroeder is a registered patent agent with Zilka-Kotab PC, where she works alongside the firm\'s principals in the preparation and prosecution of patent applications.',
+      'Sally brings technical depth and meticulous attention to detail to each matter, ensuring that applications are drafted to maximize coverage and withstand examination.',
+    ],
+    focus: [
+      'Patent Preparation',
+      'Patent Prosecution',
+      'Technical Analysis',
+    ],
+  },
+  {
     slug: 'britten-sessions',
     name: 'Britten Sessions',
     role: 'Principal',
@@ -104,22 +102,25 @@ export const team: TeamMember[] = [
     ],
   },
   {
-    slug: 'sally-billstrom-schroeder',
-    name: 'Sally Billstrom Schroeder',
-    role: 'Patent Agent',
-    category: 'member',
-    photo: '/images/team/schroeder.jpg',
-    email: 'sally@zilkakotab.com',
+    slug: 'kevin-zilka',
+    name: 'Kevin J. Zilka',
+    role: 'Managing Partner',
+    category: 'principal',
+    photo: '/images/team/zilka.jpg',
+    email: 'kevin@zilkakotab.com',
+    linkedin: 'https://www.linkedin.com/in/kevinzilka',
     shortBio:
-      'Sally is a registered patent agent who supports the firm\'s prosecution practice, working alongside the principals to prepare and prosecute patent applications across a range of technology areas.',
+      'Kevin has over 25 years of experience in the intellectual property field and has been repeatedly selected as one of the world\'s leading 300 IP strategists by IAM Strategy 300.',
     fullBio: [
-      'Sally Billstrom Schroeder is a registered patent agent with Zilka-Kotab PC, where she works alongside the firm\'s principals in the preparation and prosecution of patent applications.',
-      'Sally brings technical depth and meticulous attention to detail to each matter, ensuring that applications are drafted to maximize coverage and withstand examination.',
+      'Kevin Zilka has over 25 years of experience in the intellectual property (IP) field and, as a result of his accomplishments in patent law, has been repeatedly selected as one of the world\'s leading 300 IP strategists.',
+      'Kevin\'s practice focuses on developing comprehensive patent strategies for high technology companies, with particular depth in software, semiconductors, networking, and artificial intelligence technologies. He works closely with clients to build patent portfolios that are aligned with their business objectives and positioned for maximum commercial value.',
+      'Kevin is a registered patent attorney before the United States Patent and Trademark Office (USPTO) and is admitted to practice law in the State of California.',
     ],
     focus: [
-      'Patent Preparation',
-      'Patent Prosecution',
-      'Technical Analysis',
+      'Patent Portfolio Strategy',
+      'Software & AI Technologies',
+      'Semiconductor & Networking',
+      'IP Monetization',
     ],
   },
 ];
