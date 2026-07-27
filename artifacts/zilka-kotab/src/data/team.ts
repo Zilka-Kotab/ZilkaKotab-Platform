@@ -184,9 +184,9 @@ export const team: TeamMember[] = [
       'State Bar of California',
     ],
     awards: [
-      'IAM Strategy 300 (2016–2025)',
-      'Super Lawyer (2016–2023)',
-      'Silicon Valley Business Journal Top 40 Under 40 (2016)',
+      'IAM Strategy 300',
+      'Super Lawyer',
+      'Silicon Valley Business Journal Top 40 Under 40',
     ],
     memberships: [
       'National Association of Patent Practitioners',

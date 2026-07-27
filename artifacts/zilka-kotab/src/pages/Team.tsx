@@ -74,7 +74,7 @@ export default function Team() {
                     {member.awards && member.awards.length > 0 && (
                       <div className="flex flex-wrap gap-1 mb-4">
                         {member.awards.map((award, i) => (
-                          <span key={i} className="inline-block text-xs font-semibold text-foreground/70 bg-muted border border-border px-2 py-0.5 rounded-sm">
+                          <span key={i} className="inline-block text-xs text-muted-foreground">
                             {award}
                           </span>
                         ))}
