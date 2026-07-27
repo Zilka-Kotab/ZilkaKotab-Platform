@@ -1019,6 +1019,38 @@ footer {
 }
 .cta-btns { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 1rem; }
 
+/* ─── PROFILE CREDENTIALS ─── */
+.profile-credentials { margin-top: 2rem; display: flex; flex-direction: column; gap: 1.5rem; }
+.cred-section h2 {
+  font-size: 0.65rem;
+  font-family: var(--font-display);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: rgba(29,39,70,0.4);
+  margin-bottom: 0.5rem;
+}
+.cred-section ul { display: flex; flex-direction: column; gap: 0.25rem; }
+.cred-section li { font-size: 0.875rem; color: var(--muted-fg); line-height: 1.5; }
+.cred-award { font-size: 0.875rem; font-weight: 600; color: var(--accent); }
+
+/* ─── TEAM CARD EDUCATION ─── */
+.team-edu { display: flex; flex-direction: column; gap: 0.2rem; margin: 0.75rem 0 0.75rem; flex: 1; }
+.team-edu li { font-size: 0.8125rem; color: var(--muted-fg); line-height: 1.4; }
+.award-badge {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--accent);
+  background: hsla(44,54%,52%,0.12);
+  border: 1px solid hsla(44,54%,52%,0.25);
+  padding: 0.2rem 0.5rem;
+  border-radius: 2px;
+  margin-right: 0.25rem;
+  margin-bottom: 0.25rem;
+}
+.team-awards { margin-bottom: 0.75rem; }
+
 /* ─── SECTION DIVIDERS ─── */
 .section-label {
   display: inline-flex;

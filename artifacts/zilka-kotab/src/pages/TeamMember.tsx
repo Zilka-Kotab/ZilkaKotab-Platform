@@ -37,9 +37,11 @@ export default function TeamMember() {
           </Link>
         </div>
 
-        {/* Profile header */}
+        {/* Profile */}
         <section className="container mx-auto px-4 mb-20">
           <div className="grid grid-cols-1 lg:grid-cols-[340px_1fr] gap-16 items-start">
+
+            {/* Sidebar */}
             <FadeIn direction="right">
               <div className="sticky top-32">
                 <div className="overflow-hidden rounded-2xl aspect-square bg-muted mb-6 shadow-xl">
@@ -73,21 +75,67 @@ export default function TeamMember() {
                   )}
                 </div>
 
+                {/* Awards */}
+                {member.awards && member.awards.length > 0 && (
+                  <div className="mb-6">
+                    <h2 className="text-xs font-display font-semibold uppercase tracking-widest text-foreground/40 mb-2">Recognition</h2>
+                    <ul className="space-y-1">
+                      {member.awards.map((a, i) => (
+                        <li key={i} className="text-sm text-muted-foreground">{a}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Education */}
+                <div className="mb-6">
+                  <h2 className="text-xs font-display font-semibold uppercase tracking-widest text-foreground/40 mb-2">Education</h2>
+                  <ul className="space-y-1">
+                    {member.education.map((e, i) => (
+                      <li key={i} className="text-sm text-muted-foreground">{e}</li>
+                    ))}
+                  </ul>
+                </div>
+
+                {/* Admissions */}
+                {member.admissions.length > 0 && (
+                  <div className="mb-6">
+                    <h2 className="text-xs font-display font-semibold uppercase tracking-widest text-foreground/40 mb-2">Admissions</h2>
+                    <ul className="space-y-1">
+                      {member.admissions.map((a, i) => (
+                        <li key={i} className="text-sm text-muted-foreground">{a}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Memberships */}
+                {member.memberships && member.memberships.length > 0 && (
+                  <div>
+                    <h2 className="text-xs font-display font-semibold uppercase tracking-widest text-foreground/40 mb-2">Memberships</h2>
+                    <ul className="space-y-1">
+                      {member.memberships.map((m, i) => (
+                        <li key={i} className="text-sm text-muted-foreground">{m}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
               </div>
             </FadeIn>
 
             {/* Bio */}
             <FadeIn direction="left">
               <div className="pt-2">
-                <div className="prose prose-lg max-w-none">
+                <div className="space-y-6">
                   {member.fullBio.map((para, i) => (
-                    <p key={i} className="text-foreground/80 leading-relaxed text-lg mb-6 last:mb-0">
+                    <p key={i} className="text-foreground/80 leading-relaxed text-lg">
                       {para}
                     </p>
                   ))}
                 </div>
               </div>
             </FadeIn>
+
           </div>
         </section>
 

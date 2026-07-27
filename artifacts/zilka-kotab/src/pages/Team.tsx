@@ -42,6 +42,7 @@ export default function Team() {
                   </Link>
 
                   <div className="flex-1 flex flex-col">
+                    {/* Name / role / LinkedIn */}
                     <div className="flex items-start justify-between gap-2 mb-1">
                       <div>
                         <Link href={`/team/${member.slug}`}>
@@ -62,9 +63,23 @@ export default function Team() {
                       )}
                     </div>
 
-                    <p className="text-muted-foreground text-sm mt-3 mb-5 leading-relaxed flex-1">
-                      {member.shortBio}
-                    </p>
+                    {/* Education */}
+                    <ul className="mt-3 mb-3 space-y-0.5 flex-1">
+                      {member.education.map((line, i) => (
+                        <li key={i} className="text-sm text-muted-foreground leading-snug">{line}</li>
+                      ))}
+                    </ul>
+
+                    {/* Awards */}
+                    {member.awards && member.awards.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mb-4">
+                        {member.awards.map((award, i) => (
+                          <span key={i} className="inline-block text-xs font-semibold text-foreground/70 bg-muted border border-border px-2 py-0.5 rounded-sm">
+                            {award}
+                          </span>
+                        ))}
+                      </div>
+                    )}
 
                     <Link
                       href={`/team/${member.slug}`}

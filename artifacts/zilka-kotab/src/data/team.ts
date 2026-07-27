@@ -6,7 +6,11 @@ export interface TeamMember {
   photo: string;
   email: string;
   linkedin?: string;
-  shortBio: string;
+  shortBio: string; // kept for SEO/meta only
+  education: string[];
+  admissions: string[];
+  awards?: string[];
+  memberships?: string[];
   fullBio: string[];
   focus: string[];
 }
@@ -21,13 +25,25 @@ export const team: TeamMember[] = [
     photo: '/images/team/kotab.jpg',
     email: 'dominic@zilkakotab.com',
     linkedin: 'https://www.linkedin.com/in/kotab',
-    shortBio:
-      'Dominic is a registered patent attorney and co-founder of Zilka-Kotab PC. He brings a background in chemical engineering and broad expertise in computer-based technologies.',
+    shortBio: 'Dominic is a registered patent attorney and co-founder of Zilka-Kotab PC specializing in high-value patent portfolio strategy across semiconductor, materials, and computer-based technologies.',
+    education: [
+      'JD, University of San Diego School of Law',
+      'BS, Chemical Engineering, South Dakota School of Mines and Technology',
+    ],
+    admissions: [
+      'USPTO',
+      'State Bar of California',
+      'State Bar of South Dakota',
+      'U.S. District Court, N.D. California',
+      'U.S. Court of Appeals, Ninth Circuit',
+    ],
+    memberships: [
+      'American Intellectual Property Law Association (AIPLA)',
+    ],
     fullBio: [
-      'Dominic M. Kotab is a registered patent attorney and co-founder of Zilka-Kotab PC.',
-      'With a background in chemical engineering and a strong basis in all types of computer-based technologies, Dominic\'s current practice includes the preparation and prosecution of patent applications, strategic portfolio development, and counseling clients on IP matters ranging from freedom-to-operate analyses to licensing strategy.',
-      'Dominic represents a broad range of clients — from Fortune 500 corporations to innovative startups — helping them build and protect IP assets that drive real business value.',
-      'Dominic is a registered patent attorney before the USPTO and is admitted to practice law in the State of California.',
+      'Dominic Kotab is a registered patent attorney and co-founder of Zilka-Kotab PC. With a background in chemical engineering and a strong basis in computer-based technology, he helps companies identify and protect their core inventions and turn them into strategic business assets.',
+      'He specializes in building high-value patent portfolios that give clients a competitive edge, strengthen defensibility, support capital raises, and create pathways for long-term monetization. His work spans semiconductor design, fabrication and tooling, data storage and integrated circuits, networks, image processing, mechanical systems, chemical discovery and processing, additive manufacturing, alternative energy technologies such as battery systems and carbon capture, and nanotechnology — with particular strength in AI hardware, advanced materials, and sustainable technologies.',
+      'Beyond preparation and prosecution, Dominic has provided strategic counsel through hundreds of validity and freedom-to-operate opinions, infringement analyses, licensing initiatives, and pre-litigation diligence, consistently delivering high-quality work within clients\' budgets. He brings particular expertise in global portfolio management, collaborating with foreign associates chosen over decades to secure effective worldwide protection. He is fluent in Spanish.',
     ],
     focus: [
       'Patent Preparation & Prosecution',
@@ -44,13 +60,19 @@ export const team: TeamMember[] = [
     photo: '/images/team/rossi.jpg',
     email: 'jamie@zilkakotab.com',
     linkedin: 'https://www.linkedin.com/in/jamie-rossi-78783b5',
-    shortBio:
-      'Jamie joined Zilka-Kotab in 2004 and specializes in managing sophisticated patent portfolios for Fortune 500 corporations, innovative startups, and solo inventors.',
+    shortBio: 'Jamie is a registered patent attorney who joined Zilka-Kotab in 2004, specializing in AI, robotics, semiconductors, and complex software patent portfolios for Fortune 500 corporations and startups.',
+    education: [
+      'JD, Santa Clara University School of Law',
+      'BS, Computer Science, Whitworth College',
+    ],
+    admissions: [
+      'USPTO',
+      'State Bar of California',
+    ],
     fullBio: [
-      'Jamie Rossi is a registered patent attorney who joined Zilka-Kotab in 2004. She manages sophisticated patent portfolios for a diverse range of clients that include Fortune 500 corporations, innovative startups, and solo inventors.',
-      'With deep experience in the preparation and prosecution of patent applications across a wide variety of technology areas, Jamie is skilled at developing strategy tailored to each client\'s business landscape and competitive environment.',
-      'Jamie\'s client-focused approach and technical fluency have made her a trusted advisor to both long-standing corporate clients and individual inventors navigating the patent process for the first time.',
-      'Jamie is a registered patent attorney before the USPTO and is admitted to practice law in the State of California.',
+      'Jamie Rossi is a registered patent attorney who joined Zilka-Kotab PC in 2004. She manages sophisticated patent portfolios for a diverse range of clients, including Fortune 500 corporations, innovative startups, and solo inventors.',
+      'With extensive expertise in computer software and hardware, she specializes in the preparation, prosecution, and strategic management of patents in artificial intelligence, robotics, autonomous agent systems, memory systems, semiconductors, database systems, and telecommunication networks. She also collaborates with international associates to prosecute and maintain global patent families, ensuring robust worldwide protection for her clients\' inventions.',
+      'Jamie provides in-depth strategic analysis of pending and issued patents for both offensive and defensive purposes, including infringement analyses, validity analyses, and claim charting to identify licensing opportunities. She gives educational presentations on current USPTO policy and best practices for obtaining enforceable, valuable patents, and holds patent-harvesting sessions with inventor groups. By aligning technical depth with business objectives, she delivers patents that build lasting business value and a stronger market position.',
     ],
     focus: [
       'Patent Prosecution',
@@ -67,16 +89,28 @@ export const team: TeamMember[] = [
     photo: '/images/team/schroeder.jpg',
     email: 'sally@zilkakotab.com',
     linkedin: 'https://www.linkedin.com/in/sallybschroeder/',
-    shortBio:
-      'Sally is a registered patent agent who supports the firm\'s prosecution practice, working alongside the principals to prepare and prosecute patent applications across a range of technology areas.',
+    shortBio: 'Sally is a registered patent agent with deep expertise in viral pathogenesis, molecular biology, immunology, and chemistry, helping life sciences clients build strong, enforceable patent portfolios.',
+    education: [
+      'PhD, Medical Microbiology, University of Birmingham, England',
+      'MS, Medical Microbiology, University of Birmingham, England',
+      'BA, Chemistry, Carleton College',
+    ],
+    admissions: [
+      'USPTO',
+    ],
+    memberships: [
+      'National Association of Patent Practitioners',
+    ],
     fullBio: [
-      'Sally Billstrom Schroeder is a registered patent agent with Zilka-Kotab PC, where she works alongside the firm\'s principals in the preparation and prosecution of patent applications.',
-      'Sally brings technical depth and meticulous attention to detail to each matter, ensuring that applications are drafted to maximize coverage and withstand examination.',
+      'Sally Billstrom Schroeder is a registered patent agent with extensive technical expertise in viral pathogenesis, molecular biology, immunology, and chemistry. She helps clients protect complex biological inventions and build strong, enforceable patent portfolios in the life sciences.',
+      'Prior to joining Zilka-Kotab PC, Sally led a research team investigating immune-response interactions of virally-encoded chemokine receptors as joint faculty at the University of Colorado Health Science Center and National Jewish Medical and Research Center in Denver. She brings firsthand scientific experience to her patent work, drafting clear, strategically sound applications that support her clients\' objectives in biotechnology and related fields.',
+      'She manages both domestic and foreign patent portfolios for private companies and organizations involved in government-funded research, and has authored several peer-reviewed publications in her areas of expertise.',
     ],
     focus: [
+      'Biotechnology & Life Sciences',
+      'Molecular Biology',
       'Patent Preparation',
       'Patent Prosecution',
-      'Technical Analysis',
     ],
   },
   {
@@ -87,13 +121,27 @@ export const team: TeamMember[] = [
     photo: '/images/team/sessions.jpg',
     email: 'britten@zilkakotab.com',
     linkedin: 'https://www.linkedin.com/in/brittensessions',
-    shortBio:
-      'Britten is a registered patent attorney with extensive experience across the full patent lifecycle — from early-stage invention disclosure through portfolio building, licensing, and litigation support.',
+    shortBio: 'Britten is a registered patent attorney with extensive experience across the full patent lifecycle, closing hundreds of patent transactions and helping generate over $130 million in returns from patent assets.',
+    education: [
+      'JD, Santa Clara University',
+      'BS, Chemical Engineering, Brigham Young University',
+    ],
+    admissions: [
+      'USPTO',
+      'State Bar of California',
+    ],
+    awards: [
+      'IAM Strategy 300 (2016–2025)',
+      'Super Lawyer (2016–2023)',
+      'Silicon Valley Business Journal Top 40 Under 40 (2016)',
+    ],
+    memberships: [
+      'National Association of Patent Practitioners',
+    ],
     fullBio: [
-      'Britten Sessions is a registered patent attorney with extensive experience across the full patent lifecycle. From identifying promising inventions early in the disclosure phase and building strong patent portfolios to licensing and litigation support, Britten provides comprehensive IP counsel at every stage.',
-      'Britten works with clients across a broad spectrum of technology areas, advising on strategy, claim development, and positioning patents for both defensive protection and offensive value.',
-      'Known for a meticulous and strategic approach, Britten helps clients navigate the complexities of patent law with clarity and confidence — from first disclosure through ultimate monetization.',
-      'Britten is a registered patent attorney before the USPTO and is admitted to practice law in the State of California.',
+      'Britten Sessions is a registered patent attorney with extensive experience across the full patent lifecycle — from identifying promising inventions early in the disclosure phase and building strong portfolios to licensing, enforcement, and monetization of IP assets. He has guided clients ranging from individual inventors and startups to Fortune 500 companies, closing hundreds of patent-related transactions and helping generate over $130 million in returns from patent assets.',
+      'He serves as Executive-in-Residence and Adjunct Faculty at Gonzaga University School of Law, where he founded and supervises the Intellectual Property Law Clinic. He previously founded the IP Clinic at Lincoln Law School of San Jose, where he was Associate Dean of Intellectual Property and developed certificate, MLS, and LLM IP-focused programs. He has authored over ten IP-related books, including the IP Practice Training Resource (volumes 1 and 2), used at multiple universities to train the next generation of patent and IP students.',
+      'He prosecutes patents across AI, robotics, advanced materials, energy storage, semiconductors, and software, specializing in helping early-stage innovators build portfolios that support fundraising, strengthen competitive positioning, and create long-term business value.',
     ],
     focus: [
       'Full Patent Lifecycle',
@@ -110,12 +158,25 @@ export const team: TeamMember[] = [
     photo: '/images/team/zilka.jpg',
     email: 'kevin@zilkakotab.com',
     linkedin: 'https://www.linkedin.com/in/kevinzilka',
-    shortBio:
-      'Kevin has over 25 years of experience in the intellectual property field and has been repeatedly selected as one of the world\'s leading 300 IP strategists by IAM Strategy 300.',
+    shortBio: 'Kevin is a registered patent attorney and co-founder of Zilka-Kotab PC with more than 30 years of experience, repeatedly named to the IAM Strategy 300 as one of the world\'s leading IP strategists.',
+    education: [
+      'JD, Santa Clara University',
+      'MSEE, University of South Florida',
+      'BSEE, University of South Florida',
+    ],
+    admissions: [
+      'USPTO',
+      'State Bar of California',
+      'U.S. District Court, N.D. California',
+      'U.S. Court of Appeals, Ninth Circuit',
+    ],
+    awards: [
+      'IAM Strategy 300',
+    ],
     fullBio: [
-      'Kevin Zilka has over 25 years of experience in the intellectual property (IP) field and, as a result of his accomplishments in patent law, has been repeatedly selected as one of the world\'s leading 300 IP strategists.',
-      'Kevin\'s practice focuses on developing comprehensive patent strategies for high technology companies, with particular depth in software, semiconductors, networking, and artificial intelligence technologies. He works closely with clients to build patent portfolios that are aligned with their business objectives and positioned for maximum commercial value.',
-      'Kevin is a registered patent attorney before the United States Patent and Trademark Office (USPTO) and is admitted to practice law in the State of California.',
+      'Kevin Zilka is a registered patent attorney and co-founder of Zilka-Kotab PC with more than 30 years of experience in intellectual property law. He has been repeatedly named to the IAM Strategy 300, Intellectual Asset Management magazine\'s annual list of the world\'s 300 leading IP strategists. He built and leads the firm\'s team of patent practitioners and has helped clients turn strategically built portfolios into significant revenue through high-stakes licensing negotiations.',
+      'He specializes in strategic patent portfolio development and management, focusing on aggressive yet thoughtful procurement that delivers both offensive and defensive positioning aligned with real business objectives. He pioneered best practices for integrating competitive intelligence into the patent process and developed a patented software tool to improve strategic claim positioning during prosecution — work that has contributed to high-value licensing outcomes worth hundreds of millions of dollars.',
+      'With a master\'s in electrical and electronics engineering, Kevin works across foundational and frontier technologies, including software and business methods, graphics processing and computer vision, analog and digital circuits, semiconductor architectures, network systems, encryption, compression, memory technologies, speech recognition, and wireless. He helps clients in AI, robotics, autonomous systems, and secure computing build portfolios that strengthen competitive positioning, support fundraising, and create long-term business value. He frequently speaks at patent, technology, and legal conferences and has authored influential articles on patent strategy.',
     ],
     focus: [
       'Patent Portfolio Strategy',
