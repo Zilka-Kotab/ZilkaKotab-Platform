@@ -24,6 +24,7 @@ export const team: TeamMember[] = [
     category: 'member',
     photo: '/images/team/brill.png',
     email: 'emma@zilkakotab.com',
+    linkedin: 'https://www.linkedin.com/in/emmabrill/',
     shortBio: 'Emma is a patent paralegal at Zilka-Kotab PC with extensive experience supporting patent prosecution across solo inventors, startups, academic researchers, and Fortune 500 companies.',
     education: [
       'MSci, Biochemistry, University of Illinois at Chicago',
@@ -49,6 +50,7 @@ export const team: TeamMember[] = [
     category: 'member',
     photo: '/images/team/kali.png',
     email: 'alma@zilkakotab.com',
+    linkedin: 'https://www.linkedin.com/in/alma-kali-06339962/',
     shortBio: 'Alma is a patent paralegal at Zilka-Kotab PC with over a decade of experience in patent portfolio management, previously serving at Cypress Semiconductor and IBM.',
     education: [
       'BA, Political Theory, San José State University',
