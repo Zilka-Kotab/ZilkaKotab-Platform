@@ -46,12 +46,12 @@ export const team: TeamMember[] = [
   {
     slug: 'alma-kali',
     name: 'Alma Kali',
-    role: 'Patent Paralegal',
+    role: 'Senior/Lead Patent Paralegal',
     category: 'member',
     photo: '/images/team/kali.jpg',
     email: 'alma@zilkakotab.com',
     linkedin: 'https://www.linkedin.com/in/alma-kali-06339962/',
-    shortBio: 'Alma is a patent paralegal at Zilka-Kotab PC with over a decade of experience in patent portfolio management, previously serving at Cypress Semiconductor and IBM.',
+    shortBio: 'Alma is a Senior/Lead Patent Paralegal at Zilka-Kotab, P.C., with more than 20 years of experience supporting patent attorneys, agents, and inventors in law firm and high-tech corporate settings.',
     education: [
       'BA, Political Theory, San José State University',
       'Paralegal Certificate, De Anza College',
@@ -61,15 +61,15 @@ export const team: TeamMember[] = [
       'PCT Boot Camp Certified (2014)',
     ],
     fullBio: [
-      'Alma Kali is a patent paralegal at Zilka-Kotab PC, bringing over a decade of dedicated experience in patent portfolio management. At the direction of patent attorneys and agents, she prepares and files formal documents with the USPTO and foreign patent offices, and is an integral part of supporting patent professionals at the firm. She communicates with clients and inventors — both domestic and international — to ensure deadlines are met and guidelines are followed to the highest standard.',
-      'Since joining Zilka-Kotab in 2016, Alma has developed deep expertise in managing complex, multi-jurisdictional patent portfolios with precision and care. Her background spans the full range of prosecution support — from initial filings and office action responses to PCT applications and international coordination — and she is a certified PCT Boot Camp graduate, equipping her to handle international patent filings with confidence.',
-      'Prior to joining the firm, Alma held paralegal positions at Cypress Semiconductor and IBM, building a strong foundation in high-volume patent portfolio management in the semiconductor and technology sectors. She began her career as a legal assistant at IP Strategy Group, where she developed her core skills in intellectual property practice.',
+      'Alma Kali is a Senior/Lead Patent Paralegal at Zilka-Kotab, P.C., with more than 20 years of experience supporting patent attorneys, agents, and inventors in law firm and high-tech corporate settings. Clients and counsel count on her to manage complex, high-volume patent portfolios with precision and care — preparing and filing utility, provisional, design, PCT, and national phase applications and responses with the USPTO, while ensuring consistent compliance that helps avoid unnecessary fees and delays.',
+      'Since joining the firm in 2016, Alma has developed deep expertise across the full range of prosecution support, from initial filings and office action responses to patent family mapping, priority claims, prior art cross-citing, and international coordination. She conducts thorough pre-filing reviews for accuracy and USPTO requirements, and leverages generative AI tools to enhance proofreading, error detection, and efficiency. Alma also trains and supervises staff on best practices and AI-assisted techniques, develops streamlined workflows that reduce client costs and surcharges, and serves as a reliable liaison with inventors for formal documents as well as with domestic and international clients to keep deadlines and guidelines firmly on track.',
+      'Before joining Zilka-Kotab, Alma held patent paralegal roles at Cypress Semiconductor/Infineon Technologies and IBM, where she built a strong foundation in high-volume portfolio management and prosecution support within the semiconductor and technology sectors.',
     ],
     focus: [
       'USPTO & Foreign Filings',
-      'PCT Applications',
+      'PCT & National Phase Applications',
       'Patent Portfolio Management',
-      'Client & Inventor Coordination',
+      'AI-Assisted Prosecution Support',
     ],
   },
   {
