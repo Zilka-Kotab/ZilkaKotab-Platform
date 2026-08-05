@@ -15,7 +15,7 @@ export interface TeamMember {
   focus: string[];
 }
 
-// Ordered alphabetically by last name: Brill, Kali, Kotab, Rossi, Schroeder, Sessions, Zilka
+// Ordered alphabetically by last name: Brill, Coben, Kali, Kotab, Rossi, Schroeder, Sessions, Zilka
 export const team: TeamMember[] = [
   {
     slug: 'emma-brill',
@@ -41,6 +41,32 @@ export const team: TeamMember[] = [
       'Patent Docketing',
       'Client & Inventor Coordination',
       'Portfolio Administration',
+    ],
+  },
+  {
+    slug: 'anita-coben',
+    name: 'Anita Coben',
+    role: 'Senior IP Paralegal & Docketing Specialist',
+    category: 'member',
+    photo: '/images/team/coben.jpg',
+    email: 'anita@zilkakotab.com',
+    shortBio: 'Anita is a Senior IP Paralegal & Docketing Specialist with 20 years of experience at boutique IP law firms in Silicon Valley, serving as the sole docketing authority at Zilka-Kotab PC for the firm\'s entire US and foreign patent docket.',
+    education: [
+      'Paralegal Studies, San Francisco State University — College of Extended Learning (2004–2005)',
+      'AA, General Studies, Evergreen Valley College (2000–2003)',
+    ],
+    admissions: [],
+    memberships: [],
+    fullBio: [
+      'Anita Coben is a Senior IP Paralegal & Docketing Specialist with more than 20 years of experience at boutique IP law firms in Silicon Valley. At Zilka-Kotab, P.C., she serves as the firm\'s sole docketing authority, managing the entire US and foreign patent docket across all active matters — a responsibility she has carried out fully remotely for over 13 years.',
+      'Anita\'s expertise spans foreign patent prosecution across multiple jurisdictions, PCT and Paris Convention deadline management, annuity and renewal oversight, foreign associate relationship management, and large-scale portfolio transfers. She is the firm\'s institutional knowledge resource for docketing systems, foreign prosecution procedures, and vendor relationships, and is trusted by attorneys to communicate directly with clients on docketing and deadline matters.',
+      'She has led vendor selection and implementation initiatives — including annuity providers, translation services, and foreign filing firms — that reduced operational costs and streamlined workflows firm-wide. Her combination of deep technical expertise, long-standing vendor relationships, and remote practice discipline makes her an indispensable anchor of the firm\'s IP operations.',
+    ],
+    focus: [
+      'US & Foreign Patent Docketing',
+      'PCT & Paris Convention Deadlines',
+      'Annuity & Renewal Management',
+      'Foreign Associate Relations',
     ],
   },
   {
