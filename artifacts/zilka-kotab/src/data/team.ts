@@ -33,7 +33,7 @@ export const team: TeamMember[] = [
     admissions: [],
     fullBio: [
       'Emma Brill is a patent paralegal at Zilka-Kotab PC with extensive experience supporting patent prosecution across a wide range of clients, including solo inventors, small start-ups, academic researchers, and Fortune 500 companies. At the direction of patent attorneys and agents, she prepares and files formal documents with the USPTO and foreign patent offices, and is an integral part of supporting patent professionals at the firm. She communicates with clients and inventors — both domestic and international — to ensure deadlines are met and guidelines are followed to the highest standard.',
-      'Emma brings deep back-office expertise in docketing, billing, filing, and general office management, ensuring the smooth operation of patent workflows from inception to issuance. She is experienced in working across the full range of patent prosecution support needs and takes pride in keeping complex portfolios moving on time and with precision.',
+      'Emma brings deep back-office expertise in docketing, billing, filing, and general office management, ensuring the smooth operation of patent workflows from inception to issuance. She is experienced in working across the full range of patent prosecution support needs, and takes pride in keeping complex portfolios moving on time and with precision.',
       'Before transitioning to IP practice, Emma spent eight years in the biotechnology and pharmaceutical industries, gaining hands-on research experience in pharmacology, assay development, and recombinant protein expression — a scientific background that deepens her understanding of the inventions she helps protect and the clients she serves.',
     ],
     focus: [
