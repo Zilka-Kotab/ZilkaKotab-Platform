@@ -50,6 +50,7 @@ export const team: TeamMember[] = [
     category: 'member',
     photo: '/images/team/coben.jpg',
     email: 'anita@zilkakotab.com',
+    linkedin: 'https://www.linkedin.com/in/anita-coben-088590b/',
     shortBio: 'Anita is a Senior IP Paralegal & Docketing Specialist with 20 years of experience at boutique IP law firms in Silicon Valley, serving as the sole docketing authority at Zilka-Kotab PC for the firm\'s entire US and foreign patent docket.',
     education: [
       'Paralegal Studies, San Francisco State University — College of Extended Learning',
