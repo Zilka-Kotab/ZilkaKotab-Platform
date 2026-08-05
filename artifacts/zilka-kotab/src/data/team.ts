@@ -52,8 +52,8 @@ export const team: TeamMember[] = [
     email: 'anita@zilkakotab.com',
     shortBio: 'Anita is a Senior IP Paralegal & Docketing Specialist with 20 years of experience at boutique IP law firms in Silicon Valley, serving as the sole docketing authority at Zilka-Kotab PC for the firm\'s entire US and foreign patent docket.',
     education: [
-      'Paralegal Studies, San Francisco State University — College of Extended Learning (2004–2005)',
-      'AA, General Studies, Evergreen Valley College (2000–2003)',
+      'Paralegal Studies, San Francisco State University — College of Extended Learning',
+      'AA, General Studies, Evergreen Valley College',
     ],
     admissions: [],
     memberships: [],
