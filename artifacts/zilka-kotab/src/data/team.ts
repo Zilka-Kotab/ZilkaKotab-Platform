@@ -239,6 +239,7 @@ export const team: TeamMember[] = [
     category: 'member',
     photo: '/images/team/stensgaard.jpg',
     email: 'jared@zilkakotab.com',
+    linkedin: 'https://www.linkedin.com/in/jaredstensgaard/',
     shortBio: 'Jared is a Patent Attorney at Zilka-Kotab, P.C., with a biochemistry background and a JD from Gonzaga University School of Law, where he focused on intellectual property law and patent prosecution through the Gonzaga IP Clinic.',
     education: [
       'JD, Gonzaga University School of Law',
