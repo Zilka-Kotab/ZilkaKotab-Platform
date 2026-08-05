@@ -165,7 +165,7 @@ export const team: TeamMember[] = [
   {
     slug: 'sally-billstrom-schroeder',
     name: 'Sally Billstrom Schroeder',
-    role: 'Patent Agent',
+    role: 'Senior Patent Agent',
     category: 'member',
     photo: '/images/team/schroeder.jpg',
     email: 'sally@zilkakotab.com',
