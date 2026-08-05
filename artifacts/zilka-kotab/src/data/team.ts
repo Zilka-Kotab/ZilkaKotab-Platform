@@ -240,16 +240,17 @@ export const team: TeamMember[] = [
     email: 'jared@zilkakotab.com',
     shortBio: 'Jared is a Patent Attorney at Zilka-Kotab, P.C., with a biochemistry background and a JD from Gonzaga University School of Law, where he focused on intellectual property law and patent prosecution through the Gonzaga IP Clinic.',
     education: [
-      'JD, Gonzaga University School of Law — Intellectual Property Clinic',
-      'BS, Biochemistry, Northwest Nazarene University — Honors College',
+      'JD, Gonzaga University School of Law',
+      'BS, Biochemistry, Northwest Nazarene University',
     ],
     admissions: [
+      'USPTO',
       'Washington State Bar',
     ],
     memberships: [],
     fullBio: [
       'Jared Stensgaard is a Patent Attorney at Zilka-Kotab, P.C., bringing a strong technical foundation in biochemistry to his IP practice. He earned his Juris Doctor from Gonzaga University School of Law, where intellectual property and patent prosecution were his primary focus — including hands-on work in the Gonzaga Intellectual Property Clinic, where he drafted and filed patent applications. His undergraduate training in Biochemistry from Northwest Nazarene University\'s Honors College gives him the scientific fluency to engage meaningfully with inventors and complex technical subject matter.',
-      'During law school, Jared served as a Summer Associate at Lee & Hayes, P.C., one of the Pacific Northwest\'s leading IP boutiques, where he was immersed in all facets of patent prosecution — reviewing file histories, developing prosecution strategies, conducting examiner interviews, drafting office action responses, and preparing claims based on invention disclosure meetings. He was also selected to attend a conference at the USPTO through a writing competition, reflecting his strong written advocacy skills.',
+      'Jared has interned and worked at a variety of law firms and has been immersed in all facets of patent prosecution — reviewing file histories, developing prosecution strategies, conducting examiner interviews, drafting office action responses, and preparing claims based on invention disclosure meetings.',
       'Jared brings to Zilka-Kotab a well-rounded perspective on patent practice developed through rigorous technical training, clinical IP experience, and law firm mentorship. He is committed to helping clients protect their innovations with precision and strategic clarity.',
     ],
     focus: [
