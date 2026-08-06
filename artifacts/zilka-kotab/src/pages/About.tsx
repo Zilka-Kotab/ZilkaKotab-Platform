@@ -105,18 +105,22 @@ export default function About() {
               <FadeIn key={v.id} delay={i * 0.06}>
                 <div className="rounded-2xl overflow-hidden bg-muted border border-border transition-all duration-300 hover:shadow-lg hover:border-accent/50">
                   {v.src ? (
-                    /* iframe always loaded — WeVideo shows its own thumbnail before play */
+                    /* iframe always loaded for thumbnail; remounted with autoplay on click */
                     <div className="aspect-video bg-black relative group">
                       <iframe
+                        key={activeVideo === v.id ? `active-${v.id}` : `preview-${v.id}`}
                         title={v.question}
-                        src={v.src}
+                        src={activeVideo === v.id
+                          ? v.src.replace('#', '?autoplay=1#')
+                          : v.src}
                         width="100%"
                         height="100%"
                         className="absolute inset-0 w-full h-full"
                         scrolling="no"
                         frameBorder="0"
-                        style={{ border: 'none' }}
+                        style={{ border: 'none', pointerEvents: activeVideo === v.id ? 'auto' : 'none' }}
                         allowFullScreen
+                        allow="autoplay; fullscreen"
                       />
                       {/* Overlay with number + play button — removed on click */}
                       {activeVideo !== v.id && (
@@ -156,9 +160,9 @@ export default function About() {
                       </div>
                     </button>
                   )}
-                  {/* Question text */}
+                  {/* Question text — fixed 2-line height for consistent card sizes */}
                   <div className="p-4">
-                    <p className="text-sm font-medium text-foreground leading-snug">
+                    <p className="text-sm font-medium text-foreground leading-snug line-clamp-2 min-h-[2.75rem]">
                       {v.question}
                     </p>
                   </div>
