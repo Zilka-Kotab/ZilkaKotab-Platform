@@ -33,8 +33,17 @@ router.post("/contact", async (req, res) => {
   const transporter = nodemailer.createTransport({
     host: smtpHost,
     port: smtpPort,
-    secure: smtpPort === 465,
-    auth: { user: smtpUser, pass: smtpPass },
+    secure: smtpPort === 465,   // true only for port 465 (SSL); 587 uses STARTTLS
+    requireTLS: smtpPort !== 465, // enforce STARTTLS upgrade on port 587
+    auth: {
+      type: "login",
+      user: smtpUser,
+      pass: smtpPass,
+    },
+    tls: {
+      // Allow self-signed certs on on-premise Exchange servers
+      rejectUnauthorized: false,
+    },
   });
 
   const html = `
