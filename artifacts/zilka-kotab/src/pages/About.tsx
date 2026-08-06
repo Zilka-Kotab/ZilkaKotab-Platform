@@ -92,10 +92,10 @@ export default function About() {
                 <span className="w-8 h-px bg-accent" />
               </div>
               <h2 className="text-3xl md:text-4xl font-display font-bold text-foreground mb-4">
-                Q&amp;A with Our Team
+                Q&amp;A with Our Managing Partner
               </h2>
               <p className="text-muted-foreground leading-relaxed">
-                Hear directly from our attorneys and principals on what sets Zilka-Kotab apart.
+                Hear directly from our managing partner, Britten Sessions, on what sets Zilka-Kotab apart.
               </p>
             </div>
           </FadeIn>
