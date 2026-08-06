@@ -36,10 +36,19 @@ export function Footer() {
 
         </div>
 
-        <div className="mt-6 pt-4 border-t border-white/10">
-          <p className="text-xs text-primary-foreground/40 text-center">
+        <div className="mt-6 pt-4 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-3">
+          <p className="text-xs text-primary-foreground/40">
             &copy; {currentYear} Zilka-Kotab PC. All rights reserved.
           </p>
+          <div className="flex items-center gap-4">
+            <a href="/privacy-policy" className="text-xs text-primary-foreground/40 hover:text-primary-foreground/70 transition-colors">
+              Privacy Policy
+            </a>
+            <span className="text-primary-foreground/20 text-xs">|</span>
+            <a href="/terms" className="text-xs text-primary-foreground/40 hover:text-primary-foreground/70 transition-colors">
+              Terms of Use &amp; Disclaimer
+            </a>
+          </div>
         </div>
       </div>
     </footer>

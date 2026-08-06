@@ -15,6 +15,8 @@ import Services from '@/pages/Services';
 import Team from '@/pages/Team';
 import TeamMember from '@/pages/TeamMember';
 import Contact from '@/pages/Contact';
+import Privacy from '@/pages/Privacy';
+import Terms from '@/pages/Terms';
 import NotFound from '@/pages/not-found';
 
 const queryClient = new QueryClient();
@@ -30,6 +32,8 @@ function Router() {
         <Route path="/team" component={Team} />
         <Route path="/team/:slug" component={TeamMember} />
         <Route path="/contact" component={Contact} />
+        <Route path="/privacy-policy" component={Privacy} />
+        <Route path="/terms" component={Terms} />
         <Route component={NotFound} />
       </Switch>
       <Footer />
