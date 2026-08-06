@@ -9,7 +9,7 @@ const qaVideos = [
   { id: 3, question: "Every law firm says they're client focused. What actually distinguishes your firm?", src: "https://www.wevideo.com/embed/#4149574274" },
   { id: 4, question: "Do you see yourselves as just a patent prosecution firm?", src: "" },
   { id: 5, question: "What types of clients do you enjoy working with?", src: "https://www.wevideo.com/embed/#4149575913" },
-  { id: 6, question: "AI is changing so much. How is it changing patent law?", src: "" },
+  { id: 6, question: "AI is changing so much. How is it changing patent law?", src: "https://www.wevideo.com/embed/#4149576723" },
   { id: 7, question: "If you had to describe the firm's culture in a few words, what would they be?", src: "" },
   { id: 8, question: "If someone watching is considering your firm, what would you want them to know?", src: "" },
 ];
