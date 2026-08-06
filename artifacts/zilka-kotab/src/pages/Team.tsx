@@ -27,10 +27,11 @@ export default function Team() {
           </FadeIn>
         </section>
 
-        {/* Team grid — alphabetical by last name */}
+        {/* Team grid */}
         <section className="container mx-auto px-4 mb-20">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10">
-            {team.map((member, index) => (
+          {/* Founders row — Sessions, Kotab, Zilka */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-10 mb-10 max-w-4xl mx-auto">
+            {team.slice(0, 3).map((member, index) => (
               <FadeIn key={member.slug} delay={index * 0.08}>
                 <div className="group flex flex-col h-full">
                   <Link href={`/team/${member.slug}`} className="block mb-5 overflow-hidden rounded-2xl aspect-square bg-muted">
@@ -71,6 +72,66 @@ export default function Team() {
                     </ul>
 
                     {/* Awards */}
+                    {member.awards && member.awards.length > 0 && (
+                      <p className="text-xs text-muted-foreground mb-4">
+                        <span className="font-semibold text-foreground/60">Awards: </span>
+                        {member.awards.join(' / ')}
+                      </p>
+                    )}
+
+                    <Link
+                      href={`/team/${member.slug}`}
+                      className="inline-flex items-center gap-1 text-sm text-primary font-medium hover:text-primary/80 group/link mt-auto"
+                    >
+                      Full Profile
+                      <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover/link:translate-x-1" />
+                    </Link>
+                  </div>
+                </div>
+              </FadeIn>
+            ))}
+          </div>
+
+          {/* Remaining attorneys */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10">
+            {team.slice(3).map((member, index) => (
+              <FadeIn key={member.slug} delay={index * 0.08}>
+                <div className="group flex flex-col h-full">
+                  <Link href={`/team/${member.slug}`} className="block mb-5 overflow-hidden rounded-2xl aspect-square bg-muted">
+                    <img
+                      src={`${baseUrl}${member.photo}`}
+                      alt={member.name}
+                      className="w-full h-full object-cover object-top transition-transform duration-500 group-hover:scale-105"
+                    />
+                  </Link>
+
+                  <div className="flex-1 flex flex-col">
+                    <div className="flex items-start justify-between gap-2 mb-1">
+                      <div>
+                        <Link href={`/team/${member.slug}`}>
+                          <h3 className="text-xl font-display font-bold text-foreground hover:text-primary transition-colors">{member.name}</h3>
+                        </Link>
+                        <p className="text-primary font-medium text-sm">{member.role}</p>
+                      </div>
+                      {member.linkedin && (
+                        <a
+                          href={member.linkedin}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-muted-foreground hover:text-primary transition-colors p-1 mt-0.5 shrink-0"
+                          aria-label={`${member.name} on LinkedIn`}
+                        >
+                          <Linkedin className="w-4 h-4" />
+                        </a>
+                      )}
+                    </div>
+
+                    <ul className="mt-3 mb-3 space-y-0.5 flex-1">
+                      {member.education.map((line, i) => (
+                        <li key={i} className="text-sm text-muted-foreground leading-snug">{line}</li>
+                      ))}
+                    </ul>
+
                     {member.awards && member.awards.length > 0 && (
                       <p className="text-xs text-muted-foreground mb-4">
                         <span className="font-semibold text-foreground/60">Awards: </span>
