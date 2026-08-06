@@ -149,6 +149,7 @@ export default function About() {
               </FadeIn>
             ))}
           </div>
+        </section>
 
         {/* Representative Clients */}
         <section className="mt-24 py-20 bg-primary overflow-hidden relative">
