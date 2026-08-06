@@ -95,7 +95,7 @@ export default function About() {
                 Q&amp;A with Our Managing Partner
               </h2>
               <p className="text-muted-foreground leading-relaxed">
-                Hear directly from our managing partner, Britten Sessions, on what sets Zilka-Kotab apart.
+                Hear directly from Britten Sessions on what sets Zilka-Kotab apart.
               </p>
             </div>
           </FadeIn>
