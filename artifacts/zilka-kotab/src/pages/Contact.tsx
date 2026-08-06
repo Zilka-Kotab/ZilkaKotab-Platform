@@ -77,41 +77,7 @@ export default function Contact() {
         <section className="container mx-auto px-4">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-start max-w-5xl mx-auto">
 
-            {/* Left: contact info + map */}
-            <div className="space-y-10">
-              <FadeIn delay={0.1}>
-                <ul className="space-y-7">
-                  {contactItems.map(({ icon: Icon, label, content }) => (
-                    <li key={label} className="flex items-start gap-5">
-                      <div className="w-12 h-12 rounded-xl bg-accent/15 flex items-center justify-center shrink-0">
-                        <Icon className="w-5 h-5 text-accent" />
-                      </div>
-                      <div>
-                        <p className="font-display font-semibold text-foreground mb-0.5">{label}</p>
-                        <p className="text-muted-foreground leading-relaxed">{content}</p>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              </FadeIn>
-
-              <FadeIn delay={0.2}>
-                <div className="rounded-2xl overflow-hidden shadow-md border border-border h-[260px]">
-                  <iframe
-                    title="Map of Zilka-Kotab PC"
-                    src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3171.306079978713!2d-121.90807768469463!3d37.35914597983697!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x808fccf0e2101211%3A0xcda6dc79e51c86fc!2s1155%20N%201st%20St%20%23104%2C%20San%20Jose%2C%20CA%2095112!5e0!3m2!1sen!2sus!4v1684346857121!5m2!1sen!2sus"
-                    width="100%"
-                    height="100%"
-                    style={{ border: 0 }}
-                    allowFullScreen
-                    loading="lazy"
-                    referrerPolicy="no-referrer-when-downgrade"
-                  />
-                </div>
-              </FadeIn>
-            </div>
-
-            {/* Right: contact form */}
+            {/* Left: contact form */}
             <FadeIn delay={0.15}>
               <div className="bg-white rounded-2xl p-8 border border-border shadow-xl ring-1 ring-border/50">
                 <h2 className="text-2xl font-display font-semibold text-foreground mb-6">Send Us a Message</h2>
@@ -239,6 +205,40 @@ export default function Contact() {
                 )}
               </div>
             </FadeIn>
+
+            {/* Right: contact info + map */}
+            <div className="space-y-10">
+              <FadeIn delay={0.1}>
+                <ul className="space-y-7">
+                  {contactItems.map(({ icon: Icon, label, content }) => (
+                    <li key={label} className="flex items-start gap-5">
+                      <div className="w-12 h-12 rounded-xl bg-accent/15 flex items-center justify-center shrink-0">
+                        <Icon className="w-5 h-5 text-accent" />
+                      </div>
+                      <div>
+                        <p className="font-display font-semibold text-foreground mb-0.5">{label}</p>
+                        <p className="text-muted-foreground leading-relaxed">{content}</p>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </FadeIn>
+
+              <FadeIn delay={0.2}>
+                <div className="rounded-2xl overflow-hidden shadow-md border border-border h-[260px]">
+                  <iframe
+                    title="Map of Zilka-Kotab PC"
+                    src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3171.306079978713!2d-121.90807768469463!3d37.35914597983697!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x808fccf0e2101211%3A0xcda6dc79e51c86fc!2s1155%20N%201st%20St%20%23104%2C%20San%20Jose%2C%20CA%2095112!5e0!3m2!1sen!2sus!4v1684346857121!5m2!1sen!2sus"
+                    width="100%"
+                    height="100%"
+                    style={{ border: 0 }}
+                    allowFullScreen
+                    loading="lazy"
+                    referrerPolicy="no-referrer-when-downgrade"
+                  />
+                </div>
+              </FadeIn>
+            </div>
 
           </div>
         </section>

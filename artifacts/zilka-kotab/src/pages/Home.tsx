@@ -476,7 +476,7 @@ export default function Home() {
               </p>
               <div className="flex flex-wrap items-center justify-center gap-4">
                 <a
-                  href="mailto:patent@zilkakotab.com"
+                  href="/contact"
                   className="inline-flex h-14 items-center justify-center rounded-sm bg-primary px-10 text-lg font-medium text-white shadow-xl transition-transform hover:scale-105 active:scale-95"
                 >
                   Contact Our Team
