@@ -142,7 +142,7 @@ export default function Contact() {
                           id="name" name="name" type="text" required
                           value={form.name} onChange={handleChange}
                           placeholder="Jane Smith"
-                          className="w-full rounded-lg border border-border bg-background px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors"
+                          className="w-full rounded-lg border border-border bg-white px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors"
                         />
                       </div>
                       <div>
@@ -153,7 +153,7 @@ export default function Contact() {
                           id="email" name="email" type="email" required
                           value={form.email} onChange={handleChange}
                           placeholder="jane@company.com"
-                          className="w-full rounded-lg border border-border bg-background px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors"
+                          className="w-full rounded-lg border border-border bg-white px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors"
                         />
                       </div>
                     </div>
@@ -168,7 +168,7 @@ export default function Contact() {
                           id="phone" name="phone" type="tel"
                           value={form.phone} onChange={handleChange}
                           placeholder="(555) 000-0000"
-                          className="w-full rounded-lg border border-border bg-background px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors"
+                          className="w-full rounded-lg border border-border bg-white px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors"
                         />
                       </div>
                       <div>
@@ -178,7 +178,7 @@ export default function Contact() {
                         <select
                           id="subject" name="subject"
                           value={form.subject} onChange={handleChange}
-                          className="w-full rounded-lg border border-border bg-background px-4 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors"
+                          className="w-full rounded-lg border border-border bg-white px-4 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors"
                         >
                           <option value="">Select a topic…</option>
                           <option>Patent Strategy</option>
@@ -199,7 +199,7 @@ export default function Contact() {
                         id="message" name="message" required rows={5}
                         value={form.message} onChange={handleChange}
                         placeholder="Tell us about your IP needs…"
-                        className="w-full rounded-lg border border-border bg-background px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors resize-none"
+                        className="w-full rounded-lg border border-border bg-white px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors resize-none"
                       />
                     </div>
 
