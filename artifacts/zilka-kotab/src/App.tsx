@@ -7,6 +7,7 @@ import { HelmetProvider } from 'react-helmet-async';
 // Layout Components
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
+import { ScrollToTop } from '@/components/ScrollToTop';
 
 // Pages
 import Home from '@/pages/Home';
@@ -24,6 +25,7 @@ const queryClient = new QueryClient();
 function Router() {
   return (
     <div className="flex min-h-[100dvh] flex-col">
+      <ScrollToTop />
       <Navbar />
       <Switch>
         <Route path="/" component={Home} />
