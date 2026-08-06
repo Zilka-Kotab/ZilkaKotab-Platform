@@ -182,29 +182,20 @@ export default function Home() {
           <div className="container mx-auto px-4">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center max-w-6xl mx-auto">
 
-              {/* Video placeholder */}
+              {/* Intro Video */}
               <FadeIn direction="right">
-                <div className="relative rounded-2xl overflow-hidden shadow-2xl aspect-video bg-secondary group cursor-pointer">
-                  {/* Replace this <video> src with your actual video file */}
-                  <video
-                    className="w-full h-full object-cover opacity-60"
-                    poster=""
-                    preload="none"
+                <div className="relative rounded-2xl overflow-hidden shadow-2xl aspect-video bg-secondary">
+                  <iframe
+                    title="Zilka-Kotab Intro"
+                    src="https://www.wevideo.com/embed/#4149534660"
+                    width="100%"
+                    height="100%"
+                    className="absolute inset-0 w-full h-full"
+                    scrolling="no"
+                    frameBorder="0"
+                    style={{ border: 'none' }}
+                    allowFullScreen
                   />
-                  {/* Dark overlay */}
-                  <div className="absolute inset-0 bg-secondary/50" />
-                  {/* Placeholder text behind play button */}
-                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-4">
-                    <div className="w-20 h-20 rounded-full bg-white/10 border-2 border-white/30 flex items-center justify-center backdrop-blur-sm group-hover:bg-white/20 group-hover:scale-110 transition-all duration-300">
-                      <PlayCircle className="w-10 h-10 text-white" />
-                    </div>
-                    <p className="text-white/50 text-sm font-medium uppercase tracking-widest">Video coming soon</p>
-                  </div>
-                  {/* Gold accent corner */}
-                  <div className="absolute top-4 left-4 w-12 h-px bg-accent" />
-                  <div className="absolute top-4 left-4 w-px h-12 bg-accent" />
-                  <div className="absolute bottom-4 right-4 w-12 h-px bg-accent" />
-                  <div className="absolute bottom-4 right-4 w-px h-12 bg-accent" />
                 </div>
               </FadeIn>
 

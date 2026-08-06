@@ -4,14 +4,14 @@ import { SEO } from '@/components/SEO';
 import { FadeIn } from '@/components/FadeIn';
 
 const qaVideos = [
-  { id: 1, question: "Can you tell us what the firm is all about?" },
-  { id: 2, question: "What is your vision for the firm?" },
-  { id: 3, question: "Every law firm says they're client focused. What actually distinguishes your firm?" },
-  { id: 4, question: "Do you see yourselves as just a patent prosecution firm?" },
-  { id: 5, question: "What types of clients do you enjoy working with?" },
-  { id: 6, question: "AI is changing so much. How is it changing patent law?" },
-  { id: 7, question: "If you had to describe the firm's culture in a few words, what would they be?" },
-  { id: 8, question: "If someone watching is considering your firm, what would you want them to know?" },
+  { id: 1, question: "Can you tell us what the firm is all about?", src: "https://www.wevideo.com/embed/#4149571869" },
+  { id: 2, question: "What is your vision for the firm?", src: "" },
+  { id: 3, question: "Every law firm says they're client focused. What actually distinguishes your firm?", src: "" },
+  { id: 4, question: "Do you see yourselves as just a patent prosecution firm?", src: "" },
+  { id: 5, question: "What types of clients do you enjoy working with?", src: "" },
+  { id: 6, question: "AI is changing so much. How is it changing patent law?", src: "" },
+  { id: 7, question: "If you had to describe the firm's culture in a few words, what would they be?", src: "" },
+  { id: 8, question: "If someone watching is considering your firm, what would you want them to know?", src: "" },
 ];
 
 export default function About() {
@@ -157,15 +157,18 @@ export default function About() {
                   </svg>
                 </button>
                 {/* Video player */}
-                <div className="aspect-video bg-black">
-                  <video
-                    className="w-full h-full"
-                    controls
-                    autoPlay
-                    src={`${baseUrl}/videos/qa-${video.id}.mp4`}
-                  >
-                    Your browser does not support HTML5 video.
-                  </video>
+                <div className="aspect-video bg-black relative">
+                  <iframe
+                    title={video.question}
+                    src={video.src}
+                    width="100%"
+                    height="100%"
+                    className="absolute inset-0 w-full h-full"
+                    scrolling="no"
+                    frameBorder="0"
+                    style={{ border: 'none' }}
+                    allowFullScreen
+                  />
                 </div>
                 {/* Caption */}
                 <div className="px-6 py-4 border-t border-border">
