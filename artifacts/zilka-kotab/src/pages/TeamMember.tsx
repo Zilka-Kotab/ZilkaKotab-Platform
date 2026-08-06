@@ -88,14 +88,16 @@ export default function TeamMember() {
                 )}
 
                 {/* Education */}
-                <div className="mb-6">
-                  <h2 className="text-xs font-display font-semibold uppercase tracking-widest text-foreground/40 mb-2">Education</h2>
-                  <ul className="space-y-1">
-                    {member.education.map((e, i) => (
-                      <li key={i} className="text-sm text-muted-foreground">{e}</li>
-                    ))}
-                  </ul>
-                </div>
+                {member.education.length > 0 && (
+                  <div className="mb-6">
+                    <h2 className="text-xs font-display font-semibold uppercase tracking-widest text-foreground/40 mb-2">Education</h2>
+                    <ul className="space-y-1">
+                      {member.education.map((e, i) => (
+                        <li key={i} className="text-sm text-muted-foreground">{e}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
 
                 {/* Admissions */}
                 {member.admissions.length > 0 && (

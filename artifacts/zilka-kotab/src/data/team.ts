@@ -297,6 +297,27 @@ export const team: TeamMember[] = [
       'USPTO Practice',
     ],
   },
+  {
+    slug: 'peggy-strong',
+    name: 'Peggy Strong',
+    role: 'Billing and Accounts Receivable Clerk',
+    category: 'member',
+    photo: '/images/team/strong.jpg',
+    email: 'peggy@zilkakotab.com',
+    shortBio: 'Peggy Strong has been with Zilka-Kotab since 2010, managing client custom invoicing using LEDES data formats, navigating numerous client billing platforms, and ensuring accurate financial reporting for corporate clients.',
+    education: [],
+    admissions: [],
+    fullBio: [
+      'As a Billing and Accounts Receivable Clerk at Zilka-Kotab since 2010, Peggy Strong takes pride in helping our legal teams navigate complex patent fee structures seamlessly. Peggy manages client custom invoicing using LEDES data formats, navigates our numerous client billing platforms, and ensures accurate financial reporting for our corporate clients.',
+      'Outside the office, Peggy enjoys taking care of her family, cooking, and restoring vintage furniture.',
+    ],
+    focus: [
+      'Client Invoicing & LEDES Billing',
+      'Accounts Receivable',
+      'Client Billing Platforms',
+      'Financial Reporting',
+    ],
+  },
 ];
 
 export function getMemberBySlug(slug: string): TeamMember | undefined {
