@@ -11,7 +11,7 @@ const qaVideos = [
   { id: 5, question: "What types of clients do you enjoy working with?", src: "https://www.wevideo.com/embed/#4149575913" },
   { id: 6, question: "AI is changing so much. How is it changing patent law?", src: "https://www.wevideo.com/embed/#4149576723" },
   { id: 7, question: "If you had to describe the firm's culture in a few words, what would they be?", src: "https://www.wevideo.com/embed/#4149577366" },
-  { id: 8, question: "If someone watching is considering your firm, what would you want them to know?", src: "" },
+  { id: 8, question: "If someone watching is considering your firm, what would you want them to know?", src: "https://www.wevideo.com/embed/#4149577889" },
 ];
 
 export default function About() {
