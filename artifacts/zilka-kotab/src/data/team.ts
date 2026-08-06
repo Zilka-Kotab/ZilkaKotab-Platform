@@ -15,8 +15,115 @@ export interface TeamMember {
   focus: string[];
 }
 
-// Ordered alphabetically by last name: Brill, Coben, Kali, Kotab, Rossi, Schroeder, Sessions, Stensgaard, Zilka
+// Order: Sessions (Managing Partner), Kotab (Principal), Zilka (Principal), then alphabetically by last name
 export const team: TeamMember[] = [
+  {
+    slug: 'britten-sessions',
+    name: 'Britten Sessions',
+    role: 'Managing Partner & Principal',
+    category: 'principal',
+    photo: '/images/team/sessions.jpg',
+    email: 'britten@zilkakotab.com',
+    linkedin: 'https://www.linkedin.com/in/brittensessions',
+    shortBio: 'Britten is a registered patent attorney with extensive experience across the full patent lifecycle, closing hundreds of patent transactions and helping generate over $130 million in returns from patent assets.',
+    education: [
+      'JD, Santa Clara University',
+      'BS, Chemical Engineering, Brigham Young University',
+    ],
+    admissions: [
+      'USPTO',
+      'State Bar of California',
+    ],
+    awards: [
+      'IAM Strategy 300',
+      'Super Lawyer',
+      'Silicon Valley Business Journal Top 40 Under 40',
+    ],
+    memberships: [
+      'National Association of Patent Practitioners',
+    ],
+    fullBio: [
+      'Britten Sessions is a registered patent attorney with extensive experience across the full patent lifecycle — from identifying promising inventions early in the disclosure phase and building strong portfolios to licensing, enforcement, and monetization of IP assets. He has guided clients ranging from individual inventors and startups to Fortune 500 companies, closing hundreds of patent-related transactions and helping generate over $130 million in returns from patent assets.',
+      'He serves as Executive-in-Residence and Adjunct Faculty at Gonzaga University School of Law, where he founded and supervises the Intellectual Property Law Clinic. He previously founded the IP Clinic at Lincoln Law School of San Jose, where he was Associate Dean of Intellectual Property and developed certificate, MLS, and LLM IP-focused programs. He has authored over ten IP-related books, including the IP Practice Training Resource (volumes 1 and 2), used at multiple universities to train the next generation of patent and IP students.',
+      'He prosecutes patents across AI, robotics, advanced materials, energy storage, semiconductors, and software, specializing in helping early-stage innovators build portfolios that support fundraising, strengthen competitive positioning, and create long-term business value.',
+    ],
+    focus: [
+      'Full Patent Lifecycle',
+      'Patent Licensing',
+      'Litigation Support',
+      'Strategic Portfolio Building',
+    ],
+  },
+  {
+    slug: 'dominic-kotab',
+    name: 'Dominic M. Kotab',
+    role: 'Co-Founder & Principal',
+    category: 'principal',
+    photo: '/images/team/kotab.jpg',
+    email: 'dominic@zilkakotab.com',
+    linkedin: 'https://www.linkedin.com/in/kotab',
+    shortBio: 'Dominic is a registered patent attorney and co-founder of Zilka-Kotab PC specializing in high-value patent portfolio strategy across semiconductor, materials, and computer-based technologies.',
+    education: [
+      'JD, University of San Diego School of Law',
+      'BS, Chemical Engineering, South Dakota School of Mines and Technology',
+    ],
+    admissions: [
+      'USPTO',
+      'State Bar of California',
+      'State Bar of South Dakota',
+      'U.S. District Court, N.D. California',
+      'U.S. Court of Appeals, Ninth Circuit',
+    ],
+    memberships: [
+      'American Intellectual Property Law Association (AIPLA)',
+    ],
+    fullBio: [
+      'Dominic Kotab is a registered patent attorney and co-founder of Zilka-Kotab PC. With a background in chemical engineering and a strong basis in computer-based technology, he helps companies identify and protect their core inventions and turn them into strategic business assets.',
+      'He specializes in building high-value patent portfolios that give clients a competitive edge, strengthen defensibility, support capital raises, and create pathways for long-term monetization. His work spans semiconductor design, fabrication and tooling, data storage and integrated circuits, networks, image processing, mechanical systems, chemical discovery and processing, additive manufacturing, alternative energy technologies such as battery systems and carbon capture, and nanotechnology — with particular strength in AI hardware, advanced materials, and sustainable technologies.',
+      'Beyond preparation and prosecution, Dominic has provided strategic counsel through hundreds of validity and freedom-to-operate opinions, infringement analyses, licensing initiatives, and pre-litigation diligence, consistently delivering high-quality work within clients\' budgets. He brings particular expertise in global portfolio management, collaborating with foreign associates chosen over decades to secure effective worldwide protection. He is fluent in Spanish.',
+    ],
+    focus: [
+      'Patent Preparation & Prosecution',
+      'Chemical & Mechanical Technologies',
+      'Computer-Based Technologies',
+      'Portfolio Development',
+    ],
+  },
+  {
+    slug: 'kevin-zilka',
+    name: 'Kevin J. Zilka',
+    role: 'Co-Founder & Principal',
+    category: 'principal',
+    photo: '/images/team/zilka.jpg',
+    email: 'kevin@zilkakotab.com',
+    linkedin: 'https://www.linkedin.com/in/kevinzilka',
+    shortBio: 'Kevin is a registered patent attorney and co-founder of Zilka-Kotab PC with more than 30 years of experience, repeatedly named to the IAM Strategy 300 as one of the world\'s leading IP strategists.',
+    education: [
+      'JD, Santa Clara University',
+      'MSEE, University of South Florida',
+      'BSEE, University of South Florida',
+    ],
+    admissions: [
+      'USPTO',
+      'State Bar of California',
+      'U.S. District Court, N.D. California',
+      'U.S. Court of Appeals, Ninth Circuit',
+    ],
+    awards: [
+      'IAM Strategy 300',
+    ],
+    fullBio: [
+      'Kevin Zilka is a registered patent attorney and co-founder of Zilka-Kotab PC with more than 30 years of experience in intellectual property law. He has been repeatedly named to the IAM Strategy 300, Intellectual Asset Management magazine\'s annual list of the world\'s 300 leading IP strategists. He built and leads the firm\'s team of patent practitioners and has helped clients turn strategically built portfolios into significant revenue through high-stakes licensing negotiations.',
+      'He specializes in strategic patent portfolio development and management, focusing on aggressive yet thoughtful procurement that delivers both offensive and defensive positioning aligned with real business objectives. He pioneered best practices for integrating competitive intelligence into the patent process and developed a patented software tool to improve strategic claim positioning during prosecution — work that has contributed to high-value licensing outcomes worth hundreds of millions of dollars.',
+      'With a master\'s in electrical and electronics engineering, Kevin works across foundational and frontier technologies, including software and business methods, graphics processing and computer vision, analog and digital circuits, semiconductor architectures, network systems, encryption, compression, memory technologies, speech recognition, and wireless. He helps clients in AI, robotics, autonomous systems, and secure computing build portfolios that strengthen competitive positioning, support fundraising, and create long-term business value. He frequently speaks at patent, technology, and legal conferences and has authored influential articles on patent strategy.',
+    ],
+    focus: [
+      'Patent Portfolio Strategy',
+      'Software & AI Technologies',
+      'Semiconductor & Networking',
+      'IP Monetization',
+    ],
+  },
   {
     slug: 'emma-brill',
     name: 'Emma Brill',
@@ -100,41 +207,6 @@ export const team: TeamMember[] = [
     ],
   },
   {
-    slug: 'dominic-kotab',
-    name: 'Dominic M. Kotab',
-    role: 'Principal',
-    category: 'principal',
-    photo: '/images/team/kotab.jpg',
-    email: 'dominic@zilkakotab.com',
-    linkedin: 'https://www.linkedin.com/in/kotab',
-    shortBio: 'Dominic is a registered patent attorney and co-founder of Zilka-Kotab PC specializing in high-value patent portfolio strategy across semiconductor, materials, and computer-based technologies.',
-    education: [
-      'JD, University of San Diego School of Law',
-      'BS, Chemical Engineering, South Dakota School of Mines and Technology',
-    ],
-    admissions: [
-      'USPTO',
-      'State Bar of California',
-      'State Bar of South Dakota',
-      'U.S. District Court, N.D. California',
-      'U.S. Court of Appeals, Ninth Circuit',
-    ],
-    memberships: [
-      'American Intellectual Property Law Association (AIPLA)',
-    ],
-    fullBio: [
-      'Dominic Kotab is a registered patent attorney and co-founder of Zilka-Kotab PC. With a background in chemical engineering and a strong basis in computer-based technology, he helps companies identify and protect their core inventions and turn them into strategic business assets.',
-      'He specializes in building high-value patent portfolios that give clients a competitive edge, strengthen defensibility, support capital raises, and create pathways for long-term monetization. His work spans semiconductor design, fabrication and tooling, data storage and integrated circuits, networks, image processing, mechanical systems, chemical discovery and processing, additive manufacturing, alternative energy technologies such as battery systems and carbon capture, and nanotechnology — with particular strength in AI hardware, advanced materials, and sustainable technologies.',
-      'Beyond preparation and prosecution, Dominic has provided strategic counsel through hundreds of validity and freedom-to-operate opinions, infringement analyses, licensing initiatives, and pre-litigation diligence, consistently delivering high-quality work within clients\' budgets. He brings particular expertise in global portfolio management, collaborating with foreign associates chosen over decades to secure effective worldwide protection. He is fluent in Spanish.',
-    ],
-    focus: [
-      'Patent Preparation & Prosecution',
-      'Chemical & Mechanical Technologies',
-      'Computer-Based Technologies',
-      'Portfolio Development',
-    ],
-  },
-  {
     slug: 'jamie-rossi',
     name: 'Jamie Rossi',
     role: 'Principal',
@@ -196,43 +268,6 @@ export const team: TeamMember[] = [
     ],
   },
   {
-    slug: 'britten-sessions',
-    name: 'Britten Sessions',
-    role: 'Managing Partner',
-    category: 'principal',
-    photo: '/images/team/sessions.jpg',
-    email: 'britten@zilkakotab.com',
-    linkedin: 'https://www.linkedin.com/in/brittensessions',
-    shortBio: 'Britten is a registered patent attorney with extensive experience across the full patent lifecycle, closing hundreds of patent transactions and helping generate over $130 million in returns from patent assets.',
-    education: [
-      'JD, Santa Clara University',
-      'BS, Chemical Engineering, Brigham Young University',
-    ],
-    admissions: [
-      'USPTO',
-      'State Bar of California',
-    ],
-    awards: [
-      'IAM Strategy 300',
-      'Super Lawyer',
-      'Silicon Valley Business Journal Top 40 Under 40',
-    ],
-    memberships: [
-      'National Association of Patent Practitioners',
-    ],
-    fullBio: [
-      'Britten Sessions is a registered patent attorney with extensive experience across the full patent lifecycle — from identifying promising inventions early in the disclosure phase and building strong portfolios to licensing, enforcement, and monetization of IP assets. He has guided clients ranging from individual inventors and startups to Fortune 500 companies, closing hundreds of patent-related transactions and helping generate over $130 million in returns from patent assets.',
-      'He serves as Executive-in-Residence and Adjunct Faculty at Gonzaga University School of Law, where he founded and supervises the Intellectual Property Law Clinic. He previously founded the IP Clinic at Lincoln Law School of San Jose, where he was Associate Dean of Intellectual Property and developed certificate, MLS, and LLM IP-focused programs. He has authored over ten IP-related books, including the IP Practice Training Resource (volumes 1 and 2), used at multiple universities to train the next generation of patent and IP students.',
-      'He prosecutes patents across AI, robotics, advanced materials, energy storage, semiconductors, and software, specializing in helping early-stage innovators build portfolios that support fundraising, strengthen competitive positioning, and create long-term business value.',
-    ],
-    focus: [
-      'Full Patent Lifecycle',
-      'Patent Licensing',
-      'Litigation Support',
-      'Strategic Portfolio Building',
-    ],
-  },
-  {
     slug: 'jared-stensgaard',
     name: 'Jared Stensgaard',
     role: 'Patent Attorney',
@@ -260,41 +295,6 @@ export const team: TeamMember[] = [
       'Mechanical & Chemistry Applications',
       'Office Action Responses',
       'USPTO Practice',
-    ],
-  },
-  {
-    slug: 'kevin-zilka',
-    name: 'Kevin J. Zilka',
-    role: 'Principal',
-    category: 'principal',
-    photo: '/images/team/zilka.jpg',
-    email: 'kevin@zilkakotab.com',
-    linkedin: 'https://www.linkedin.com/in/kevinzilka',
-    shortBio: 'Kevin is a registered patent attorney and co-founder of Zilka-Kotab PC with more than 30 years of experience, repeatedly named to the IAM Strategy 300 as one of the world\'s leading IP strategists.',
-    education: [
-      'JD, Santa Clara University',
-      'MSEE, University of South Florida',
-      'BSEE, University of South Florida',
-    ],
-    admissions: [
-      'USPTO',
-      'State Bar of California',
-      'U.S. District Court, N.D. California',
-      'U.S. Court of Appeals, Ninth Circuit',
-    ],
-    awards: [
-      'IAM Strategy 300',
-    ],
-    fullBio: [
-      'Kevin Zilka is a registered patent attorney and co-founder of Zilka-Kotab PC with more than 30 years of experience in intellectual property law. He has been repeatedly named to the IAM Strategy 300, Intellectual Asset Management magazine\'s annual list of the world\'s 300 leading IP strategists. He built and leads the firm\'s team of patent practitioners and has helped clients turn strategically built portfolios into significant revenue through high-stakes licensing negotiations.',
-      'He specializes in strategic patent portfolio development and management, focusing on aggressive yet thoughtful procurement that delivers both offensive and defensive positioning aligned with real business objectives. He pioneered best practices for integrating competitive intelligence into the patent process and developed a patented software tool to improve strategic claim positioning during prosecution — work that has contributed to high-value licensing outcomes worth hundreds of millions of dollars.',
-      'With a master\'s in electrical and electronics engineering, Kevin works across foundational and frontier technologies, including software and business methods, graphics processing and computer vision, analog and digital circuits, semiconductor architectures, network systems, encryption, compression, memory technologies, speech recognition, and wireless. He helps clients in AI, robotics, autonomous systems, and secure computing build portfolios that strengthen competitive positioning, support fundraising, and create long-term business value. He frequently speaks at patent, technology, and legal conferences and has authored influential articles on patent strategy.',
-    ],
-    focus: [
-      'Patent Portfolio Strategy',
-      'Software & AI Technologies',
-      'Semiconductor & Networking',
-      'IP Monetization',
     ],
   },
 ];
