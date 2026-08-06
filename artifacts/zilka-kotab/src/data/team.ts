@@ -282,7 +282,6 @@ export const team: TeamMember[] = [
       'BA, English, Northwest Nazarene University',
     ],
     admissions: [
-      'USPTO',
       'Washington State Bar',
     ],
     memberships: [],
