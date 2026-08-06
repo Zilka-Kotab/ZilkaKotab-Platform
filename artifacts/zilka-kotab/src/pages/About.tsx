@@ -6,7 +6,7 @@ import { FadeIn } from '@/components/FadeIn';
 const qaVideos = [
   { id: 1, question: "Can you tell us what the firm is all about?", src: "https://www.wevideo.com/embed/#4149571869" },
   { id: 2, question: "What is your vision for the firm?", src: "https://www.wevideo.com/embed/#4149573104" },
-  { id: 3, question: "Every law firm says they're client focused. What actually distinguishes your firm?", src: "" },
+  { id: 3, question: "Every law firm says they're client focused. What actually distinguishes your firm?", src: "https://www.wevideo.com/embed/#4149574274" },
   { id: 4, question: "Do you see yourselves as just a patent prosecution firm?", src: "" },
   { id: 5, question: "What types of clients do you enjoy working with?", src: "" },
   { id: 6, question: "AI is changing so much. How is it changing patent law?", src: "" },
