@@ -4,14 +4,14 @@ import { SEO } from '@/components/SEO';
 import { FadeIn } from '@/components/FadeIn';
 
 const qaVideos = [
-  { id: 1, question: "Can you tell us what the firm is all about?", src: "https://www.wevideo.com/embed/?v=3#4149571869" },
-  { id: 2, question: "What is your vision for the firm?", src: "https://www.wevideo.com/embed/?v=3#4149573104" },
-  { id: 3, question: "Every law firm says they're client focused. What actually distinguishes your firm?", src: "https://www.wevideo.com/embed/?v=3#4149574274" },
-  { id: 4, question: "Do you see yourselves as just a patent prosecution firm?", src: "https://www.wevideo.com/embed/?v=3#4149575113" },
-  { id: 5, question: "What types of clients do you enjoy working with?", src: "https://www.wevideo.com/embed/?v=3#4149575913" },
-  { id: 6, question: "AI is changing so much. How is it changing patent law?", src: "https://www.wevideo.com/embed/?v=3#4149576723" },
-  { id: 7, question: "If you had to describe the firm's culture in a few words, what would they be?", src: "https://www.wevideo.com/embed/?v=3#4149577366" },
-  { id: 8, question: "If someone watching is considering your firm, what would you want them to know?", src: "https://www.wevideo.com/embed/?v=3#4149577889" },
+  { id: 1, question: "Can you tell us what the firm is all about?", src: "https://www.wevideo.com/embed/?cb=20260806#4149571869" },
+  { id: 2, question: "What is your vision for the firm?", src: "https://www.wevideo.com/embed/?cb=20260806#4149573104" },
+  { id: 3, question: "Every law firm says they're client focused. What actually distinguishes your firm?", src: "https://www.wevideo.com/embed/?cb=20260806#4149574274" },
+  { id: 4, question: "Do you see yourselves as just a patent prosecution firm?", src: "https://www.wevideo.com/embed/?cb=20260806#4149575113" },
+  { id: 5, question: "What types of clients do you enjoy working with?", src: "https://www.wevideo.com/embed/?cb=20260806#4149575913" },
+  { id: 6, question: "AI is changing so much. How is it changing patent law?", src: "https://www.wevideo.com/embed/?cb=20260806#4149576723" },
+  { id: 7, question: "If you had to describe the firm's culture in a few words, what would they be?", src: "https://www.wevideo.com/embed/?cb=20260806#4149577366" },
+  { id: 8, question: "If someone watching is considering your firm, what would you want them to know?", src: "https://www.wevideo.com/embed/?cb=20260806#4149577889" },
 ];
 
 export default function About() {
