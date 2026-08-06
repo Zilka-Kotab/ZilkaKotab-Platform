@@ -231,23 +231,32 @@ export default function About() {
         </section>
 
         {/* CTA */}
-        <section className="container mx-auto px-4 py-24">
-          <FadeIn delay={0.2}>
-            <div className="bg-muted rounded-3xl p-12 md:p-20 text-center border border-border">
-              <h2 className="text-3xl md:text-4xl font-display font-bold text-foreground mb-4">
+        <section className="py-32 relative overflow-hidden bg-secondary text-secondary-foreground">
+          <div className="absolute inset-0 z-0">
+            <img
+              src={`${baseUrl}/images/hero-new.jpg`}
+              alt=""
+              aria-hidden="true"
+              className="w-full h-full object-cover opacity-5"
+            />
+          </div>
+          <div className="absolute top-0 right-0 -translate-y-12 translate-x-1/3 w-96 h-96 bg-primary rounded-full blur-3xl opacity-20" />
+          <div className="container mx-auto px-4 text-center relative z-10">
+            <FadeIn delay={0.2}>
+              <h2 className="text-4xl md:text-6xl font-display font-bold mb-8">
                 Ready to build a smarter IP program?
               </h2>
-              <p className="text-lg text-muted-foreground mb-10 max-w-xl mx-auto leading-relaxed">
+              <p className="text-xl text-secondary-foreground/80 mb-12 max-w-2xl mx-auto font-light">
                 Let's discuss how our expertise aligns with your business objectives.
               </p>
               <a
                 href="/contact"
-                className="inline-flex h-14 items-center justify-center rounded-sm bg-primary px-10 text-base font-semibold text-white shadow-lg transition-transform hover:scale-105 active:scale-95"
+                className="inline-flex h-14 items-center justify-center rounded-sm bg-primary px-10 text-lg font-medium text-white shadow-xl transition-transform hover:scale-105 active:scale-95"
               >
                 Contact Our Team
               </a>
-            </div>
-          </FadeIn>
+            </FadeIn>
+          </div>
         </section>
 
       </main>
