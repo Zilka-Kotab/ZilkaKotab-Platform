@@ -113,7 +113,7 @@ export default function Contact() {
 
             {/* Right: contact form */}
             <FadeIn delay={0.15}>
-              <div className="bg-muted rounded-2xl p-8 border border-border">
+              <div className="bg-background rounded-2xl p-8 border border-border shadow-xl ring-1 ring-border/50">
                 <h2 className="text-2xl font-display font-semibold text-foreground mb-6">Send Us a Message</h2>
 
                 {status === 'success' ? (
