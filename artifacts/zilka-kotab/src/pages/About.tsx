@@ -108,11 +108,8 @@ export default function About() {
                     /* iframe always loaded for thumbnail; remounted with autoplay on click */
                     <div className="aspect-video bg-black relative group">
                       <iframe
-                        key={activeVideo === v.id ? `active-${v.id}` : `preview-${v.id}`}
                         title={v.question}
-                        src={activeVideo === v.id
-                          ? v.src.replace('#', '?autoplay=1#')
-                          : v.src}
+                        src={v.src}
                         width="100%"
                         height="100%"
                         className="absolute inset-0 w-full h-full"
@@ -120,7 +117,6 @@ export default function About() {
                         frameBorder="0"
                         style={{ border: 'none', pointerEvents: activeVideo === v.id ? 'auto' : 'none' }}
                         allowFullScreen
-                        allow="autoplay; fullscreen"
                       />
                       {/* Overlay with number + play button — removed on click */}
                       {activeVideo !== v.id && (
