@@ -75,11 +75,11 @@ export default function Contact() {
         </section>
 
         <section className="container mx-auto px-4">
-          <div className="grid grid-cols-1 lg:grid-cols-[3fr_2fr] gap-12 items-start">
+          <div className="grid grid-cols-1 lg:grid-cols-[3fr_2fr] gap-12 items-stretch">
 
             {/* Left: contact form */}
             <FadeIn delay={0.15}>
-              <div className="bg-white rounded-2xl p-8 border border-border shadow-xl ring-1 ring-border/50">
+              <div className="bg-white rounded-2xl p-8 border border-border shadow-xl ring-1 ring-border/50 h-full">
                 <h2 className="text-2xl font-display font-semibold text-foreground mb-6">Send Us a Message</h2>
 
                 {status === 'success' ? (

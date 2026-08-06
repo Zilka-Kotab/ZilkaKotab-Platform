@@ -16,18 +16,51 @@ const qaVideos = [
 
 export default function About() {
   const baseUrl = import.meta.env.BASE_URL.replace(/\/$/, '');
-  const [activeVideo, setActiveVideo] = useState<number | null>(null);
-  const videoSectionRef = useRef<HTMLDivElement>(null);
 
-  // Reset active video when clicking outside the video grid
+  // Track which video is active (playing) and per-video keys to force remount (stops playback)
+  const [activeVideo, setActiveVideo] = useState<number | null>(null);
+  const [iframeKeys, setIframeKeys] = useState<Record<number, number>>(
+    () => Object.fromEntries(qaVideos.map(v => [v.id, 0]))
+  );
+  const videoSectionRef = useRef<HTMLDivElement>(null);
+  const activeVideoRef = useRef<number | null>(null);
+  activeVideoRef.current = activeVideo;
+
+  const stopVideo = (id: number) => {
+    setIframeKeys(k => ({ ...k, [id]: k[id] + 1 }));
+    setActiveVideo(null);
+  };
+
+  // window.blur fires when focus shifts into an iframe (user clicked on it)
   useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (videoSectionRef.current && !videoSectionRef.current.contains(e.target as Node)) {
-        setActiveVideo(null);
+    const handleBlur = () => {
+      const focused = document.activeElement as HTMLElement;
+      if (focused?.tagName === 'IFRAME') {
+        const card = focused.closest('[data-video-id]');
+        if (card) {
+          const id = Number(card.getAttribute('data-video-id'));
+          const prev = activeVideoRef.current;
+          if (prev !== null && prev !== id) {
+            setIframeKeys(k => ({ ...k, [prev]: k[prev] + 1 }));
+          }
+          setActiveVideo(id);
+        }
       }
     };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
+    window.addEventListener('blur', handleBlur);
+    return () => window.removeEventListener('blur', handleBlur);
+  }, []);
+
+  // Stop active video when clicking outside the video section
+  useEffect(() => {
+    const handleMouseDown = (e: MouseEvent) => {
+      if (videoSectionRef.current && !videoSectionRef.current.contains(e.target as Node)) {
+        const prev = activeVideoRef.current;
+        if (prev !== null) stopVideo(prev);
+      }
+    };
+    document.addEventListener('mousedown', handleMouseDown);
+    return () => document.removeEventListener('mousedown', handleMouseDown);
   }, []);
 
   return (
@@ -116,42 +149,19 @@ export default function About() {
             {qaVideos.map((v, i) => (
               <FadeIn key={v.id} delay={i * 0.06}>
                 <div className="rounded-2xl overflow-hidden bg-muted border border-border hover:shadow-lg hover:border-accent/50 transition-all duration-300">
-                  <div className="aspect-video bg-black relative">
-                    {activeVideo === v.id ? (
-                      /* Iframe shown only for active card — removing it stops playback */
-                      <iframe
-                        title={v.question}
-                        src={v.src}
-                        width="100%"
-                        height="100%"
-                        className="absolute inset-0 w-full h-full"
-                        scrolling="no"
-                        frameBorder="0"
-                        style={{ border: 'none' }}
-                        allowFullScreen
-                      />
-                    ) : (
-                      /* Thumbnail placeholder — click to activate */
-                      <button
-                        onClick={() => setActiveVideo(v.id)}
-                        className="group absolute inset-0 w-full focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-                        aria-label={`Play video: ${v.question}`}
-                      >
-                        <div className="absolute inset-0 bg-gradient-to-br from-primary/80 to-primary">
-                          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_rgba(255,255,255,0.06)_0%,_transparent_70%)]" />
-                        </div>
-                        <span className="absolute top-3 left-4 text-white/30 font-display font-bold text-4xl leading-none select-none z-10">
-                          {String(v.id).padStart(2, '0')}
-                        </span>
-                        <div className="absolute inset-0 flex items-center justify-center z-10">
-                          <div className="w-14 h-14 rounded-full bg-white/15 border border-white/25 flex items-center justify-center group-hover:bg-accent group-hover:border-accent transition-all duration-300 group-hover:scale-110">
-                            <svg className="w-5 h-5 text-white ml-0.5" fill="currentColor" viewBox="0 0 20 20">
-                              <path d="M6.3 2.841A1.5 1.5 0 004 4.11v11.78a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z" />
-                            </svg>
-                          </div>
-                        </div>
-                      </button>
-                    )}
+                  <div data-video-id={v.id} className="aspect-video bg-black relative">
+                    <iframe
+                      key={`${v.id}-${iframeKeys[v.id]}`}
+                      title={v.question}
+                      src={v.src}
+                      width="100%"
+                      height="100%"
+                      className="absolute inset-0 w-full h-full"
+                      scrolling="no"
+                      frameBorder="0"
+                      style={{ border: 'none' }}
+                      allowFullScreen
+                    />
                   </div>
                   <div className="p-4">
                     <p className="text-sm font-medium text-foreground leading-snug line-clamp-2 min-h-[2.75rem]">
