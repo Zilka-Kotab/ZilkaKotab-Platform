@@ -29,9 +29,10 @@ export default function Team() {
 
         {/* Team grid */}
         <section className="container mx-auto px-4 mb-20">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10">
             {team.map((member, index) => (
-              <FadeIn key={member.slug} delay={index * 0.08}>
+              <React.Fragment key={member.slug}>
+                <FadeIn delay={index * 0.08}>
                 <div className="group flex flex-col h-full">
                   <Link href={`/team/${member.slug}`} className="block mb-5 overflow-hidden rounded-2xl aspect-square bg-muted">
                     <img
@@ -87,7 +88,10 @@ export default function Team() {
                     </Link>
                   </div>
                 </div>
-              </FadeIn>
+                </FadeIn>
+                {/* Spacer: fills the 4th column of row 1 so Brill starts on row 2 */}
+                {index === 2 && <div className="hidden lg:block" />}
+              </React.Fragment>
             ))}
           </div>
         </section>
