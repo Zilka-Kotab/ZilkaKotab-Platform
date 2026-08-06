@@ -187,7 +187,7 @@ export default function Home() {
                 <div className="relative rounded-2xl overflow-hidden shadow-2xl aspect-video bg-secondary">
                   <iframe
                     title="Zilka-Kotab Intro"
-                    src="https://www.wevideo.com/embed/#4149534660"
+                    src="https://www.wevideo.com/embed/#4149579219"
                     width="100%"
                     height="100%"
                     className="absolute inset-0 w-full h-full"
