@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Link } from 'wouter';
 import { SEO } from '@/components/SEO';
 import { FadeIn } from '@/components/FadeIn';
@@ -17,6 +17,26 @@ const qaVideos = [
 export default function About() {
   const baseUrl = import.meta.env.BASE_URL.replace(/\/$/, '');
   const [activeVideo, setActiveVideo] = useState<number | null>(null);
+  const videoContainerRefs = useRef<Map<number, HTMLDivElement>>(new Map());
+
+  const handlePlay = (v: typeof qaVideos[0]) => {
+    const container = videoContainerRefs.current.get(v.id);
+    if (!container || !v.src) return;
+
+    // Inject iframe synchronously inside the click handler so the browser
+    // treats it as a direct user gesture — this is what enables autoplay.
+    const iframe = document.createElement('iframe');
+    iframe.title = v.question;
+    iframe.src = v.src.replace('#', '?autoplay=1#');
+    iframe.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;border:none;';
+    iframe.setAttribute('scrolling', 'no');
+    iframe.setAttribute('frameborder', '0');
+    iframe.allow = 'autoplay; fullscreen';
+    iframe.allowFullscreen = true;
+    container.appendChild(iframe);
+
+    setActiveVideo(v.id); // hides the overlay on next render
+  };
 
   return (
     <>
@@ -104,42 +124,33 @@ export default function About() {
             {qaVideos.map((v, i) => (
               <FadeIn key={v.id} delay={i * 0.06}>
                 <div className="rounded-2xl overflow-hidden bg-muted border border-border transition-all duration-300 hover:shadow-lg hover:border-accent/50">
-                  {activeVideo === v.id && v.src ? (
-                    /* Load iframe on click with autoplay */
-                    <div className="aspect-video bg-black relative">
-                      <iframe
-                        title={v.question}
-                        src={v.src.replace('#', '?autoplay=1#')}
-                        width="100%"
-                        height="100%"
-                        className="absolute inset-0 w-full h-full"
-                        scrolling="no"
-                        frameBorder="0"
-                        style={{ border: 'none' }}
-                        allow="autoplay; fullscreen"
-                        allowFullScreen
-                      />
-                    </div>
-                  ) : (
-                    /* Thumbnail placeholder with number + play button */
-                    <button
-                      onClick={() => setActiveVideo(v.id)}
-                      className="group w-full text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-                      aria-label={`Play video: ${v.question}`}
-                    >
-                      <div className="aspect-video bg-gradient-to-br from-primary/80 to-primary flex items-center justify-center relative overflow-hidden">
-                        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_rgba(255,255,255,0.06)_0%,_transparent_70%)]" />
-                        <span className="absolute top-3 left-4 text-white/30 font-display font-bold text-4xl leading-none select-none">
+                  {/* Container — iframe injected directly by handlePlay to preserve user gesture */}
+                  <div
+                    className="aspect-video bg-black relative"
+                    ref={el => { if (el) videoContainerRefs.current.set(v.id, el); }}
+                  >
+                    {activeVideo !== v.id && (
+                      <button
+                        onClick={() => handlePlay(v)}
+                        className="group absolute inset-0 w-full focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                        aria-label={`Play video: ${v.question}`}
+                      >
+                        <div className="absolute inset-0 bg-gradient-to-br from-primary/80 to-primary">
+                          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_rgba(255,255,255,0.06)_0%,_transparent_70%)]" />
+                        </div>
+                        <span className="absolute top-3 left-4 text-white/30 font-display font-bold text-4xl leading-none select-none z-10">
                           {String(v.id).padStart(2, '0')}
                         </span>
-                        <div className="relative z-10 w-14 h-14 rounded-full bg-white/15 border border-white/25 flex items-center justify-center group-hover:bg-accent group-hover:border-accent transition-all duration-300 group-hover:scale-110">
-                          <svg className="w-5 h-5 text-white ml-0.5" fill="currentColor" viewBox="0 0 20 20">
-                            <path d="M6.3 2.841A1.5 1.5 0 004 4.11v11.78a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z" />
-                          </svg>
+                        <div className="absolute inset-0 flex items-center justify-center z-10">
+                          <div className="w-14 h-14 rounded-full bg-white/15 border border-white/25 flex items-center justify-center group-hover:bg-accent group-hover:border-accent transition-all duration-300 group-hover:scale-110">
+                            <svg className="w-5 h-5 text-white ml-0.5" fill="currentColor" viewBox="0 0 20 20">
+                              <path d="M6.3 2.841A1.5 1.5 0 004 4.11v11.78a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z" />
+                            </svg>
+                          </div>
                         </div>
-                      </div>
-                    </button>
-                  )}
+                      </button>
+                    )}
+                  </div>
                   {/* Question text — fixed 2-line height for consistent card sizes */}
                   <div className="p-4">
                     <p className="text-sm font-medium text-foreground leading-snug line-clamp-2 min-h-[2.75rem]">
