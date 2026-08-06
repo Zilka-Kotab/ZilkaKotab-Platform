@@ -71,7 +71,7 @@ export default function About() {
         url="/about"
       />
 
-      <main className="flex-1 w-full pt-28 pb-24">
+      <main className="flex-1 w-full pt-28">
         {/* Page Header */}
         <section className="container mx-auto px-4 mb-12">
           <FadeIn>
