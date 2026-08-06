@@ -270,7 +270,7 @@ export const team: TeamMember[] = [
   {
     slug: 'jared-stensgaard',
     name: 'Jared Stensgaard',
-    role: 'Patent Attorney',
+    role: 'Attorney',
     category: 'member',
     photo: '/images/team/stensgaard.jpg',
     email: 'jared@zilkakotab.com',
@@ -279,6 +279,7 @@ export const team: TeamMember[] = [
     education: [
       'JD, Gonzaga University School of Law',
       'BS, Biochemistry, Northwest Nazarene University',
+      'BA, English, Northwest Nazarene University',
     ],
     admissions: [
       'USPTO',
