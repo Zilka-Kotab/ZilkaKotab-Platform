@@ -1,5 +1,5 @@
 import React from 'react';
-import { Mail, MapPin, Phone } from 'lucide-react';
+import { MapPin, Phone } from 'lucide-react';
 import zilkaLogo from '@assets/zilka-logo.png';
 
 export function Footer() {
@@ -31,10 +31,6 @@ export function Footer() {
             <li className="flex items-center gap-3 text-sm text-primary-foreground/70">
               <Phone className="w-4 h-4 text-accent shrink-0" />
               <a href="tel:408-971-2573" className="hover:text-white transition-colors">(408) 971-2573</a>
-            </li>
-            <li className="flex items-center gap-3 text-sm text-primary-foreground/70">
-              <Mail className="w-4 h-4 text-accent shrink-0" />
-              <a href="mailto:patent@zilkakotab.com" className="hover:text-white transition-colors">patent@zilkakotab.com</a>
             </li>
           </ul>
 
