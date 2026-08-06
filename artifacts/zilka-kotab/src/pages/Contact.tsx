@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { SEO } from '@/components/SEO';
 import { FadeIn } from '@/components/FadeIn';
-import { MapPin, Phone, Mail, Clock, Send, CheckCircle, AlertCircle } from 'lucide-react';
+import { MapPin, Phone, Clock, Send, CheckCircle, AlertCircle } from 'lucide-react';
 
 const BASE_URL = import.meta.env.BASE_URL.replace(/\/$/, '');
 
@@ -15,11 +15,6 @@ const contactItems = [
     icon: Phone,
     label: 'Phone',
     content: <a href="tel:408-971-2573" className="hover:text-primary transition-colors">(408) 971-2573</a>,
-  },
-  {
-    icon: Mail,
-    label: 'Email',
-    content: <a href="mailto:patent@zilkakotab.com" className="hover:text-primary transition-colors">patent@zilkakotab.com</a>,
   },
   {
     icon: Clock,
