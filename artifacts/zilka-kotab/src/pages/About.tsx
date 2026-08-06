@@ -104,9 +104,9 @@ export default function About() {
             {qaVideos.map((v, i) => (
               <FadeIn key={v.id} delay={i * 0.06}>
                 <div className="rounded-2xl overflow-hidden bg-muted border border-border transition-all duration-300 hover:shadow-lg hover:border-accent/50">
-                  {v.src ? (
-                    /* iframe always loaded for thumbnail; remounted with autoplay on click */
-                    <div className="aspect-video bg-black relative group">
+                  {activeVideo === v.id && v.src ? (
+                    /* Load iframe only when clicked — same as home page */
+                    <div className="aspect-video bg-black relative">
                       <iframe
                         title={v.question}
                         src={v.src}
@@ -115,29 +115,12 @@ export default function About() {
                         className="absolute inset-0 w-full h-full"
                         scrolling="no"
                         frameBorder="0"
-                        style={{ border: 'none', pointerEvents: activeVideo === v.id ? 'auto' : 'none' }}
+                        style={{ border: 'none' }}
                         allowFullScreen
                       />
-                      {/* Overlay with number + play button — removed on click */}
-                      {activeVideo !== v.id && (
-                        <button
-                          onClick={() => setActiveVideo(v.id)}
-                          className="absolute inset-0 flex items-center justify-center group/btn focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-                          aria-label={`Play video: ${v.question}`}
-                        >
-                          <span className="absolute top-3 left-4 text-white/70 font-display font-bold text-4xl leading-none select-none drop-shadow-md">
-                            {String(v.id).padStart(2, '0')}
-                          </span>
-                          <div className="w-14 h-14 rounded-full bg-black/30 border border-white/40 flex items-center justify-center backdrop-blur-sm group-hover/btn:bg-accent group-hover/btn:border-accent transition-all duration-300 group-hover/btn:scale-110">
-                            <svg className="w-5 h-5 text-white ml-0.5" fill="currentColor" viewBox="0 0 20 20">
-                              <path d="M6.3 2.841A1.5 1.5 0 004 4.11v11.78a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z" />
-                            </svg>
-                          </div>
-                        </button>
-                      )}
                     </div>
                   ) : (
-                    /* Placeholder for cards without a video yet */
+                    /* Thumbnail placeholder with number + play button */
                     <button
                       onClick={() => setActiveVideo(v.id)}
                       className="group w-full text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
