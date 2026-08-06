@@ -3,7 +3,7 @@ import { Link } from 'wouter';
 import {
   ArrowRight, ShieldCheck, Scale, FileBadge,
   Code2, Cpu, Settings2, Layers, FlaskConical,
-  CreditCard, Brain, Award, PlayCircle,
+  Brain, Award, PlayCircle,
 } from 'lucide-react';
 import { SEO } from '@/components/SEO';
 import { FadeIn } from '@/components/FadeIn';
@@ -480,15 +480,6 @@ export default function Home() {
                   className="inline-flex h-14 items-center justify-center rounded-sm bg-primary px-10 text-lg font-medium text-white shadow-xl transition-transform hover:scale-105 active:scale-95"
                 >
                   Contact Our Team
-                </a>
-                <a
-                  href={PAY_INVOICE_URL}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex h-14 items-center justify-center gap-2 rounded-sm border border-white/20 bg-white/5 backdrop-blur-sm px-8 text-lg font-medium text-white transition-colors hover:bg-white/10 hover:border-white/40"
-                >
-                  <CreditCard className="w-5 h-5" />
-                  Pay Invoice
                 </a>
               </div>
             </FadeIn>
