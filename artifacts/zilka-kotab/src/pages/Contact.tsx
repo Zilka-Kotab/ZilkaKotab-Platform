@@ -1,9 +1,8 @@
-import React, { useState } from 'react';
+import React from 'react';
+import { Link } from 'wouter';
 import { SEO } from '@/components/SEO';
 import { FadeIn } from '@/components/FadeIn';
-import { MapPin, Phone, Clock, Send, CheckCircle, AlertCircle } from 'lucide-react';
-
-const BASE_URL = import.meta.env.BASE_URL.replace(/\/$/, '');
+import { MapPin, Phone, Clock, Users } from 'lucide-react';
 
 const contactItems = [
   {
@@ -23,38 +22,7 @@ const contactItems = [
   },
 ];
 
-type Status = 'idle' | 'submitting' | 'success' | 'error';
-
 export default function Contact() {
-  const [form, setForm] = useState({ name: '', email: '', phone: '', subject: '', message: '' });
-  const [status, setStatus] = useState<Status>('idle');
-  const [errorMsg, setErrorMsg] = useState('');
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setStatus('submitting');
-    setErrorMsg('');
-
-    try {
-      const res = await fetch(`${BASE_URL}/api/contact`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? 'Something went wrong.');
-      setStatus('success');
-      setForm({ name: '', email: '', phone: '', subject: '', message: '' });
-    } catch (err: any) {
-      setStatus('error');
-      setErrorMsg(err.message ?? 'Something went wrong. Please try again.');
-    }
-  };
-
   return (
     <>
       <SEO
@@ -77,134 +45,84 @@ export default function Contact() {
         <section className="container mx-auto px-4">
           <div className="grid grid-cols-1 lg:grid-cols-[3fr_2fr] gap-12 items-stretch">
 
-            {/* Left: contact form */}
+            {/* Left: inquiry notice (form restored once SendGrid is live) */}
+            <FadeIn delay={0.15}>
+              <div className="bg-white rounded-2xl p-8 border border-border shadow-xl ring-1 ring-border/50 h-full flex flex-col justify-center">
+                <div className="flex flex-col items-center text-center gap-6 py-8">
+                  <div className="w-16 h-16 rounded-2xl bg-accent/15 flex items-center justify-center">
+                    <Users className="w-8 h-8 text-accent" />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-display font-semibold text-foreground mb-3">Get in Touch</h2>
+                    <p className="text-muted-foreground leading-relaxed max-w-md">
+                      The fastest way to reach us is to contact a team member directly. Visit our Team page to find the right person for your matter and email them directly.
+                    </p>
+                  </div>
+                  <Link
+                    href="/team"
+                    className="inline-flex h-12 items-center justify-center gap-2 rounded-lg bg-primary px-8 text-sm font-semibold text-white shadow transition-all hover:bg-primary/90 hover:scale-[1.02] active:scale-95"
+                  >
+                    <Users className="w-4 h-4" />
+                    Meet Our Team
+                  </Link>
+                  <p className="text-xs text-muted-foreground">
+                    All inquiries are kept strictly confidential.
+                  </p>
+                </div>
+              </div>
+            </FadeIn>
+
+            {/*
+            CONTACT FORM — restore once SendGrid integration is live
+            ============================================================
             <FadeIn delay={0.15}>
               <div className="bg-white rounded-2xl p-8 border border-border shadow-xl ring-1 ring-border/50 h-full">
                 <h2 className="text-2xl font-display font-semibold text-foreground mb-6">Send Us a Message</h2>
-
-                {status === 'success' ? (
-                  <div className="flex flex-col items-center text-center py-10 gap-4">
-                    <CheckCircle className="w-14 h-14 text-green-500" />
-                    <h3 className="text-xl font-display font-semibold text-foreground">Message Sent</h3>
-                    <p className="text-muted-foreground max-w-xs">
-                      Thank you for reaching out. We'll be in touch shortly.
-                    </p>
-                    <button
-                      onClick={() => setStatus('idle')}
-                      className="mt-2 text-sm text-primary font-medium hover:underline"
-                    >
-                      Send another message
-                    </button>
-                  </div>
-                ) : (
-                  <form onSubmit={handleSubmit} className="space-y-5">
-                    {/* Name + Email */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-foreground mb-1.5" htmlFor="name">
-                          Full Name <span className="text-red-500">*</span>
-                        </label>
-                        <input
-                          id="name" name="name" type="text" required
-                          value={form.name} onChange={handleChange}
-                          placeholder="Jane Smith"
-                          className="w-full rounded-lg border border-border bg-white px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-foreground mb-1.5" htmlFor="email">
-                          Email <span className="text-red-500">*</span>
-                        </label>
-                        <input
-                          id="email" name="email" type="email" required
-                          value={form.email} onChange={handleChange}
-                          placeholder="jane@company.com"
-                          className="w-full rounded-lg border border-border bg-white px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Phone + Subject */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-foreground mb-1.5" htmlFor="phone">
-                          Phone
-                        </label>
-                        <input
-                          id="phone" name="phone" type="tel"
-                          value={form.phone} onChange={handleChange}
-                          placeholder="(555) 000-0000"
-                          className="w-full rounded-lg border border-border bg-white px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-foreground mb-1.5" htmlFor="subject">
-                          Subject
-                        </label>
-                        <select
-                          id="subject" name="subject"
-                          value={form.subject} onChange={handleChange}
-                          className="w-full rounded-lg border border-border bg-white px-4 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors"
-                        >
-                          <option value="">Select a topic…</option>
-                          <option>Patent Strategy</option>
-                          <option>Patent Prosecution</option>
-                          <option>Portfolio Management</option>
-                          <option>Litigation Support</option>
-                          <option>General Inquiry</option>
-                        </select>
-                      </div>
-                    </div>
-
-                    {/* Message */}
+                <form onSubmit={handleSubmit} className="space-y-5">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-foreground mb-1.5" htmlFor="message">
-                        Message <span className="text-red-500">*</span>
-                      </label>
-                      <textarea
-                        id="message" name="message" required rows={5}
-                        value={form.message} onChange={handleChange}
-                        placeholder="Tell us about your IP needs…"
-                        className="w-full rounded-lg border border-border bg-white px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors resize-none"
-                      />
+                      <label className="block text-sm font-medium text-foreground mb-1.5" htmlFor="name">Full Name <span className="text-red-500">*</span></label>
+                      <input id="name" name="name" type="text" required value={form.name} onChange={handleChange} placeholder="Jane Smith" className="w-full rounded-lg border border-border bg-white px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors" />
                     </div>
-
-                    {/* Error */}
-                    {status === 'error' && (
-                      <div className="flex items-start gap-2 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
-                        <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
-                        {errorMsg}
-                      </div>
-                    )}
-
-                    <button
-                      type="submit"
-                      disabled={status === 'submitting'}
-                      className="w-full inline-flex h-12 items-center justify-center gap-2 rounded-lg bg-primary px-6 text-sm font-semibold text-white shadow transition-all hover:bg-primary/90 hover:scale-[1.02] active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed disabled:scale-100"
-                    >
-                      {status === 'submitting' ? (
-                        <>
-                          <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
-                          </svg>
-                          Sending…
-                        </>
-                      ) : (
-                        <>
-                          <Send className="w-4 h-4" />
-                          Send Message
-                        </>
-                      )}
-                    </button>
-
-                    <p className="text-xs text-muted-foreground text-center">
-                      All inquiries are kept strictly confidential.
-                    </p>
-                  </form>
-                )}
+                    <div>
+                      <label className="block text-sm font-medium text-foreground mb-1.5" htmlFor="email">Email <span className="text-red-500">*</span></label>
+                      <input id="email" name="email" type="email" required value={form.email} onChange={handleChange} placeholder="jane@company.com" className="w-full rounded-lg border border-border bg-white px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors" />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-foreground mb-1.5" htmlFor="phone">Phone</label>
+                      <input id="phone" name="phone" type="tel" value={form.phone} onChange={handleChange} placeholder="(555) 000-0000" className="w-full rounded-lg border border-border bg-white px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-foreground mb-1.5" htmlFor="subject">Subject</label>
+                      <select id="subject" name="subject" value={form.subject} onChange={handleChange} className="w-full rounded-lg border border-border bg-white px-4 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors">
+                        <option value="">Select a topic…</option>
+                        <option>Patent Strategy</option>
+                        <option>Patent Prosecution</option>
+                        <option>Portfolio Management</option>
+                        <option>Litigation Support</option>
+                        <option>General Inquiry</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-foreground mb-1.5" htmlFor="message">Message <span className="text-red-500">*</span></label>
+                    <textarea id="message" name="message" required rows={5} value={form.message} onChange={handleChange} placeholder="Tell us about your IP needs…" className="w-full rounded-lg border border-border bg-white px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors resize-none" />
+                  </div>
+                  {status === 'error' && (
+                    <div className="flex items-start gap-2 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
+                      <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />{errorMsg}
+                    </div>
+                  )}
+                  <button type="submit" disabled={status === 'submitting'} className="w-full inline-flex h-12 items-center justify-center gap-2 rounded-lg bg-primary px-6 text-sm font-semibold text-white shadow transition-all hover:bg-primary/90 hover:scale-[1.02] active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed disabled:scale-100">
+                    {status === 'submitting' ? (<><svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>Sending…</>) : (<><Send className="w-4 h-4" />Send Message</>)}
+                  </button>
+                  <p className="text-xs text-muted-foreground text-center">All inquiries are kept strictly confidential.</p>
+                </form>
               </div>
             </FadeIn>
+            */}
 
             {/* Right: contact info + map */}
             <div className="space-y-10">
