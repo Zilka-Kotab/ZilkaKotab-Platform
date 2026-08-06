@@ -105,17 +105,18 @@ export default function About() {
               <FadeIn key={v.id} delay={i * 0.06}>
                 <div className="rounded-2xl overflow-hidden bg-muted border border-border transition-all duration-300 hover:shadow-lg hover:border-accent/50">
                   {activeVideo === v.id && v.src ? (
-                    /* Load iframe only when clicked — same as home page */
+                    /* Load iframe on click with autoplay */
                     <div className="aspect-video bg-black relative">
                       <iframe
                         title={v.question}
-                        src={v.src}
+                        src={v.src.replace('#', '?autoplay=1#')}
                         width="100%"
                         height="100%"
                         className="absolute inset-0 w-full h-full"
                         scrolling="no"
                         frameBorder="0"
                         style={{ border: 'none' }}
+                        allow="autoplay; fullscreen"
                         allowFullScreen
                       />
                     </div>
