@@ -182,75 +182,86 @@ export default function About() {
             </div>
           </FadeIn>
 
-          <div ref={videoSectionRef} className="relative">
-            {/* Prev arrow */}
-            <button
-              onClick={goPrev}
-              disabled={currentIndex === 0}
-              aria-label="Previous videos"
-              className="absolute left-0 top-[45%] -translate-y-1/2 -translate-x-5 z-10 w-10 h-10 rounded-full bg-white border border-border shadow-md flex items-center justify-center hover:bg-muted transition-all disabled:opacity-25 disabled:cursor-not-allowed"
-            >
-              <ChevronLeft className="w-5 h-5 text-foreground" />
-            </button>
-
-            {/* Track */}
-            <div className="overflow-hidden">
-              <div
-                className="flex transition-transform duration-500 ease-in-out"
-                style={{ transform: `translateX(-${currentIndex * (100 / visibleCount)}%)` }}
+          {/* Carousel wrapper — bordered panel with side gradients */}
+          <div className="rounded-2xl border border-border bg-muted/40 p-6 shadow-sm">
+            <div ref={videoSectionRef} className="relative">
+              {/* Prev arrow */}
+              <button
+                onClick={goPrev}
+                disabled={currentIndex === 0}
+                aria-label="Previous videos"
+                className="absolute left-0 top-[42%] -translate-y-1/2 -translate-x-5 z-20 w-10 h-10 rounded-full bg-white border border-border shadow-md flex items-center justify-center hover:bg-muted transition-all disabled:opacity-25 disabled:cursor-not-allowed"
               >
-                {qaVideos.map((v) => (
+                <ChevronLeft className="w-5 h-5 text-foreground" />
+              </button>
+
+              {/* Track with side gradient fade */}
+              <div className="relative">
+                {/* Left fade */}
+                <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-8 z-10 bg-gradient-to-r from-muted/60 to-transparent rounded-l-xl" />
+                {/* Right fade */}
+                <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-8 z-10 bg-gradient-to-l from-muted/60 to-transparent rounded-r-xl" />
+
+                <div className="overflow-hidden rounded-xl">
                   <div
-                    key={v.id}
-                    className="flex-shrink-0 px-2.5"
-                    style={{ width: `${100 / visibleCount}%` }}
+                    className="flex transition-transform duration-500 ease-in-out"
+                    style={{ transform: `translateX(-${currentIndex * (100 / visibleCount)}%)` }}
                   >
-                    <div className="rounded-2xl overflow-hidden bg-muted border border-border hover:shadow-lg hover:border-accent/50 transition-all duration-300">
-                      <div data-video-id={v.id} className="aspect-video bg-black relative">
-                        <iframe
-                          key={`${v.id}-${iframeKeys[v.id]}`}
-                          title={v.question}
-                          src={v.src}
-                          width="100%"
-                          height="100%"
-                          className="absolute inset-0 w-full h-full"
-                          scrolling="no"
-                          frameBorder="0"
-                          style={{ border: 'none' }}
-                          allowFullScreen
-                        />
+                    {qaVideos.map((v) => (
+                      <div
+                        key={v.id}
+                        className="flex-shrink-0 px-2"
+                        style={{ width: `${100 / visibleCount}%` }}
+                      >
+                        <div className="rounded-xl overflow-hidden shadow-md hover:shadow-lg transition-shadow duration-300">
+                          <div data-video-id={v.id} className="aspect-video bg-black relative">
+                            <iframe
+                              key={`${v.id}-${iframeKeys[v.id]}`}
+                              title={v.question}
+                              src={v.src}
+                              width="100%"
+                              height="100%"
+                              className="absolute inset-0 w-full h-full"
+                              scrolling="no"
+                              frameBorder="0"
+                              style={{ border: 'none' }}
+                              allowFullScreen
+                            />
+                            {/* Question overlay — top of video */}
+                            <div className="absolute top-0 left-0 right-0 z-10 pointer-events-none bg-black/55 px-3 py-2">
+                              <p className="text-white text-xs font-medium leading-snug line-clamp-2">
+                                {v.question}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
                       </div>
-                      <div className="p-4">
-                        <p className="text-sm font-medium text-foreground leading-snug line-clamp-2 min-h-[2.75rem]">
-                          {v.question}
-                        </p>
-                      </div>
-                    </div>
+                    ))}
                   </div>
+                </div>
+              </div>
+
+              {/* Next arrow */}
+              <button
+                onClick={goNext}
+                disabled={currentIndex >= maxIndex}
+                aria-label="Next videos"
+                className="absolute right-0 top-[42%] -translate-y-1/2 translate-x-5 z-20 w-10 h-10 rounded-full bg-white border border-border shadow-md flex items-center justify-center hover:bg-muted transition-all disabled:opacity-25 disabled:cursor-not-allowed"
+              >
+                <ChevronRight className="w-5 h-5 text-foreground" />
+              </button>
+
+              {/* Dot indicators */}
+              <div className="flex justify-center gap-2 mt-6">
+                {Array.from({ length: maxIndex + 1 }).map((_, i) => (
+                  <button
+                    key={i}
+                    onClick={() => goTo(i)}
+                    aria-label={`Go to slide ${i + 1}`}
+                    className={`h-2 rounded-full transition-all duration-300 ${i === currentIndex ? 'bg-primary w-6' : 'bg-border w-2 hover:bg-muted-foreground'}`}
+                  />
                 ))}
               </div>
-            </div>
-
-            {/* Next arrow */}
-            <button
-              onClick={goNext}
-              disabled={currentIndex >= maxIndex}
-              aria-label="Next videos"
-              className="absolute right-0 top-[45%] -translate-y-1/2 translate-x-5 z-10 w-10 h-10 rounded-full bg-white border border-border shadow-md flex items-center justify-center hover:bg-muted transition-all disabled:opacity-25 disabled:cursor-not-allowed"
-            >
-              <ChevronRight className="w-5 h-5 text-foreground" />
-            </button>
-
-            {/* Dot indicators */}
-            <div className="flex justify-center gap-2 mt-8">
-              {Array.from({ length: maxIndex + 1 }).map((_, i) => (
-                <button
-                  key={i}
-                  onClick={() => goTo(i)}
-                  aria-label={`Go to slide ${i + 1}`}
-                  className={`h-2 rounded-full transition-all duration-300 ${i === currentIndex ? 'bg-primary w-6' : 'bg-border w-2 hover:bg-muted-foreground'}`}
-                />
-              ))}
             </div>
           </div>
         </section>
