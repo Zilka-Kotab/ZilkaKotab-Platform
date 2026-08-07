@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'wouter';
 import { SEO } from '@/components/SEO';
 import { FadeIn } from '@/components/FadeIn';
@@ -17,51 +17,29 @@ const qaVideos = [
 export default function About() {
   const baseUrl = import.meta.env.BASE_URL.replace(/\/$/, '');
 
-  // Track which video is active (playing) and per-video keys to force remount (stops playback)
-  const [activeVideo, setActiveVideo] = useState<number | null>(null);
-  const [iframeKeys, setIframeKeys] = useState<Record<number, number>>(
-    () => Object.fromEntries(qaVideos.map(v => [v.id, 0]))
-  );
-  const videoSectionRef = useRef<HTMLDivElement>(null);
-  const activeVideoRef = useRef<number | null>(null);
-  activeVideoRef.current = activeVideo;
+  // Lightbox state — null = closed, number = video id currently shown large
+  const [lightboxId, setLightboxId] = useState<number | null>(null);
+  const [lightboxKey, setLightboxKey] = useState(0);
 
-  const stopVideo = (id: number) => {
-    setIframeKeys(k => ({ ...k, [id]: k[id] + 1 }));
-    setActiveVideo(null);
+  const openLightbox = (id: number) => {
+    setLightboxId(id);
+    setLightboxKey(k => k + 1);
   };
 
-  // window.blur fires when focus shifts into an iframe (user clicked on it)
+  const closeLightbox = () => setLightboxId(null);
+
+  // Escape key closes lightbox
   useEffect(() => {
-    const handleBlur = () => {
-      const focused = document.activeElement as HTMLElement;
-      if (focused?.tagName === 'IFRAME') {
-        const card = focused.closest('[data-video-id]');
-        if (card) {
-          const id = Number(card.getAttribute('data-video-id'));
-          const prev = activeVideoRef.current;
-          if (prev !== null && prev !== id) {
-            setIframeKeys(k => ({ ...k, [prev]: k[prev] + 1 }));
-          }
-          setActiveVideo(id);
-        }
-      }
-    };
-    window.addEventListener('blur', handleBlur);
-    return () => window.removeEventListener('blur', handleBlur);
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') closeLightbox(); };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
   }, []);
 
-  // Stop active video when clicking outside the video section
+  // Prevent body scroll while lightbox is open
   useEffect(() => {
-    const handleMouseDown = (e: MouseEvent) => {
-      if (videoSectionRef.current && !videoSectionRef.current.contains(e.target as Node)) {
-        const prev = activeVideoRef.current;
-        if (prev !== null) stopVideo(prev);
-      }
-    };
-    document.addEventListener('mousedown', handleMouseDown);
-    return () => document.removeEventListener('mousedown', handleMouseDown);
-  }, []);
+    document.body.style.overflow = lightboxId !== null ? 'hidden' : '';
+    return () => { document.body.style.overflow = ''; };
+  }, [lightboxId]);
 
   return (
     <>
@@ -145,13 +123,15 @@ export default function About() {
             </div>
           </FadeIn>
 
-          <div ref={videoSectionRef} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
             {qaVideos.map((v, i) => (
               <FadeIn key={v.id} delay={i * 0.06}>
-                <div className="rounded-2xl overflow-hidden bg-muted border border-border hover:shadow-lg hover:border-accent/50 transition-all duration-300">
-                  <div data-video-id={v.id} className="aspect-video bg-black relative">
+                <div
+                  className="rounded-2xl overflow-hidden bg-muted border border-border hover:shadow-lg hover:border-accent/50 hover:scale-[1.02] transition-all duration-300 cursor-pointer"
+                  onClick={() => openLightbox(v.id)}
+                >
+                  <div className="aspect-video bg-black relative pointer-events-none">
                     <iframe
-                      key={`${v.id}-${iframeKeys[v.id]}`}
                       title={v.question}
                       src={v.src}
                       width="100%"
@@ -172,6 +152,53 @@ export default function About() {
               </FadeIn>
             ))}
           </div>
+
+          {/* Lightbox */}
+          {lightboxId !== null && (() => {
+            const v = qaVideos.find(v => v.id === lightboxId)!;
+            return (
+              <div
+                className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
+                onClick={closeLightbox}
+              >
+                <div
+                  className="relative w-full max-w-4xl mx-4"
+                  onClick={e => e.stopPropagation()}
+                >
+                  {/* Close button */}
+                  <button
+                    onClick={closeLightbox}
+                    className="absolute -top-10 right-0 text-white/70 hover:text-white transition-colors text-sm font-medium flex items-center gap-1.5"
+                    aria-label="Close video"
+                  >
+                    <span>Close</span>
+                    <span className="text-lg leading-none">✕</span>
+                  </button>
+
+                  {/* Video */}
+                  <div className="aspect-video rounded-2xl overflow-hidden shadow-2xl border border-white/10">
+                    <iframe
+                      key={lightboxKey}
+                      title={v.question}
+                      src={v.src}
+                      width="100%"
+                      height="100%"
+                      className="w-full h-full"
+                      scrolling="no"
+                      frameBorder="0"
+                      style={{ border: 'none' }}
+                      allowFullScreen
+                    />
+                  </div>
+
+                  {/* Caption */}
+                  <p className="mt-4 text-center text-white/80 text-sm font-medium px-4">
+                    {v.question}
+                  </p>
+                </div>
+              </div>
+            );
+          })()}
         </section>
 
         {/* Representative Clients */}
