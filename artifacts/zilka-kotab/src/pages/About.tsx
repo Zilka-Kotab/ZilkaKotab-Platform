@@ -229,8 +229,8 @@ export default function About() {
                             />
                             {/* Question overlay — hidden while video is active/playing */}
                             {activeVideo !== v.id && (
-                              <div className="absolute top-0 left-0 right-0 z-10 pointer-events-none bg-black/60 px-4 py-3">
-                                <p className="text-white text-sm font-semibold leading-snug line-clamp-2">
+                              <div className="absolute top-0 left-0 right-0 z-10 pointer-events-none bg-black/40 px-4 py-3">
+                                <p className="text-white text-base font-semibold leading-snug line-clamp-2">
                                   {v.question}
                                 </p>
                               </div>
