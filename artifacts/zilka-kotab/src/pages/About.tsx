@@ -312,6 +312,8 @@ export default function About() {
                 'Quantum Technology',
                 'Robotics & Automation',
                 'Satellite Technology',
+                'Sensors & Sensing Systems',
+                'Chemical Analysis & Composition',
                 'Wearable Electronics',
               ].map((tech, i) => (
                 <FadeIn key={tech} delay={i * 0.04}>
