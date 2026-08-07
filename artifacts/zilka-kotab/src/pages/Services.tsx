@@ -115,7 +115,7 @@ export default function Services() {
       <main className="flex-1 w-full">
 
         {/* ── Hero ── */}
-        <section className="pt-36 pb-24 container mx-auto px-4">
+        <section className="pt-24 pb-24 container mx-auto px-4">
           <FadeIn>
             <h1 className="text-5xl md:text-7xl font-display font-bold text-foreground mb-8 max-w-4xl leading-[1.08]">
               Intellectual Property,{' '}

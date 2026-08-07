@@ -16,7 +16,7 @@ export default function Team() {
         url="/team"
       />
 
-      <main className="flex-1 w-full pt-32">
+      <main className="flex-1 w-full pt-20">
         {/* Page Header */}
         <section className="container mx-auto px-4 mb-20">
           <FadeIn>
