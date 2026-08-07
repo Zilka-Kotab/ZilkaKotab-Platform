@@ -55,12 +55,12 @@ export default function About() {
 
   const goPrev = () => {
     if (activeVideoRef.current !== null) stopVideo(activeVideoRef.current);
-    setCurrentIndex(i => Math.max(0, i - 1));
+    setCurrentIndex(i => Math.max(0, i - visibleCount));
   };
 
   const goNext = () => {
     if (activeVideoRef.current !== null) stopVideo(activeVideoRef.current);
-    setCurrentIndex(i => Math.min(maxIndex, i + 1));
+    setCurrentIndex(i => Math.min(maxIndex, i + visibleCount));
   };
 
   const goTo = (i: number) => {
@@ -183,24 +183,24 @@ export default function About() {
           </FadeIn>
 
           {/* Carousel wrapper — bordered panel with side gradients */}
-          <div className="rounded-2xl border border-border bg-muted/40 p-6 shadow-sm">
+          <div className="rounded-2xl border-2 border-border bg-secondary/10 p-6 shadow-lg">
             <div ref={videoSectionRef} className="relative">
               {/* Prev arrow */}
               <button
                 onClick={goPrev}
                 disabled={currentIndex === 0}
                 aria-label="Previous videos"
-                className="absolute left-0 top-[42%] -translate-y-1/2 -translate-x-5 z-20 w-10 h-10 rounded-full bg-white border border-border shadow-md flex items-center justify-center hover:bg-muted transition-all disabled:opacity-25 disabled:cursor-not-allowed"
+                className="absolute left-0 top-[42%] -translate-y-1/2 -translate-x-7 z-20 w-14 h-14 rounded-full bg-white border border-border shadow-lg flex items-center justify-center hover:bg-primary hover:text-white hover:border-primary transition-all disabled:opacity-25 disabled:cursor-not-allowed group"
               >
-                <ChevronLeft className="w-5 h-5 text-foreground" />
+                <ChevronLeft className="w-7 h-7 text-foreground group-hover:text-white transition-colors" />
               </button>
 
               {/* Track with side gradient fade */}
               <div className="relative">
                 {/* Left fade */}
-                <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-8 z-10 bg-gradient-to-r from-muted/60 to-transparent rounded-l-xl" />
+                <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-10 z-10 bg-gradient-to-r from-secondary/20 to-transparent rounded-l-xl" />
                 {/* Right fade */}
-                <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-8 z-10 bg-gradient-to-l from-muted/60 to-transparent rounded-r-xl" />
+                <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-10 z-10 bg-gradient-to-l from-secondary/20 to-transparent rounded-r-xl" />
 
                 <div className="overflow-hidden rounded-xl">
                   <div
@@ -227,12 +227,14 @@ export default function About() {
                               style={{ border: 'none' }}
                               allowFullScreen
                             />
-                            {/* Question overlay — top of video */}
-                            <div className="absolute top-0 left-0 right-0 z-10 pointer-events-none bg-black/55 px-3 py-2">
-                              <p className="text-white text-xs font-medium leading-snug line-clamp-2">
-                                {v.question}
-                              </p>
-                            </div>
+                            {/* Question overlay — hidden while video is active/playing */}
+                            {activeVideo !== v.id && (
+                              <div className="absolute top-0 left-0 right-0 z-10 pointer-events-none bg-black/60 px-4 py-3">
+                                <p className="text-white text-sm font-semibold leading-snug line-clamp-2">
+                                  {v.question}
+                                </p>
+                              </div>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -246,19 +248,19 @@ export default function About() {
                 onClick={goNext}
                 disabled={currentIndex >= maxIndex}
                 aria-label="Next videos"
-                className="absolute right-0 top-[42%] -translate-y-1/2 translate-x-5 z-20 w-10 h-10 rounded-full bg-white border border-border shadow-md flex items-center justify-center hover:bg-muted transition-all disabled:opacity-25 disabled:cursor-not-allowed"
+                className="absolute right-0 top-[42%] -translate-y-1/2 translate-x-7 z-20 w-14 h-14 rounded-full bg-white border border-border shadow-lg flex items-center justify-center hover:bg-primary hover:text-white hover:border-primary transition-all disabled:opacity-25 disabled:cursor-not-allowed group"
               >
-                <ChevronRight className="w-5 h-5 text-foreground" />
+                <ChevronRight className="w-7 h-7 text-foreground group-hover:text-white transition-colors" />
               </button>
 
-              {/* Dot indicators */}
-              <div className="flex justify-center gap-2 mt-6">
+              {/* Page indicators */}
+              <div className="flex justify-center items-center gap-3 mt-7">
                 {Array.from({ length: maxIndex + 1 }).map((_, i) => (
                   <button
                     key={i}
                     onClick={() => goTo(i)}
                     aria-label={`Go to slide ${i + 1}`}
-                    className={`h-2 rounded-full transition-all duration-300 ${i === currentIndex ? 'bg-primary w-6' : 'bg-border w-2 hover:bg-muted-foreground'}`}
+                    className={`h-3 rounded-full transition-all duration-300 ${i === currentIndex ? 'bg-primary w-8' : 'bg-border w-3 hover:bg-muted-foreground'}`}
                   />
                 ))}
               </div>
