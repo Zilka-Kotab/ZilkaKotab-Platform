@@ -165,7 +165,7 @@ export default function About() {
           </div>
         </section>
         {/* Q&A Video Section */}
-        <section className="container mx-auto px-4 py-20">
+        <section className="container mx-auto px-4 py-10">
           <FadeIn>
             <div className="text-center max-w-2xl mx-auto mb-14">
               <div className="inline-flex items-center gap-3 mb-4">
@@ -269,7 +269,7 @@ export default function About() {
         </section>
 
         {/* Representative Clients */}
-        <section className="mt-24 py-20 bg-primary overflow-hidden relative">
+        <section className="mt-10 py-20 bg-primary overflow-hidden relative">
           <div className="absolute inset-0 z-0">
             <img
               src={`${baseUrl}/images/hero-new.jpg`}
