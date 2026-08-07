@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link } from 'wouter';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { SEO } from '@/components/SEO';
 import { FadeIn } from '@/components/FadeIn';
 
@@ -29,6 +30,42 @@ export default function About() {
   const stopVideo = (id: number) => {
     setIframeKeys(k => ({ ...k, [id]: k[id] + 1 }));
     setActiveVideo(null);
+  };
+
+  // Carousel
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [visibleCount, setVisibleCount] = useState(3);
+
+  useEffect(() => {
+    const update = () => {
+      if (window.innerWidth < 640) setVisibleCount(1);
+      else if (window.innerWidth < 1024) setVisibleCount(2);
+      else setVisibleCount(3);
+    };
+    update();
+    window.addEventListener('resize', update);
+    return () => window.removeEventListener('resize', update);
+  }, []);
+
+  const maxIndex = qaVideos.length - visibleCount;
+
+  useEffect(() => {
+    setCurrentIndex(i => Math.min(i, Math.max(0, maxIndex)));
+  }, [visibleCount, maxIndex]);
+
+  const goPrev = () => {
+    if (activeVideoRef.current !== null) stopVideo(activeVideoRef.current);
+    setCurrentIndex(i => Math.max(0, i - 1));
+  };
+
+  const goNext = () => {
+    if (activeVideoRef.current !== null) stopVideo(activeVideoRef.current);
+    setCurrentIndex(i => Math.min(maxIndex, i + 1));
+  };
+
+  const goTo = (i: number) => {
+    if (activeVideoRef.current !== null) stopVideo(activeVideoRef.current);
+    setCurrentIndex(i);
   };
 
   // window.blur fires when focus shifts into an iframe (user clicked on it)
@@ -145,32 +182,76 @@ export default function About() {
             </div>
           </FadeIn>
 
-          <div ref={videoSectionRef} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {qaVideos.map((v, i) => (
-              <FadeIn key={v.id} delay={i * 0.06}>
-                <div className="rounded-2xl overflow-hidden bg-muted border border-border hover:shadow-lg hover:border-accent/50 transition-all duration-300">
-                  <div data-video-id={v.id} className="aspect-video bg-black relative">
-                    <iframe
-                      key={`${v.id}-${iframeKeys[v.id]}`}
-                      title={v.question}
-                      src={v.src}
-                      width="100%"
-                      height="100%"
-                      className="absolute inset-0 w-full h-full"
-                      scrolling="no"
-                      frameBorder="0"
-                      style={{ border: 'none' }}
-                      allowFullScreen
-                    />
+          <div ref={videoSectionRef} className="relative">
+            {/* Prev arrow */}
+            <button
+              onClick={goPrev}
+              disabled={currentIndex === 0}
+              aria-label="Previous videos"
+              className="absolute left-0 top-[45%] -translate-y-1/2 -translate-x-5 z-10 w-10 h-10 rounded-full bg-white border border-border shadow-md flex items-center justify-center hover:bg-muted transition-all disabled:opacity-25 disabled:cursor-not-allowed"
+            >
+              <ChevronLeft className="w-5 h-5 text-foreground" />
+            </button>
+
+            {/* Track */}
+            <div className="overflow-hidden">
+              <div
+                className="flex transition-transform duration-500 ease-in-out"
+                style={{ transform: `translateX(-${currentIndex * (100 / visibleCount)}%)` }}
+              >
+                {qaVideos.map((v) => (
+                  <div
+                    key={v.id}
+                    className="flex-shrink-0 px-2.5"
+                    style={{ width: `${100 / visibleCount}%` }}
+                  >
+                    <div className="rounded-2xl overflow-hidden bg-muted border border-border hover:shadow-lg hover:border-accent/50 transition-all duration-300">
+                      <div data-video-id={v.id} className="aspect-video bg-black relative">
+                        <iframe
+                          key={`${v.id}-${iframeKeys[v.id]}`}
+                          title={v.question}
+                          src={v.src}
+                          width="100%"
+                          height="100%"
+                          className="absolute inset-0 w-full h-full"
+                          scrolling="no"
+                          frameBorder="0"
+                          style={{ border: 'none' }}
+                          allowFullScreen
+                        />
+                      </div>
+                      <div className="p-4">
+                        <p className="text-sm font-medium text-foreground leading-snug line-clamp-2 min-h-[2.75rem]">
+                          {v.question}
+                        </p>
+                      </div>
+                    </div>
                   </div>
-                  <div className="p-4">
-                    <p className="text-sm font-medium text-foreground leading-snug line-clamp-2 min-h-[2.75rem]">
-                      {v.question}
-                    </p>
-                  </div>
-                </div>
-              </FadeIn>
-            ))}
+                ))}
+              </div>
+            </div>
+
+            {/* Next arrow */}
+            <button
+              onClick={goNext}
+              disabled={currentIndex >= maxIndex}
+              aria-label="Next videos"
+              className="absolute right-0 top-[45%] -translate-y-1/2 translate-x-5 z-10 w-10 h-10 rounded-full bg-white border border-border shadow-md flex items-center justify-center hover:bg-muted transition-all disabled:opacity-25 disabled:cursor-not-allowed"
+            >
+              <ChevronRight className="w-5 h-5 text-foreground" />
+            </button>
+
+            {/* Dot indicators */}
+            <div className="flex justify-center gap-2 mt-8">
+              {Array.from({ length: maxIndex + 1 }).map((_, i) => (
+                <button
+                  key={i}
+                  onClick={() => goTo(i)}
+                  aria-label={`Go to slide ${i + 1}`}
+                  className={`h-2 rounded-full transition-all duration-300 ${i === currentIndex ? 'bg-primary w-6' : 'bg-border w-2 hover:bg-muted-foreground'}`}
+                />
+              ))}
+            </div>
           </div>
         </section>
 
