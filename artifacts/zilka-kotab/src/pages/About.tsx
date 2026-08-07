@@ -295,7 +295,7 @@ export default function About() {
               </div>
             </FadeIn>
 
-            <div className="flex flex-wrap justify-center gap-3 max-w-4xl mx-auto">
+            <div className="flex flex-wrap justify-center gap-3 max-w-5xl mx-auto">
               {[
                 'Artificial Intelligence & Machine Learning',
                 'Battery & Energy Storage',
@@ -315,7 +315,8 @@ export default function About() {
                 'Wearable Electronics',
               ].map((tech, i) => (
                 <FadeIn key={tech} delay={i * 0.04}>
-                  <span className="inline-block px-5 py-3 rounded-sm border border-white/15 bg-white/8 text-sm font-semibold text-white/85 hover:bg-white/15 hover:border-accent/50 hover:text-white transition-all duration-200 backdrop-blur-sm">
+                  <span className="inline-flex items-center gap-2.5 px-5 py-2.5 rounded-full border border-white/20 bg-white/5 text-sm font-medium text-white/85 hover:bg-accent/20 hover:border-accent/60 hover:text-white transition-all duration-200 backdrop-blur-sm cursor-default">
+                    <span className="w-1.5 h-1.5 rounded-full bg-accent flex-shrink-0 opacity-80" />
                     {tech}
                   </span>
                 </FadeIn>
