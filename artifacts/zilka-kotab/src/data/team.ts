@@ -64,7 +64,7 @@ export const team: TeamMember[] = [
     linkedin: 'https://www.linkedin.com/in/kotab',
     shortBio: 'Dominic is a registered patent attorney and co-founder of Zilka-Kotab PC specializing in high-value patent portfolio strategy across semiconductor, materials, and computer-based technologies.',
     education: [
-      'JD, University of South Dakota School of Law',
+      'JD, University of South Dakota',
       'BS, Chemical Engineering, South Dakota School of Mines and Technology',
     ],
     admissions: [
