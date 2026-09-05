@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link, useLocation } from 'wouter';
-import { Menu, X, CreditCard } from 'lucide-react';
+import { Menu, X, CreditCard, LockKeyhole } from 'lucide-react';
+import { Show, UserButton } from '@clerk/react';
 import zilkaLogo from '@assets/zilka-logo.png';
 import { motion } from 'framer-motion';
 
@@ -60,6 +61,24 @@ export function Navbar() {
             ))}
           </ul>
           <div className="flex items-center gap-3 border-l border-border pl-8">
+            <Show when="signed-out">
+              <Link
+                href="/sign-in"
+                className="inline-flex items-center gap-1.5 h-10 px-4 rounded-sm border border-border text-sm font-medium text-foreground/80 hover:text-primary hover:border-primary/30 transition-colors"
+              >
+                <LockKeyhole className="w-4 h-4" />
+                Login
+              </Link>
+            </Show>
+            <Show when="signed-in">
+              <Link
+                href="/internal"
+                className="text-sm font-medium text-primary hover:text-primary/80 transition-colors"
+              >
+                Internal Tools
+              </Link>
+              <UserButton />
+            </Show>
             <a
               href={PAY_INVOICE_URL}
               target="_blank"
@@ -124,6 +143,23 @@ export function Navbar() {
                 >
                   Contact Us
                 </Link>
+              </motion.li>
+              <motion.li
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.3, delay: 0.08 }}
+              >
+                <Show when="signed-out">
+                  <Link href="/sign-in" className="inline-flex items-center gap-2 text-2xl font-display font-medium text-primary">
+                    <LockKeyhole className="w-6 h-6" />
+                    Employee Login
+                  </Link>
+                </Show>
+                <Show when="signed-in">
+                  <Link href="/internal" className="text-2xl font-display font-medium text-primary">
+                    Internal Tools
+                  </Link>
+                </Show>
               </motion.li>
               <motion.li
                 initial={{ opacity: 0, x: -20 }}

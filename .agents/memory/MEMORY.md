@@ -1,0 +1,1 @@
+- [Internal access policy](internal-access-policy.md) — private tools are for administrator-approved employees and invited guests; never expose public signup.

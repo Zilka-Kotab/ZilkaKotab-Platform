@@ -96,9 +96,6 @@ export default function Home() {
 
           <div className="container mx-auto px-4 relative z-10">
             <div className="max-w-3xl">
-              <FadeIn delay={0.1}>
-              </FadeIn>
-
               <FadeIn delay={0.2}>
                 <h1 className="text-5xl md:text-7xl font-display font-semibold text-white leading-[1.1] mb-8 text-balance">
                   Patents engineered for{' '}

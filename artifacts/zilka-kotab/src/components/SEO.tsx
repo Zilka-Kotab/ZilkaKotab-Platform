@@ -20,7 +20,7 @@ export function SEO({
   image = DEFAULT_OG_IMAGE,
   children 
 }: SEOProps) {
-  const siteName = 'Zilka-Kotab PC | Silicon Valley IP Strategists';
+  const siteName = 'Zilka-Kotab PC';
   const fullTitle = title === 'Home' ? siteName : `${title} | ${siteName}`;
   const currentUrl = url ? `https://www.zilkakotab.com${url}` : 'https://www.zilkakotab.com';
   
