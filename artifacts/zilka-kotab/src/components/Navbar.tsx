@@ -67,7 +67,7 @@ export function Navbar() {
                 className="inline-flex items-center gap-1.5 h-10 px-4 rounded-sm border border-border text-sm font-medium text-foreground/80 hover:text-primary hover:border-primary/30 transition-colors"
               >
                 <LockKeyhole className="w-4 h-4" />
-                Login
+                AI Tools
               </Link>
             </Show>
             <Show when="signed-in">
@@ -152,7 +152,7 @@ export function Navbar() {
                 <Show when="signed-out">
                   <Link href="/sign-in" className="inline-flex items-center gap-2 text-2xl font-display font-medium text-primary">
                     <LockKeyhole className="w-6 h-6" />
-                    Employee Login
+                    AI Tools
                   </Link>
                 </Show>
                 <Show when="signed-in">
