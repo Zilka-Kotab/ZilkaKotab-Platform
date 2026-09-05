@@ -1,4 +1,5 @@
 import { SignIn } from '@clerk/react';
+import { Link } from 'wouter';
 import { SEO } from '@/components/SEO';
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, '');
@@ -22,11 +23,15 @@ export default function SignInPage() {
               Authorized Access
             </p>
             <h1 className="mb-6 text-4xl font-bold font-display text-foreground md:text-6xl">
-              Zilka-Kotab Internal Tools
+              Zilka-Kotab AI Tools
             </h1>
             <p className="text-lg leading-relaxed text-muted-foreground">
-              This secure area is reserved for approved employees and invited guests.
-              Sign in using the email address associated with your account.
+              Zilka-Kotab creates its own AI-driven tools to analyze, manage, and act on
+              intellectual property with unprecedented speed and precision.{' '}
+              <Link href="/contact" className="font-semibold text-primary hover:underline">
+                Contact us
+              </Link>{' '}
+              to find out more.
             </p>
             <div className="mt-8 rounded-xl border border-border bg-white/70 p-5 text-sm leading-relaxed text-muted-foreground">
               Need access? Contact the firm administrator. Accounts are created by invitation only.
