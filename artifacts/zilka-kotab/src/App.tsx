@@ -70,7 +70,7 @@ const clerkAppearance = {
     rootBox: 'flex w-full min-w-0 max-w-full justify-center',
     cardBox: 'w-full max-w-[440px] overflow-hidden rounded-2xl border border-border bg-white shadow-xl',
     card: '!shadow-none !border-0 !bg-transparent !rounded-none',
-    footer: '!shadow-none !border-0 !bg-transparent !rounded-none',
+    footer: '!hidden',
     headerTitle: 'text-foreground font-semibold',
     headerSubtitle: 'text-muted-foreground',
     socialButtonsBlockButtonText: 'text-foreground font-medium',
