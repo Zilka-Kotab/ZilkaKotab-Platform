@@ -34,15 +34,22 @@ export default function SignInPage() {
               to find out more.
             </p>
             <div className="mt-8 rounded-xl border border-border bg-white/70 p-5 text-sm leading-relaxed text-muted-foreground">
-              Need access? Contact the firm administrator. Accounts are created by invitation only.
+              Approved for access but not yet activated?{' '}
+              <Link href="/sign-up" className="font-semibold text-primary hover:underline">
+                Establish your account securely
+              </Link>
+              . Otherwise, contact the firm administrator.
             </div>
           </section>
-          <SignIn
-            routing="path"
-            path={`${basePath}/sign-in`}
-            forceRedirectUrl={`${basePath}/internal`}
-            withSignUp={false}
-          />
+          <div className="w-full min-w-0 max-w-full">
+            <SignIn
+              routing="path"
+              path={`${basePath}/sign-in`}
+              forceRedirectUrl={`${basePath}/internal`}
+              signUpUrl={`${basePath}/sign-up`}
+              withSignUp={false}
+            />
+          </div>
         </div>
       </main>
     </>

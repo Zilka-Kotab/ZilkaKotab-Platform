@@ -23,6 +23,7 @@ import Contact from '@/pages/Contact';
 import Privacy from '@/pages/Privacy';
 import Terms from '@/pages/Terms';
 import SignInPage from '@/pages/SignIn';
+import SignUpPage from '@/pages/SignUp';
 import InternalTools from '@/pages/InternalTools';
 import NotFound from '@/pages/not-found';
 
@@ -66,8 +67,8 @@ const clerkAppearance = {
     borderRadius: '0.75rem',
   },
   elements: {
-    rootBox: 'w-full flex justify-center',
-    cardBox: 'bg-white rounded-2xl w-[440px] max-w-full overflow-hidden shadow-xl border border-border',
+    rootBox: 'flex w-full min-w-0 max-w-full justify-center',
+    cardBox: 'w-full max-w-[440px] overflow-hidden rounded-2xl border border-border bg-white shadow-xl',
     card: '!shadow-none !border-0 !bg-transparent !rounded-none',
     footer: '!shadow-none !border-0 !bg-transparent !rounded-none',
     headerTitle: 'text-foreground font-semibold',
@@ -149,6 +150,7 @@ function Router() {
       <Switch>
         <Route path="/" component={HomeRoute} />
         <Route path="/sign-in/*?" component={SignInPage} />
+        <Route path="/sign-up/*?" component={SignUpPage} />
         <Route path="/internal" component={ProtectedInternalTools} />
         <Route path="/about" component={About} />
         <Route path="/services" component={Services} />
@@ -173,12 +175,18 @@ function ClerkProviderWithRoutes() {
       proxyUrl={clerkProxyUrl}
       appearance={clerkAppearance}
       signInUrl={`${basePath}/sign-in`}
-      signUpUrl={`${basePath}/sign-in`}
+      signUpUrl={`${basePath}/sign-up`}
       localization={{
         signIn: {
           start: {
             title: 'Private Access',
             subtitle: 'Sign in with your approved Zilka-Kotab account',
+          },
+        },
+        signUp: {
+          start: {
+            title: 'Activate your account',
+            subtitle: 'Use your administrator-approved email address',
           },
         },
       }}
