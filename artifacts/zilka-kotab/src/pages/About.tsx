@@ -16,21 +16,21 @@ const qaVideos = [
 ];
 
 const representativeCompanies = [
-  'IBM',
-  'NVIDIA',
-  'Amdocs',
-  'Western Digital',
-  'McAfee',
-  'Lawrence Livermore National Laboratory',
-  'Salesforce',
-  'Lenovo',
-  'Lyten',
-  'KLA',
-  'Hitachi Global Storage Technologies',
-  'Futurewei Technologies',
-  'NetApp',
-  'Nuance Communications',
-  'NTT DOCOMO',
+  { name: 'IBM', mark: 'IBM' },
+  { name: 'NVIDIA', mark: 'NV' },
+  { name: 'Amdocs', mark: 'AM' },
+  { name: 'Western Digital', mark: 'WD' },
+  { name: 'McAfee', mark: 'MC' },
+  { name: 'Lawrence Livermore National Laboratory', mark: 'LLNL' },
+  { name: 'Salesforce', mark: 'SF' },
+  { name: 'Lenovo', mark: 'LE' },
+  { name: 'Lyten', mark: 'LY' },
+  { name: 'KLA', mark: 'KLA' },
+  { name: 'Hitachi Global Storage Technologies', mark: 'HGST' },
+  { name: 'Futurewei Technologies', mark: 'FT' },
+  { name: 'NetApp', mark: 'NA' },
+  { name: 'Nuance Communications', mark: 'NC' },
+  { name: 'NTT DOCOMO', mark: 'NTT' },
 ];
 
 export default function About() {
@@ -315,7 +315,7 @@ export default function About() {
 
             <FadeIn>
               <div className="mx-auto mt-14 max-w-6xl border-t border-white/15 pt-14">
-                <div className="mx-auto mb-10 max-w-3xl text-center">
+                <div className="mx-auto mb-8 max-w-3xl text-center">
                   <h3 className="text-3xl font-bold font-display text-white md:text-4xl">
                     Trusted by Industry Leaders
                   </h3>
@@ -326,19 +326,22 @@ export default function About() {
                   </p>
                 </div>
 
-                <div className="grid overflow-hidden rounded-2xl border border-white/15 bg-white/[0.06] shadow-2xl shadow-black/15 backdrop-blur-sm sm:grid-cols-2 lg:grid-cols-3">
+                <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
                   {representativeCompanies.map((company, index) => (
                     <div
-                      key={company}
-                      className={`group flex min-h-24 items-center justify-center border-white/10 px-6 py-6 text-center transition-colors duration-200 hover:bg-white/10 ${
-                        index % 3 !== 2 ? 'lg:border-r' : ''
-                      } ${index % 2 === 0 ? 'sm:border-r lg:border-r-0' : ''} ${
-                        index < representativeCompanies.length - 3 ? 'lg:border-b' : ''
-                      } ${index < representativeCompanies.length - 2 ? 'sm:border-b' : ''}`}
+                      key={company.name}
+                      className={`group relative flex min-h-20 items-center gap-3 overflow-hidden rounded-xl border border-white/15 bg-white/[0.07] px-4 py-3 shadow-lg shadow-black/10 backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:border-accent/60 hover:bg-white/[0.12] hover:shadow-xl hover:shadow-black/20 ${
+                        index === 5 || index === 10 ? 'lg:col-span-1' : ''
+                      }`}
                     >
-                      <span className="text-sm font-semibold uppercase tracking-[0.08em] text-white/80 transition-colors group-hover:text-accent md:text-base">
-                        {company}
+                      <span className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-accent/70 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+                      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-accent/35 bg-accent/10 text-[11px] font-bold tracking-[0.08em] text-accent transition-colors duration-300 group-hover:bg-accent group-hover:text-primary">
+                        {company.mark}
                       </span>
+                      <span className="text-left text-sm font-semibold uppercase leading-snug tracking-[0.07em] text-white/85 transition-colors group-hover:text-white md:text-[15px]">
+                        {company.name}
+                      </span>
+                      <span className="absolute -bottom-8 -right-8 h-20 w-20 rounded-full border border-white/5 transition-transform duration-500 group-hover:scale-150" />
                     </div>
                   ))}
                 </div>
