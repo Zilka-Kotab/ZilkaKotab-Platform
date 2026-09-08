@@ -301,7 +301,7 @@ export default function About() {
               <div className="text-center max-w-2xl mx-auto mb-14">
                 <div className="inline-flex items-center gap-3 mb-4">
                   <span className="w-8 h-px bg-accent" />
-                  <span className="text-xs font-semibold uppercase tracking-widest text-accent">Technical Background</span>
+                  <span className="text-xs font-semibold uppercase tracking-widest text-accent">Firm Expertise</span>
                   <span className="w-8 h-px bg-accent" />
                 </div>
                 <h2 className="text-3xl md:text-4xl font-display font-bold text-white mb-4">
@@ -313,40 +313,10 @@ export default function About() {
               </div>
             </FadeIn>
 
-            <div className="flex flex-wrap justify-center gap-3 max-w-5xl mx-auto">
-              {[
-                'Artificial Intelligence & Machine Learning',
-                'Battery & Energy Storage',
-                'Communication Systems',
-                'Data Storage Technology',
-                'Electronics & Semiconductors',
-                'Internet & Software',
-                'Materials Science',
-                'Medical Devices',
-                'MEMS Technology',
-                'Nanotechnology',
-                'Networking & Wireless Technology',
-                'Optics & Photonics',
-                'Quantum Technology',
-                'Robotics & Automation',
-                'Satellite Technology',
-                'Sensors & Sensing Systems',
-                'Chemical Analysis & Composition',
-                'Wearable Electronics',
-              ].map((tech, i) => (
-                <FadeIn key={tech} delay={i * 0.04}>
-                  <span className="inline-flex items-center gap-2.5 px-5 py-2.5 rounded-full border border-white/20 bg-white/5 text-sm font-medium text-white/85 hover:bg-accent/20 hover:border-accent/60 hover:text-white transition-all duration-200 backdrop-blur-sm cursor-default">
-                    <span className="w-1.5 h-1.5 rounded-full bg-accent flex-shrink-0 opacity-80" />
-                    {tech}
-                  </span>
-                </FadeIn>
-              ))}
-            </div>
-
             <FadeIn>
-              <div className="mx-auto mt-16 max-w-6xl border-t border-white/15 pt-14">
+              <div className="mx-auto mt-14 max-w-6xl border-t border-white/15 pt-14">
                 <div className="mx-auto mb-10 max-w-3xl text-center">
-                  <h3 className="text-2xl font-bold font-display text-white md:text-3xl">
+                  <h3 className="text-3xl font-bold font-display text-white md:text-4xl">
                     Trusted by Industry Leaders
                   </h3>
                   <p className="mt-4 leading-relaxed text-white/65">
