@@ -4,7 +4,7 @@ import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { Route, Switch, Redirect, useLocation, Router as WouterRouter } from 'wouter';
 import { HelmetProvider } from 'react-helmet-async';
-import { ClerkProvider, Show, useClerk } from '@clerk/react';
+import { ClerkProvider, Show, useAuth, useClerk } from '@clerk/react';
 import { publishableKeyFromHost } from '@clerk/react/internal';
 import { shadcn } from '@clerk/themes';
 
@@ -98,16 +98,13 @@ const clerkAppearance = {
 };
 
 function HomeRoute() {
-  return (
-    <>
-      <Show when="signed-in">
-        <Redirect to="/internal" />
-      </Show>
-      <Show when="signed-out">
-        <Home />
-      </Show>
-    </>
-  );
+  const { isLoaded, isSignedIn } = useAuth();
+
+  if (isLoaded && isSignedIn) {
+    return <Redirect to="/internal" />;
+  }
+
+  return <Home />;
 }
 
 function ProtectedInternalTools() {
