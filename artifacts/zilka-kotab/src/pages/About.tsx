@@ -15,6 +15,24 @@ const qaVideos = [
   { id: 8, question: "If someone watching is considering your firm, what would you want them to know?", src: "https://www.wevideo.com/embed/?cb=20260806#4149577889" },
 ];
 
+const representativeCompanies = [
+  'IBM',
+  'NVIDIA',
+  'Amdocs',
+  'Western Digital',
+  'McAfee',
+  'Lawrence Livermore National Laboratory',
+  'Salesforce',
+  'Lenovo',
+  'Lyten',
+  'KLA',
+  'Hitachi Global Storage Technologies',
+  'Futurewei Technologies',
+  'NetApp',
+  'Nuance Communications',
+  'NTT DOCOMO',
+];
+
 export default function About() {
   const baseUrl = import.meta.env.BASE_URL.replace(/\/$/, '');
 
@@ -324,6 +342,45 @@ export default function About() {
                 </FadeIn>
               ))}
             </div>
+
+            <FadeIn>
+              <div className="mx-auto mt-16 max-w-6xl border-t border-white/15 pt-14">
+                <div className="mx-auto mb-10 max-w-3xl text-center">
+                  <span className="text-xs font-semibold uppercase tracking-[0.22em] text-accent">
+                    Trusted by companies
+                  </span>
+                  <h3 className="mt-3 text-2xl font-bold font-display text-white md:text-3xl">
+                    Experience trusted by industry leaders
+                  </h3>
+                  <p className="mt-4 leading-relaxed text-white/65">
+                    Zilka-Kotab has been trusted by numerous past and current high-profile
+                    clients across technology, research, communications, and manufacturing.
+                  </p>
+                </div>
+
+                <div className="grid overflow-hidden rounded-2xl border border-white/15 bg-white/[0.06] shadow-2xl shadow-black/15 backdrop-blur-sm sm:grid-cols-2 lg:grid-cols-3">
+                  {representativeCompanies.map((company, index) => (
+                    <div
+                      key={company}
+                      className={`group flex min-h-24 items-center justify-center border-white/10 px-6 py-6 text-center transition-colors duration-200 hover:bg-white/10 ${
+                        index % 3 !== 2 ? 'lg:border-r' : ''
+                      } ${index % 2 === 0 ? 'sm:border-r lg:border-r-0' : ''} ${
+                        index < representativeCompanies.length - 3 ? 'lg:border-b' : ''
+                      } ${index < representativeCompanies.length - 2 ? 'sm:border-b' : ''}`}
+                    >
+                      <span className="text-sm font-semibold uppercase tracking-[0.08em] text-white/80 transition-colors group-hover:text-accent md:text-base">
+                        {company}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+
+                <p className="mt-5 text-center text-xs leading-relaxed text-white/45">
+                  Representative past and current clients. Company names and trademarks belong
+                  to their respective owners.
+                </p>
+              </div>
+            </FadeIn>
           </div>
         </section>
 
