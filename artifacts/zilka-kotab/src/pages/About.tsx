@@ -301,14 +301,14 @@ export default function About() {
               <div className="text-center max-w-2xl mx-auto mb-14">
                 <div className="inline-flex items-center gap-3 mb-4">
                   <span className="w-8 h-px bg-accent" />
-                  <span className="text-xs font-semibold uppercase tracking-widest text-accent">Representative Clients</span>
+                  <span className="text-xs font-semibold uppercase tracking-widest text-accent">Technical Background</span>
                   <span className="w-8 h-px bg-accent" />
                 </div>
                 <h2 className="text-3xl md:text-4xl font-display font-bold text-white mb-4">
                   Trusted Across Industries
                 </h2>
                 <p className="text-white/65 leading-relaxed">
-                  Our clients include companies of all sizes — from select high-tech start-ups and mid-sized manufacturing firms to some of the largest and best-known companies in the world. Our attorneys bring genuine technical fluency across a broad spectrum of innovation, including:
+                  Our attorneys bring deep technical experience across a broad range of technologies, including software, electronics, communications, energy, advanced materials, medical devices, semiconductors, networking, sensing, and other emerging technologies.
                 </p>
               </div>
             </FadeIn>
@@ -346,15 +346,13 @@ export default function About() {
             <FadeIn>
               <div className="mx-auto mt-16 max-w-6xl border-t border-white/15 pt-14">
                 <div className="mx-auto mb-10 max-w-3xl text-center">
-                  <span className="text-xs font-semibold uppercase tracking-[0.22em] text-accent">
-                    Trusted by companies
-                  </span>
-                  <h3 className="mt-3 text-2xl font-bold font-display text-white md:text-3xl">
-                    Experience trusted by industry leaders
+                  <h3 className="text-2xl font-bold font-display text-white md:text-3xl">
+                    Trusted by Industry Leaders
                   </h3>
                   <p className="mt-4 leading-relaxed text-white/65">
-                    Zilka-Kotab has been trusted by numerous past and current high-profile
-                    clients across technology, research, communications, and manufacturing.
+                    Our clients include companies of all sizes — from select high-tech start-ups
+                    and mid-sized manufacturing firms to some of the largest and best-known
+                    companies in the world.
                   </p>
                 </div>
 
