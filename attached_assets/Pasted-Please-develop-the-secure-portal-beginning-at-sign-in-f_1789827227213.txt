@@ -1,0 +1,368 @@
+Please develop the secure portal beginning at `/sign-in` for the Zilka-Kotab website.
+
+The portal must use **Replit Auth for authentication**, but application access and permissions must be controlled separately by our application's database. This is a private client/attorney portal. It is NOT a public-registration application.
+
+## 1. Core Authentication Requirement
+
+Implement Replit Auth for user authentication.
+
+The public `/sign-in` page should contain only the ability for an existing authorized user to sign in.
+
+**DO NOT provide any "Sign Up," "Create Account," "Register," or similar option anywhere on the Zilka-Kotab sign-in page or portal UI.**
+
+Users may only receive access to the Zilka-Kotab portal after an administrator has created/authorized their user record in the application's database.
+
+Authentication through Replit Auth by itself must NEVER grant access to the portal.
+
+After Replit Auth successfully identifies a user, the application must check the authenticated user's email/user identity against the application's authorized-users database.
+
+If there is no active authorized-user record matching that identity, deny access and display:
+
+> Access Not Authorized
+> Your account has not been authorized to access the Zilka-Kotab client portal. Please contact Zilka-Kotab for assistance.
+
+Do not automatically create an authorized portal account simply because Replit Auth authenticates someone.
+
+## 2. Role-Based Access Control
+
+Implement three application roles:
+
+* CLIENT
+* ATTORNEY
+* ADMIN
+
+Roles and permissions must be enforced **server-side**, not merely by hiding UI elements.
+
+Every authenticated request for client, project, tool, user-management, or administrative information must verify that the current user has permission to access that resource.
+
+## 3. Client Portal
+
+A user with the CLIENT role should be taken to a client dashboard after login.
+
+The dashboard should display only the tools and projects that have specifically been assigned to that client.
+
+Conceptually:
+
+**Dashboard**
+
+* Tool 1
+
+  * Project A
+  * Project B
+* Tool 2
+
+  * Project C
+* Tool 3
+
+  * Project D
+
+A client may have access to some tools but not others.
+
+Within each tool, the client may have access to some projects but not others.
+
+Therefore, access needs to be configurable at both levels:
+
+**Client → Tool → Project**
+
+Do not assume that because a client can access a tool, the client can access every project associated with that tool.
+
+The architecture should permit additional tools and projects to be added later without redesigning the authentication system.
+
+## 4. Attorney Portal
+
+An ATTORNEY should have all of the same functionality available to a client, but attorneys may be assigned to multiple clients.
+
+The attorney dashboard should therefore include a client navigation system.
+
+For example:
+
+**My Clients**
+
+* Client A
+* Client B
+* Client C
+
+Selecting a client should display that client's portal environment:
+
+**Client A**
+
+* Tool 1
+
+  * Project A
+  * Project B
+* Tool 2
+
+  * Project C
+
+**Client B**
+
+* Tool 1
+
+  * Project D
+* Tool 3
+
+  * Project E
+
+An attorney must ONLY be able to see clients specifically assigned to that attorney.
+
+An attorney must not be able to manipulate URLs, API requests, client IDs, project IDs, or other parameters to obtain access to an unassigned client's information.
+
+The interface should make switching among assigned clients simple. A tabbed interface or client selector/sidebar is acceptable; use whichever provides the cleanest interface as the number of clients grows.
+
+## 5. Administrator Portal
+
+An ADMIN should have all attorney functionality, but with access to all clients.
+
+Admins should additionally have an **Admin** section in the portal navigation.
+
+The Admin Portal should provide user and access management.
+
+### User Management
+
+Admins need to be able to:
+
+* View all authorized users
+* Add/authorize a user
+* Edit a user
+* Activate/deactivate a user
+* Assign the user's role:
+
+  * Client
+  * Attorney
+  * Admin
+* Associate a client-role user with the appropriate client organization
+* Assign one or multiple clients to an attorney
+* Remove client assignments from an attorney
+* View the access currently assigned to each user
+
+Do not allow non-admin users to access any of these functions.
+
+### Client Management
+
+Admins should be able to:
+
+* Create a client organization
+* Edit a client organization
+* Activate/deactivate a client organization
+* View users associated with the client
+* View attorneys assigned to the client
+* View tools available to the client
+* Configure the client's projects
+
+### Tool and Project Access
+
+Admins should be able to configure which tools are available to each client and which projects exist beneath those tools.
+
+The system should support the hierarchy:
+
+**Client Organization**
+→ **Tool**
+→ **Project**
+
+Permissions should be configurable so that the appropriate client users and assigned attorneys can access those resources.
+
+## 6. Recommended Data Model
+
+Please design the database around relational permissions rather than hard-coded role checks.
+
+At minimum, consider entities/tables equivalent to:
+
+**users**
+
+* id
+* auth_provider_id
+* email
+* name
+* role
+* active
+* created_at
+* updated_at
+
+**clients**
+
+* id
+* name
+* active
+* created_at
+* updated_at
+
+**client_users**
+
+* user_id
+* client_id
+
+**attorney_clients**
+
+* attorney_user_id
+* client_id
+
+**tools**
+
+* id
+* name
+* slug
+* description
+* active
+
+**client_tools**
+
+* client_id
+* tool_id
+* active
+
+**projects**
+
+* id
+* client_id
+* tool_id
+* name
+* description
+* status
+* created_at
+* updated_at
+
+Add additional permission/relationship tables if needed to support granular project-level access.
+
+Design this so we can expand the permission model later without rebuilding the portal.
+
+## 7. Security Requirements
+
+This portal will ultimately be used by a law firm and may contain confidential client information. Security and tenant isolation are therefore critical.
+
+Please implement the following:
+
+1. Authentication must be verified server-side.
+2. Authorization must be verified server-side for EVERY protected resource.
+3. Never rely solely upon hidden buttons, routes, or frontend logic for access control.
+4. Every query for client information must verify that the logged-in user is authorized for that client.
+5. Every query for a project must independently verify project access.
+6. Users must not be able to obtain another client's data by modifying a URL, client ID, project ID, API request, or request payload.
+7. Attorneys must only access specifically assigned clients.
+8. Clients must only access their own client organization and specifically authorized resources.
+9. Only admins can manage users, roles, client assignments, tools, or permissions.
+10. Do not expose database credentials, API keys, secrets, or authorization logic to the browser.
+11. Use secure sessions and appropriate session expiration.
+12. Log important administrative actions involving access changes.
+
+Create an **audit log** for administrative access changes including:
+
+* administrator
+* action
+* affected user/client
+* previous value where appropriate
+* new value
+* timestamp
+
+## 8. Routing
+
+Please structure protected routes logically. For example:
+
+`/sign-in`
+
+`/portal`
+`/portal/tools`
+`/portal/tools/:toolSlug`
+`/portal/tools/:toolSlug/projects/:projectId`
+
+Attorney/admin client context could use:
+
+`/portal/clients/:clientId`
+
+Administrative routes:
+
+`/portal/admin`
+`/portal/admin/users`
+`/portal/admin/clients`
+`/portal/admin/access`
+
+These exact routes are not mandatory if the existing application architecture suggests something better, but maintain a clear separation between the normal portal and administrative functionality.
+
+## 9. Login Routing
+
+After successful authentication and authorization:
+
+**CLIENT**
+→ Client dashboard
+
+**ATTORNEY**
+→ Attorney dashboard showing assigned clients
+
+**ADMIN**
+→ Main portal with access to all clients plus Admin navigation
+
+If the user's authorized-user record is inactive:
+→ Deny portal access.
+
+If the authenticated identity does not have an authorized-user record:
+→ Deny portal access.
+
+## 10. UI/UX
+
+Maintain the existing Zilka-Kotab website branding and design language.
+
+The portal should feel like part of the existing website rather than a separate application.
+
+Use a professional, restrained interface appropriate for a law firm.
+
+The authenticated portal should have persistent navigation with items appropriate to the user's role.
+
+CLIENT:
+
+* Dashboard
+* Tools
+* Projects
+* Account/Sign Out
+
+ATTORNEY:
+
+* Dashboard
+* My Clients
+* Tools/Projects for selected client
+* Account/Sign Out
+
+ADMIN:
+
+* Dashboard
+* Clients
+* Tools/Projects
+* Admin
+* Account/Sign Out
+
+Do not display navigation options that the user's role cannot use.
+
+## 11. Important: Preserve Existing Website
+
+Do not redesign or modify unrelated portions of zilkakotab.com.
+
+Implement this functionality beginning with the existing `/sign-in` page and integrate it with the current site's visual design.
+
+Before making major architectural changes to existing code, inspect the current implementation and preserve existing working functionality.
+
+## 12. Initial Implementation
+
+For this first implementation:
+
+1. Build the authentication and authorization architecture.
+2. Build the database schema.
+3. Build the three role-based dashboard experiences.
+4. Build the Admin user/client/access management interface.
+5. Create placeholder tool/project cards where the individual tools have not yet been implemented.
+6. Make the architecture ready for the actual tools to be connected later.
+7. Seed or configure an initial ADMIN account for me so that all subsequent users can be authorized through the Admin Portal.
+8. Test access isolation for Client, Attorney, and Admin roles.
+
+Do not build separate authentication systems for each tool. Authentication, users, clients, attorney assignments, and permissions should be centralized in this portal so future tools can use the same access-control system.
+
+Before considering this complete, test specifically that:
+
+* An unauthenticated user cannot access protected URLs.
+* An authenticated but unauthorized Replit user cannot access the portal.
+* Client A cannot access Client B through URL manipulation.
+* An attorney cannot access an unassigned client.
+* A client cannot access attorney or admin pages.
+* An attorney cannot access admin pages.
+* An admin can configure users and assignments.
+* Deactivating a user prevents future portal access.
+* Removing an attorney/client assignment immediately removes access to that client's resources.
+
+Please first review the existing codebase and `/sign-in` implementation, then implement this architecture using the existing application's technology stack rather than unnecessarily replacing working components.
