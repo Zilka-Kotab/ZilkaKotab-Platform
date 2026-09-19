@@ -4,14 +4,13 @@ import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { Route, Switch, Redirect, useLocation, Router as WouterRouter } from 'wouter';
 import { HelmetProvider } from 'react-helmet-async';
-import { ClerkProvider, Show, useAuth, useClerk } from '@clerk/react';
-import { publishableKeyFromHost } from '@clerk/react/internal';
-import { shadcn } from '@clerk/themes';
+import { useAuth } from '@workspace/replit-auth-web';
 
 // Layout Components
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
 import { ScrollToTop } from '@/components/ScrollToTop';
+import { PortalLayout } from '@/components/portal/PortalLayout';
 
 // Pages
 import Home from '@/pages/Home';
@@ -23,17 +22,17 @@ import Contact from '@/pages/Contact';
 import Privacy from '@/pages/Privacy';
 import Terms from '@/pages/Terms';
 import SignInPage from '@/pages/SignIn';
-import SignUpPage from '@/pages/SignUp';
-import InternalTools from '@/pages/InternalTools';
 import NotFound from '@/pages/not-found';
+
+import PortalDashboard from '@/pages/portal/Dashboard';
+import PortalClients from '@/pages/portal/Clients';
+import PortalClientDetail from '@/pages/portal/ClientDetail';
+import PortalTools from '@/pages/portal/Tools';
+import PortalToolDetail from '@/pages/portal/ToolDetail';
+import PortalAdmin from '@/pages/portal/Admin';
 
 const queryClient = new QueryClient();
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, '');
-const clerkPubKey = publishableKeyFromHost(
-  window.location.hostname,
-  import.meta.env.VITE_CLERK_PUBLISHABLE_KEY,
-);
-const clerkProxyUrl = import.meta.env.VITE_CLERK_PROXY_URL;
 
 function stripBase(path: string): string {
   return basePath && path.startsWith(basePath)
@@ -41,157 +40,105 @@ function stripBase(path: string): string {
     : path;
 }
 
-if (!clerkPubKey) {
-  throw new Error('Missing VITE_CLERK_PUBLISHABLE_KEY in .env file');
-}
-
-const clerkAppearance = {
-  theme: shadcn,
-  cssLayerName: 'clerk',
-  options: {
-    logoPlacement: 'inside' as const,
-    logoLinkUrl: basePath || '/',
-    logoImageUrl: `${window.location.origin}${basePath}/logo.svg`,
-    socialButtonsPlacement: 'bottom' as const,
-  },
-  variables: {
-    colorPrimary: '#293f73',
-    colorForeground: '#20283d',
-    colorMutedForeground: '#667085',
-    colorDanger: '#b42318',
-    colorBackground: '#ffffff',
-    colorInput: '#ffffff',
-    colorInputForeground: '#20283d',
-    colorNeutral: '#d8d5cc',
-    fontFamily: "'DM Sans', sans-serif",
-    borderRadius: '0.75rem',
-  },
-  elements: {
-    rootBox: 'flex w-full min-w-0 max-w-full justify-center',
-    cardBox: 'w-full max-w-[440px] overflow-hidden rounded-2xl border border-border bg-white shadow-xl',
-    card: '!shadow-none !border-0 !bg-transparent !rounded-none',
-    footer: '!hidden',
-    headerTitle: 'text-foreground font-semibold',
-    headerSubtitle: 'text-muted-foreground',
-    socialButtonsBlockButtonText: 'text-foreground font-medium',
-    formFieldLabel: 'text-foreground font-medium',
-    footerActionLink: 'text-primary font-semibold',
-    footerActionText: 'text-muted-foreground',
-    dividerText: 'text-muted-foreground',
-    identityPreviewEditButton: 'text-primary',
-    formFieldSuccessText: 'text-green-700',
-    alertText: 'text-red-700',
-    logoBox: 'h-14',
-    logoImage: 'h-12 w-auto',
-    socialButtonsBlock: 'hidden',
-    socialButtonsBlockButton: 'hidden',
-    formButtonPrimary: 'bg-primary hover:bg-primary/90 text-white',
-    formFieldInput: 'border-border bg-white text-foreground',
-    footerAction: 'hidden',
-    dividerRow: 'hidden',
-    dividerLine: 'hidden',
-    alert: 'border-red-200 bg-red-50',
-    otpCodeFieldInput: 'border-border',
-    formFieldRow: 'text-foreground',
-    main: 'gap-5',
-  },
-};
-
 function HomeRoute() {
-  const { isLoaded, isSignedIn } = useAuth();
+  const { isLoading, isAuthenticated } = useAuth();
 
-  if (isLoaded && isSignedIn) {
-    return <Redirect to="/internal" />;
+  if (!isLoading && isAuthenticated) {
+    return <Redirect to="/portal" />;
   }
 
   return <Home />;
 }
 
-function ProtectedInternalTools() {
+function ProtectedPortalRoute({ component: Component }: { component: React.ComponentType }) {
+  const { isLoading, isAuthenticated } = useAuth();
+  
+  if (isLoading) return null;
+  if (!isAuthenticated) return <Redirect to="/sign-in" />;
+  
   return (
-    <>
-      <Show when="signed-in">
-        <InternalTools />
-      </Show>
-      <Show when="signed-out">
-        <Redirect to="/sign-in" />
-      </Show>
-    </>
+    <PortalLayout>
+      <Component />
+    </PortalLayout>
   );
 }
 
-function ClerkQueryClientCacheInvalidator() {
-  const { addListener } = useClerk();
+function AuthQueryClientCacheInvalidator() {
+  const { user } = useAuth();
   const activeQueryClient = useQueryClient();
   const previousUserId = useRef<string | null | undefined>(undefined);
 
   useEffect(() => {
-    const unsubscribe = addListener(({ user }) => {
-      const userId = user?.id ?? null;
-      if (previousUserId.current !== undefined && previousUserId.current !== userId) {
-        activeQueryClient.clear();
-      }
-      previousUserId.current = userId;
-    });
-    return unsubscribe;
-  }, [addListener, activeQueryClient]);
+    const userId = user?.id ?? null;
+    if (previousUserId.current !== undefined && previousUserId.current !== userId) {
+      activeQueryClient.clear();
+    }
+    previousUserId.current = userId;
+  }, [user, activeQueryClient]);
 
   return null;
 }
 
-function Router() {
+function PublicLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-[100dvh] flex-col">
       <ScrollToTop />
       <Navbar />
-      <Switch>
-        <Route path="/" component={HomeRoute} />
-        <Route path="/sign-in/*?" component={SignInPage} />
-        <Route path="/sign-up/*?" component={SignUpPage} />
-        <Route path="/internal" component={ProtectedInternalTools} />
-        <Route path="/about" component={About} />
-        <Route path="/services" component={Services} />
-        <Route path="/team" component={Team} />
-        <Route path="/team/:slug" component={TeamMember} />
-        <Route path="/contact" component={Contact} />
-        <Route path="/privacy-policy" component={Privacy} />
-        <Route path="/terms" component={Terms} />
-        <Route component={NotFound} />
-      </Switch>
+      {children}
       <Footer />
     </div>
   );
 }
 
-function ClerkProviderWithRoutes() {
-  const [, setLocation] = useLocation();
-
+function Router() {
   return (
-    <ClerkProvider
-      publishableKey={clerkPubKey}
-      proxyUrl={clerkProxyUrl}
-      appearance={clerkAppearance}
-      signInUrl={`${basePath}/sign-in`}
-      signUpUrl={`${basePath}/sign-up`}
-      localization={{
-        signIn: {
-          start: {
-            title: 'Private Access',
-            subtitle: 'Sign in with your approved Zilka-Kotab account',
-          },
-        },
-        signUp: {
-          start: {
-            title: 'Activate your account',
-            subtitle: 'Use your administrator-approved email address',
-          },
-        },
-      }}
-      routerPush={(to) => setLocation(stripBase(to))}
-      routerReplace={(to) => setLocation(stripBase(to), { replace: true })}
-    >
+    <Switch>
+      {/* Portal Routes */}
+      <Route path="/portal">
+        <ProtectedPortalRoute component={PortalDashboard} />
+      </Route>
+      <Route path="/portal/clients">
+        <ProtectedPortalRoute component={PortalClients} />
+      </Route>
+      <Route path="/portal/clients/:clientId">
+        <ProtectedPortalRoute component={PortalClientDetail} />
+      </Route>
+      <Route path="/portal/tools">
+        <ProtectedPortalRoute component={PortalTools} />
+      </Route>
+      <Route path="/portal/tools/:toolSlug">
+        <ProtectedPortalRoute component={PortalToolDetail} />
+      </Route>
+      <Route path="/portal/admin">
+        <ProtectedPortalRoute component={PortalAdmin} />
+      </Route>
+
+      {/* Public Routes */}
+      <Route path="/:rest*">
+        <PublicLayout>
+          <Switch>
+            <Route path="/" component={HomeRoute} />
+            <Route path="/sign-in/*?" component={SignInPage} />
+            <Route path="/about" component={About} />
+            <Route path="/services" component={Services} />
+            <Route path="/team" component={Team} />
+            <Route path="/team/:slug" component={TeamMember} />
+            <Route path="/contact" component={Contact} />
+            <Route path="/privacy-policy" component={Privacy} />
+            <Route path="/terms" component={Terms} />
+            <Route component={NotFound} />
+          </Switch>
+        </PublicLayout>
+      </Route>
+    </Switch>
+  );
+}
+
+function App() {
+  return (
+    <WouterRouter base={basePath}>
       <QueryClientProvider client={queryClient}>
-        <ClerkQueryClientCacheInvalidator />
+        <AuthQueryClientCacheInvalidator />
         <TooltipProvider>
           <HelmetProvider>
             <Router />
@@ -199,14 +146,6 @@ function ClerkProviderWithRoutes() {
           <Toaster />
         </TooltipProvider>
       </QueryClientProvider>
-    </ClerkProvider>
-  );
-}
-
-function App() {
-  return (
-    <WouterRouter base={basePath}>
-      <ClerkProviderWithRoutes />
     </WouterRouter>
   );
 }

@@ -1,15 +1,16 @@
-import { SignIn } from '@clerk/react';
+import { useAuth } from '@workspace/replit-auth-web';
 import { Link } from 'wouter';
 import { SEO } from '@/components/SEO';
-
-const basePath = import.meta.env.BASE_URL.replace(/\/$/, '');
+import { LogIn } from 'lucide-react';
 
 export default function SignInPage() {
+  const { login } = useAuth();
+  
   return (
     <>
       <SEO
-        title="Employee Login"
-        description="Secure login for approved Zilka-Kotab employees and guests."
+        title="Portal Login"
+        description="Secure login for approved Zilka-Kotab clients and attorneys."
         url="/sign-in"
       />
       <main className="relative flex-1 overflow-hidden bg-background px-4 py-16 md:py-24">
@@ -23,32 +24,25 @@ export default function SignInPage() {
               Authorized Access
             </p>
             <h1 className="mb-6 text-4xl font-bold font-display text-foreground md:text-6xl">
-              Zilka-Kotab AI Tools
+              Zilka-Kotab Portal
             </h1>
             <p className="text-lg leading-relaxed text-muted-foreground">
-              Zilka-Kotab creates its own AI-driven tools to analyze, manage, and act on
-              intellectual property with unprecedented speed and precision.{' '}
-              <Link href="/contact" className="font-semibold text-primary hover:underline">
-                Contact us
-              </Link>{' '}
-              to find out more.
+              A secure, confidential workspace where clients and counsel can locate assigned matters and tools.
             </p>
-            <div className="mt-8 rounded-xl border border-border bg-white/70 p-5 text-sm leading-relaxed text-muted-foreground">
-              Approved for access but not yet activated?{' '}
-              <Link href="/sign-up" className="font-semibold text-primary hover:underline">
-                Establish your account securely
-              </Link>
-              . Otherwise, contact the firm administrator.
-            </div>
           </section>
           <div className="w-full min-w-0 max-w-full">
-            <SignIn
-              routing="path"
-              path={`${basePath}/sign-in`}
-              forceRedirectUrl={`${basePath}/internal`}
-              signUpUrl={`${basePath}/sign-up`}
-              withSignUp={false}
-            />
+            <div className="w-full max-w-[440px] overflow-hidden rounded-2xl border border-border bg-white p-8 shadow-xl">
+              <h2 className="text-2xl font-bold text-foreground mb-2">Sign In</h2>
+              <p className="text-muted-foreground mb-8">Access your approved Zilka-Kotab portal.</p>
+              
+              <button
+                onClick={() => login()}
+                className="flex w-full items-center justify-center gap-2 rounded-md bg-primary px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-primary/90"
+              >
+                <LogIn className="h-4 w-4" />
+                Sign in with Provider
+              </button>
+            </div>
           </div>
         </div>
       </main>

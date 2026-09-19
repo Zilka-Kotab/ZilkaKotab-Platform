@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link, useLocation } from 'wouter';
 import { Menu, X, CreditCard, LockKeyhole } from 'lucide-react';
-import { Show, UserButton } from '@clerk/react';
+import { useAuth } from '@workspace/replit-auth-web';
 import zilkaLogo from '@assets/zilka-logo.png';
 import { motion } from 'framer-motion';
 
@@ -17,6 +17,7 @@ const navLinks = [
 export function Navbar() {
   const [location] = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
+  const { isAuthenticated } = useAuth();
 
   // Close mobile menu on route change
   React.useEffect(() => {
@@ -61,7 +62,7 @@ export function Navbar() {
             ))}
           </ul>
           <div className="flex items-center gap-3 border-l border-border pl-8">
-            <Show when="signed-out">
+            {!isAuthenticated && (
               <Link
                 href="/sign-in"
                 className="inline-flex items-center gap-1.5 h-10 px-4 rounded-sm border border-border text-sm font-medium text-foreground/80 hover:text-primary hover:border-primary/30 transition-colors"
@@ -69,16 +70,15 @@ export function Navbar() {
                 <LockKeyhole className="w-4 h-4" />
                 AI Tools
               </Link>
-            </Show>
-            <Show when="signed-in">
+            )}
+            {isAuthenticated && (
               <Link
-                href="/internal"
+                href="/portal"
                 className="text-sm font-medium text-primary hover:text-primary/80 transition-colors"
               >
-                Internal Tools
+                Client Portal
               </Link>
-              <UserButton />
-            </Show>
+            )}
             <a
               href={PAY_INVOICE_URL}
               target="_blank"
@@ -149,17 +149,17 @@ export function Navbar() {
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.3, delay: 0.08 }}
               >
-                <Show when="signed-out">
+                {!isAuthenticated && (
                   <Link href="/sign-in" className="inline-flex items-center gap-2 text-2xl font-display font-medium text-primary">
                     <LockKeyhole className="w-6 h-6" />
                     AI Tools
                   </Link>
-                </Show>
-                <Show when="signed-in">
-                  <Link href="/internal" className="text-2xl font-display font-medium text-primary">
-                    Internal Tools
+                )}
+                {isAuthenticated && (
+                  <Link href="/portal" className="text-2xl font-display font-medium text-primary">
+                    Client Portal
                   </Link>
-                </Show>
+                )}
               </motion.li>
               <motion.li
                 initial={{ opacity: 0, x: -20 }}

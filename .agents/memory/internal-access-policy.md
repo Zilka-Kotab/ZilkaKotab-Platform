@@ -1,10 +1,10 @@
 ---
 name: Internal access policy
-description: Access policy for the Zilka-Kotab employee and guest tools area.
+description: Authentication and authorization policy for the private Zilka-Kotab portal.
 ---
 
-Private tools must use an invite-only access model for administrator-approved employees and guests. Public account creation must not be presented as an access path.
+Use Replit Auth only to establish identity. Portal authorization remains application-database controlled with CLIENT, ATTORNEY, and ADMIN roles. Public account creation must not be presented as an access path.
 
-**Why:** The user explicitly chose invite-only access because the area will contain non-public tools.
+**Why:** The user explicitly chose a fresh Replit Auth setup for a law-firm portal containing confidential client resources, with no public registration and no access granted solely by successful authentication.
 
-**How to apply:** Protect every internal page and every future private API or data source with authenticated, approved-user authorization. Do not rely on hiding navigation or client-side redirects alone.
+**How to apply:** Every private API must verify an active portal user and independently enforce client, tool, and project access server-side. Attorneys are limited to assigned clients; client users require their own project permissions. Deactivation or assignment removal must take effect on the next request.
