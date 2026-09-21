@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link } from 'wouter';
+import { Link, useLocation } from 'wouter';
 import { useAdminUsers, useAdminAudit, useAdminProjects, useAdminToolAccess, useAdminClientTools, usePortalClients, usePortalTools, useCreateAdminUser, useUpdateAdminUser, useCreateAdminClient, useUpdateAdminClient, useUpdateTool, useCreateTool, useSetClientTools, useCreateProject, useUpdateProject } from '@/lib/hooks-portal';
 import { Loader2, Settings, Users, Building2, Wrench, Briefcase, Activity, Plus } from 'lucide-react';
 import { SEO } from '@/components/SEO';
@@ -403,11 +403,14 @@ function ProjectsAdmin() {
   const createMutation = useCreateProject();
   const updateMutation = useUpdateProject();
   const projects = useAdminProjects();
+  const [, navigate] = useLocation();
   
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [clientId, setClientId] = useState<number>(0);
-  const [toolId, setToolId] = useState<number>(0);
+  const requestedToolId = Number(new URLSearchParams(window.location.search).get('toolId'));
+  const [toolId, setToolId] = useState<number>(requestedToolId > 0 ? requestedToolId : 0);
+  const lockedTool = requestedToolId > 0 ? toolsData?.tools.find(tool => tool.id === requestedToolId) : undefined;
   
   const isReady = clientsData && toolsData;
 
@@ -415,9 +418,10 @@ function ProjectsAdmin() {
     e.preventDefault();
     if (!clientId || !toolId) return;
     createMutation.mutate({ name, description, clientId, toolId, status: 'Active', active: true }, {
-      onSuccess: () => {
+      onSuccess: ({ project }) => {
         setName('');
         setDescription('');
+        navigate(`/portal/projects/${project.id}`);
       }
     });
   };
@@ -438,18 +442,24 @@ function ProjectsAdmin() {
               className="w-full rounded-md border border-border px-3 py-2 text-sm"
             >
               <option value={0} disabled>Select Client</option>
-              {clientsData.clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+               {clientsData.clients.filter(client => client.active).map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
           </div>
           <div className="lg:col-span-1">
             <label className="mb-1 block text-xs font-medium text-muted-foreground">Tool</label>
-            <select 
-              value={toolId} onChange={e => setToolId(Number(e.target.value))} required
-              className="w-full rounded-md border border-border px-3 py-2 text-sm"
-            >
-              <option value={0} disabled>Select Tool</option>
-              {toolsData.tools.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-            </select>
+             {lockedTool ? (
+               <div className="flex h-[38px] items-center rounded-md border border-primary/30 bg-primary/5 px-3 text-sm font-medium text-foreground">
+                 {lockedTool.name}
+               </div>
+             ) : (
+               <select
+                 value={toolId} onChange={e => setToolId(Number(e.target.value))} required
+                 className="w-full rounded-md border border-border px-3 py-2 text-sm"
+               >
+                 <option value={0} disabled>Select Tool</option>
+                 {toolsData.tools.filter(tool => tool.active).map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+               </select>
+             )}
           </div>
           <div className="lg:col-span-1">
             <label className="mb-1 block text-xs font-medium text-muted-foreground">Project Name</label>

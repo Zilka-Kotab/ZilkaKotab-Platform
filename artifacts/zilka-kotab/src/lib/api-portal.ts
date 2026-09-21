@@ -103,6 +103,8 @@ export interface AnalysisRun {
 
 export interface ProjectWorkspace {
   project: Project;
+  tool: Tool;
+  client: Client;
   aiConfig: ProjectAiConfig;
   patents: MonitoredPatent[];
   workspaceItems: WorkspaceItem[];

@@ -344,11 +344,25 @@ router.post("/portal/admin/projects", async (req, res) => {
   const toolId = Number(req.body?.toolId);
   const name = text(req.body?.name);
   if (!validId(clientId) || !validId(toolId) || !name) return void res.status(400).json({ error: "Client, tool, and project name are required." });
-  const [clientTool] = await db.select().from(clientToolsTable).where(and(eq(clientToolsTable.clientId, clientId), eq(clientToolsTable.toolId, toolId), eq(clientToolsTable.active, true))).limit(1);
-  if (!clientTool) return void res.status(400).json({ error: "Enable this tool for the client before creating a project." });
-  const [project] = await db.insert(projectsTable).values({
-    clientId, toolId, name, description: text(req.body?.description), status: text(req.body?.status, "Active"), active: boolean(req.body?.active, true),
-  }).returning();
+  const [client, tool] = await Promise.all([
+    db.select().from(clientsTable).where(and(eq(clientsTable.id, clientId), eq(clientsTable.active, true))).limit(1),
+    db.select().from(toolsTable).where(and(eq(toolsTable.id, toolId), eq(toolsTable.active, true))).limit(1),
+  ]);
+  if (!client.length) return void res.status(400).json({ error: "The selected client is not active or does not exist." });
+  if (!tool.length) return void res.status(400).json({ error: "The selected tool is not active or does not exist." });
+  const [project] = await db.transaction(async (tx) => {
+    await tx.insert(clientToolsTable).values({
+      clientId,
+      toolId,
+      active: true,
+    }).onConflictDoUpdate({
+      target: [clientToolsTable.clientId, clientToolsTable.toolId],
+      set: { active: true },
+    });
+    return tx.insert(projectsTable).values({
+      clientId, toolId, name, description: text(req.body?.description), status: text(req.body?.status, "Active"), active: boolean(req.body?.active, true),
+    }).returning();
+  });
   await audit(req, "PROJECT_CREATED", null, project, undefined, clientId);
   res.status(201).json({ project });
 });

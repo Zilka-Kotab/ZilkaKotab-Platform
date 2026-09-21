@@ -13,6 +13,8 @@ import {
   projectsTable,
   projectUsersTable,
   projectWorkspaceItemsTable,
+  toolsTable,
+  clientsTable,
   type AiProcessingProvider,
   type DataClassification,
   type PortalUser,
@@ -92,9 +94,15 @@ router.get("/portal/projects/:id/workspace", async (req, res) => {
   const visibleReviews = req.portalUser!.role === "CLIENT"
     ? reviews.filter((review) => review.classification !== "ATTORNEY_WORK_PRODUCT")
     : reviews;
+  const [[tool], [client]] = await Promise.all([
+    db.select().from(toolsTable).where(eq(toolsTable.id, project.toolId)).limit(1),
+    db.select().from(clientsTable).where(eq(clientsTable.id, project.clientId)).limit(1),
+  ]);
 
   res.json({
     project,
+    tool,
+    client,
     aiConfig: aiConfig ?? { projectId, selectedProvider: "MANUAL", allowedProviders: ["MANUAL"], updatedById: null, updatedAt: null },
     patents: patents.map((patent) => ({ ...patent, claims: claims.filter((claim) => claim.patentId === patent.id) })),
     workspaceItems,

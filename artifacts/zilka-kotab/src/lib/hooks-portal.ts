@@ -201,6 +201,8 @@ export function useCreateProject() {
       queryClient.invalidateQueries({ queryKey: portalKeys.projects() });
       queryClient.invalidateQueries({ queryKey: portalKeys.adminProjects() });
       queryClient.invalidateQueries({ queryKey: portalKeys.dashboard() });
+      queryClient.invalidateQueries({ queryKey: portalKeys.clients() });
+      queryClient.invalidateQueries({ queryKey: portalKeys.tools() });
     },
   });
 }

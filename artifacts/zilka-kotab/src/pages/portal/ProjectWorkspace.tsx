@@ -52,13 +52,14 @@ export default function ProjectWorkspace() {
 
   return (
     <div className="mx-auto max-w-7xl p-6 lg:p-8">
-      <SEO title={data.project.name} description="Patent Infringement Monitor project workspace" url={`/portal/projects/${projectId}`} />
+      <SEO title={data.project.name} description={`${data.tool.name} project workspace`} url={`/portal/projects/${projectId}`} />
       <Link href="/portal" className="mb-5 inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground"><ArrowLeft className="h-4 w-4" /> Back to portal</Link>
       <header className="mb-8 flex flex-wrap items-start justify-between gap-5">
         <div>
-          <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-primary">Patent Infringement Monitor</p>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-primary">{data.tool.name}</p>
           <h1 className="font-display text-3xl font-bold text-foreground">{data.project.name}</h1>
-          <p className="mt-2 max-w-3xl text-muted-foreground">{data.project.description || 'Secure project workspace and analysis history.'}</p>
+            <p className="mt-1 text-sm font-medium text-muted-foreground">{data.client.name}</p>
+            <p className="mt-2 max-w-3xl text-muted-foreground">{data.project.description || 'Secure project workspace and analysis history.'}</p>
         </div>
         <div className="rounded-xl border border-border bg-white px-4 py-3 shadow-sm">
           <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Processing environment</p>
