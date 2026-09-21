@@ -13,6 +13,7 @@ export const portalKeys = {
   projects: () => [...portalKeys.all, 'projects'] as const,
   project: (id: string) => [...portalKeys.projects(), id] as const,
   projectWorkspace: (id: string) => [...portalKeys.project(id), 'workspace'] as const,
+  patent: (id: string) => [...portalKeys.all, 'patent', id] as const,
   adminUsers: () => [...portalKeys.all, 'adminUsers'] as const,
   adminAudit: () => [...portalKeys.all, 'adminAudit'] as const,
   adminProjects: () => [...portalKeys.all, 'adminProjects'] as const,
@@ -77,6 +78,10 @@ export function useProjectWorkspace(id: string) {
   return useQuery({ queryKey: portalKeys.projectWorkspace(id), queryFn: () => api.getProjectWorkspace(id), enabled: !!id });
 }
 
+export function usePatent(id: string) {
+  return useQuery({ queryKey: portalKeys.patent(id), queryFn: () => api.getPatent(id), enabled: !!id });
+}
+
 function useWorkspaceMutation<T>(projectId: string, mutationFn: (data: T) => Promise<unknown>) {
   const queryClient = useQueryClient();
   return useMutation({
@@ -91,6 +96,21 @@ export const useCreateManualAnalysis = (projectId: string) =>
   useWorkspaceMutation(projectId, (data: Parameters<typeof api.createManualAnalysis>[1]) => api.createManualAnalysis(projectId, data));
 export const useCreatePatent = (projectId: string) =>
   useWorkspaceMutation(projectId, (data: Parameters<typeof api.createPatent>[1]) => api.createPatent(projectId, data));
+export const usePreviewPatentImport = (projectId: string) =>
+  useMutation({ mutationFn: (patentNumbers: string) => api.previewPatentImport(projectId, patentNumbers) });
+export const useCommitPatentImport = (projectId: string) =>
+  useWorkspaceMutation(projectId, ({ draftId, selectedClaimNumbers }: { draftId: string; selectedClaimNumbers: string[] }) =>
+    api.commitPatentImport(draftId, selectedClaimNumbers));
+export const useUpdatePatentMonitoring = (patentId: string) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (active: boolean) => api.updatePatentMonitoring(patentId, active),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: portalKeys.patent(patentId) });
+      queryClient.invalidateQueries({ queryKey: portalKeys.all });
+    },
+  });
+};
 export const useCreateAnalysisReview = (projectId: string) =>
   useWorkspaceMutation(projectId, ({ runId, data }: { runId: string; data: Parameters<typeof api.createAnalysisReview>[1] }) => api.createAnalysisReview(runId, data));
 export const useUpdateProjectAiConfig = (projectId: string) =>

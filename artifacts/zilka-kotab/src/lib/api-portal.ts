@@ -52,6 +52,13 @@ export interface PatentClaim {
   claimNumber: string;
   version: number;
   claimText: string;
+  claimType: 'INDEPENDENT' | 'DEPENDENT' | 'UNKNOWN';
+  dependsOnClaimNumber?: string | null;
+  source: string;
+  sourceIdentifier?: string | null;
+  retrievedAt?: string | null;
+  verificationStatus: 'PENDING' | 'VERIFIED' | 'MANUALLY_CORRECTED';
+  selectedForMonitoring: boolean;
   createdAt: string;
 }
 
@@ -60,10 +67,69 @@ export interface MonitoredPatent {
   projectId: string;
   patentNumber: string;
   title: string;
+  applicationNumber?: string | null;
+  filingDate?: string | null;
+  issueDate?: string | null;
+  earliestPriorityDate?: string | null;
+  assignee?: string | null;
+  inventors: string[];
+  abstract?: string | null;
+  patentStatus: string;
   jurisdiction: string;
   sourceUrl?: string | null;
+  source: string;
+  sourceIdentifier?: string | null;
+  retrievalMethod: string;
+  retrievedAt?: string | null;
+  verificationStatus: 'PENDING' | 'VERIFIED' | 'MANUALLY_CORRECTED';
+  monitoringActive: boolean;
+  lastAnalyzedAt?: string | null;
   claims: PatentClaim[];
   createdAt: string;
+}
+
+export interface PatentImportDraft {
+  publicId: string;
+  normalizedPatentNumber: string;
+  status: 'READY' | 'FAILED' | 'COMMITTED';
+  source: string;
+  sourceIdentifier?: string | null;
+  sourceUrl?: string | null;
+  retrievedAt?: string | null;
+  errors: string[];
+  patent: {
+    normalizedPatentNumber: string;
+    title: string;
+    applicationNumber: string | null;
+    filingDate: string | null;
+    issueDate: string | null;
+    earliestPriorityDate: string | null;
+    assignee: string | null;
+    inventors: string[];
+    abstract: string | null;
+    patentStatus: string;
+    jurisdiction: string;
+    source: string;
+    sourceIdentifier: string;
+    sourceUrl: string | null;
+    retrievedAt: string;
+    claims: Array<{
+      claimNumber: string;
+      claimText: string;
+      claimType: 'INDEPENDENT' | 'DEPENDENT' | 'UNKNOWN';
+      dependsOnClaimNumber: string | null;
+      selectedForMonitoring: boolean;
+    }>;
+    errors: string[];
+  };
+}
+
+export interface PatentDetail {
+  patent: MonitoredPatent;
+  project: Project;
+  client: Client;
+  tool: Tool;
+  analysisRuns: AnalysisRun[];
 }
 
 export interface WorkspaceItem {
@@ -158,12 +224,19 @@ export const getTool = (slug: string) => fetchPortal<{ tool: Tool, clients: Clie
 
 export const getProject = (publicId: string) => fetchPortal<{ project: Project, tool: Tool, client: Client }>(`/projects/${publicId}`);
 export const getProjectWorkspace = (publicId: string) => fetchPortal<ProjectWorkspace>(`/projects/${publicId}/workspace`);
+export const getPatent = (publicId: string) => fetchPortal<PatentDetail>(`/patents/${publicId}`);
 export const createWorkspaceItem = (projectId: string, data: Pick<WorkspaceItem, 'title' | 'itemType' | 'content' | 'classification'> & { sourceUrl?: string }) =>
   fetchPortal<{ item: WorkspaceItem }>(`/projects/${projectId}/workspace-items`, { method: 'POST', body: JSON.stringify(data) });
 export const createManualAnalysis = (projectId: string, data: { summary: string; triage: AnalysisTriage; patentId?: string; claimId?: string }) =>
   fetchPortal<{ run: AnalysisRun }>(`/projects/${projectId}/analysis-runs`, { method: 'POST', body: JSON.stringify(data) });
-export const createPatent = (projectId: string, data: { patentNumber: string; title: string; jurisdiction: string; sourceUrl?: string }) =>
+export const previewPatentImport = (projectId: string, patentNumbers: string) =>
+  fetchPortal<{ drafts: PatentImportDraft[] }>(`/projects/${projectId}/patent-imports/preview`, { method: 'POST', body: JSON.stringify({ patentNumbers }) });
+export const commitPatentImport = (draftId: string, selectedClaimNumbers: string[]) =>
+  fetchPortal<{ patent: MonitoredPatent }>(`/patent-imports/${draftId}/commit`, { method: 'POST', body: JSON.stringify({ selectedClaimNumbers }) });
+export const createPatent = (projectId: string, data: { patentNumber: string; title: string; jurisdiction: string; sourceUrl?: string; claims?: unknown[] }) =>
   fetchPortal<{ patent: MonitoredPatent }>(`/projects/${projectId}/patents`, { method: 'POST', body: JSON.stringify(data) });
+export const updatePatentMonitoring = (publicId: string, active: boolean) =>
+  fetchPortal<{ patent: MonitoredPatent }>(`/patents/${publicId}/monitoring`, { method: 'PATCH', body: JSON.stringify({ active }) });
 export const createAnalysisReview = (runId: string, data: { status: AnalysisReviewStatus; note?: string }) =>
   fetchPortal<{ review: AnalysisReview }>(`/analysis-runs/${runId}/reviews`, { method: 'POST', body: JSON.stringify(data) });
 export const updateProjectAiConfig = (projectId: string, data: Pick<ProjectAiConfig, 'selectedProvider' | 'allowedProviders'>) =>

@@ -1,15 +1,17 @@
 import { FormEvent, useState } from 'react';
 import { Link, useParams } from 'wouter';
-import { ArrowLeft, BrainCircuit, FileSearch, Loader2, LockKeyhole, Plus, Scale } from 'lucide-react';
+import { ArrowLeft, BrainCircuit, Check, ChevronDown, FileSearch, Loader2, LockKeyhole, RefreshCw, Scale, ShieldAlert } from 'lucide-react';
 import { SEO } from '@/components/SEO';
 import {
   useCreateManualAnalysis,
   useCreatePatent,
   useCreateWorkspaceItem,
+  usePreviewPatentImport,
+  useCommitPatentImport,
   usePortalAccess,
   useProjectWorkspace,
 } from '@/lib/hooks-portal';
-import type { AnalysisTriage, DataClassification } from '@/lib/api-portal';
+import type { AnalysisTriage, DataClassification, PatentImportDraft } from '@/lib/api-portal';
 
 const providerLabels = {
   CLIENT_MICROSOFT: 'Client Microsoft Environment',
@@ -29,9 +31,15 @@ export default function ProjectWorkspace() {
   const createItem = useCreateWorkspaceItem(projectId);
   const createRun = useCreateManualAnalysis(projectId);
   const createPatent = useCreatePatent(projectId);
+  const previewPatent = usePreviewPatentImport(projectId);
+  const commitPatent = useCommitPatentImport(projectId);
   const [item, setItem] = useState({ title: '', itemType: 'PUBLIC_EVIDENCE', content: '', classification: 'PUBLIC_SOURCE' as DataClassification });
   const [analysis, setAnalysis] = useState({ summary: '', triage: 'MEDIUM' as AnalysisTriage });
-  const [patent, setPatent] = useState({ patentNumber: '', title: '', jurisdiction: 'US' });
+  const [patentNumbers, setPatentNumbers] = useState('');
+  const [drafts, setDrafts] = useState<PatentImportDraft[]>([]);
+  const [selectedClaims, setSelectedClaims] = useState<Record<string, string[]>>({});
+  const [manualDraft, setManualDraft] = useState<PatentImportDraft | null>(null);
+  const [manual, setManual] = useState({ title: '', claimNumber: '1', claimText: '' });
 
   if (isLoading) return <div className="flex min-h-[60vh] items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
   if (error || !data) return <div className="p-8"><div className="rounded-xl border border-red-200 bg-red-50 p-6 text-red-800">The project workspace could not be loaded.</div></div>;
@@ -47,7 +55,38 @@ export default function ProjectWorkspace() {
   };
   const submitPatent = (event: FormEvent) => {
     event.preventDefault();
-    createPatent.mutate(patent, { onSuccess: () => setPatent({ patentNumber: '', title: '', jurisdiction: 'US' }) });
+    previewPatent.mutate(patentNumbers, {
+      onSuccess: ({ drafts: nextDrafts }) => {
+        setDrafts(nextDrafts);
+        setPatentNumbers('');
+        setSelectedClaims(Object.fromEntries(nextDrafts.map((draft) => [
+          draft.publicId,
+          draft.patent.claims.filter((claim) => claim.claimType === 'INDEPENDENT' && claim.selectedForMonitoring).map((claim) => claim.claimNumber),
+        ])));
+      },
+    });
+  };
+  const commitDraft = (draft: PatentImportDraft) => {
+    commitPatent.mutate(
+      { draftId: draft.publicId, selectedClaimNumbers: selectedClaims[draft.publicId] ?? [] },
+      { onSuccess: () => setDrafts((current) => current.filter((item) => item.publicId !== draft.publicId)) },
+    );
+  };
+  const submitManual = (event: FormEvent) => {
+    event.preventDefault();
+    if (!manualDraft) return;
+    createPatent.mutate({
+      patentNumber: manualDraft.normalizedPatentNumber,
+      title: manual.title,
+      jurisdiction: 'US',
+      claims: manual.claimText ? [{ claimNumber: manual.claimNumber, claimText: manual.claimText, claimType: 'UNKNOWN', selectedForMonitoring: false }] : [],
+    }, {
+      onSuccess: () => {
+        setDrafts((current) => current.filter((item) => item.publicId !== manualDraft.publicId));
+        setManualDraft(null);
+        setManual({ title: '', claimNumber: '1', claimText: '' });
+      },
+    });
   };
 
   return (
@@ -72,14 +111,26 @@ export default function ProjectWorkspace() {
         <section className="rounded-2xl border border-border bg-white shadow-sm lg:col-span-2">
           <div className="flex items-center justify-between border-b border-border p-5"><div className="flex items-center gap-2"><Scale className="h-5 w-5 text-primary" /><h2 className="font-semibold">Monitored patents</h2></div><span className="text-sm text-muted-foreground">{data.patents.length}</span></div>
           <div className="divide-y divide-border">
-            {data.patents.map((entry) => <div key={entry.publicId} className="p-5"><div className="flex justify-between gap-4"><div><p className="font-semibold">{entry.patentNumber}</p><p className="text-sm text-muted-foreground">{entry.title}</p></div><span className="text-xs text-muted-foreground">{entry.jurisdiction}</span></div><p className="mt-3 text-xs font-medium text-muted-foreground">{entry.claims.length} claim version{entry.claims.length === 1 ? '' : 's'}</p></div>)}
+            {data.patents.map((entry) => <Link href={`/portal/patents/${entry.publicId}`} key={entry.publicId} className="block p-5 transition hover:bg-muted/20"><div className="flex justify-between gap-4"><div><p className="font-semibold">{entry.patentNumber}</p><p className="text-sm text-muted-foreground">{entry.title}</p></div><span className={`text-xs font-medium ${entry.monitoringActive ? 'text-green-700' : 'text-amber-700'}`}>{entry.monitoringActive ? 'Active' : 'Paused'}</span></div><p className="mt-3 text-xs font-medium text-muted-foreground">{entry.claims.length} claim{entry.claims.length === 1 ? '' : 's'} · {entry.claims.filter((claim) => claim.claimType === 'INDEPENDENT').length} independent</p></Link>)}
             {!data.patents.length && <p className="p-8 text-center text-sm text-muted-foreground">No patents are being monitored yet.</p>}
           </div>
-          <form onSubmit={submitPatent} className="grid gap-3 border-t border-border bg-muted/20 p-5 md:grid-cols-3">
-            <input required value={patent.patentNumber} onChange={(e) => setPatent({ ...patent, patentNumber: e.target.value })} placeholder="Patent number" className="rounded-md border border-input bg-white px-3 py-2 text-sm" />
-            <input required value={patent.title} onChange={(e) => setPatent({ ...patent, title: e.target.value })} placeholder="Patent title" className="rounded-md border border-input bg-white px-3 py-2 text-sm" />
-            <button disabled={createPatent.isPending} className="inline-flex items-center justify-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-white disabled:opacity-50"><Plus className="h-4 w-4" /> Add patent</button>
+          <form onSubmit={submitPatent} className="space-y-3 border-t border-border bg-muted/20 p-5">
+            <div><label className="text-sm font-medium">Add patent</label><p className="mt-1 text-xs text-muted-foreground">Enter one or more U.S. patent numbers. Titles and claims will be retrieved for your review before anything is added.</p></div>
+            <div className="flex flex-col gap-3 md:flex-row"><textarea required value={patentNumbers} onChange={(e) => setPatentNumbers(e.target.value)} placeholder="US 12,345,678 B2&#10;12345679" className="min-h-20 flex-1 rounded-md border border-input bg-white px-3 py-2 text-sm" /><button disabled={previewPatent.isPending} className="inline-flex items-center justify-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-white disabled:opacity-50"><RefreshCw className={`h-4 w-4 ${previewPatent.isPending ? 'animate-spin' : ''}`} /> Retrieve for review</button></div>
+            {previewPatent.error && <p className="text-sm text-red-700">{previewPatent.error instanceof Error ? previewPatent.error.message : 'Patent retrieval failed.'}</p>}
           </form>
+          {drafts.length > 0 && <div className="border-t border-border">
+            <div className="bg-primary/5 px-5 py-4"><h3 className="font-semibold">Review retrieved patents</h3><p className="mt-1 text-sm text-muted-foreground">Confirm the bibliographic information and select the independent claims to monitor.</p></div>
+            {drafts.map((draft) => {
+              const selected = selectedClaims[draft.publicId] ?? [];
+              const independent = draft.patent.claims.filter((claim) => claim.claimType === 'INDEPENDENT');
+              const dependent = draft.patent.claims.filter((claim) => claim.claimType !== 'INDEPENDENT');
+              return <article key={draft.publicId} className="space-y-4 border-t border-border p-5">
+                <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="font-semibold">{draft.normalizedPatentNumber}</p><p className="text-sm text-muted-foreground">{draft.patent.title || 'Title unavailable'}</p></div><span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${draft.status === 'READY' ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'}`}>{draft.status === 'READY' ? 'Ready for review' : 'Incomplete retrieval'}</span></div>
+                {draft.status === 'READY' ? <><div className="grid gap-3 text-sm md:grid-cols-3"><div><span className="text-xs uppercase tracking-wide text-muted-foreground">Assignee</span><p className="mt-1">{draft.patent.assignee || 'Not provided'}</p></div><div><span className="text-xs uppercase tracking-wide text-muted-foreground">Issue date</span><p className="mt-1">{draft.patent.issueDate || 'Not provided'}</p></div><div><span className="text-xs uppercase tracking-wide text-muted-foreground">Status</span><p className="mt-1">{draft.patent.patentStatus}</p></div></div><div><h4 className="mb-2 text-sm font-semibold">Independent claims</h4><div className="space-y-2">{independent.map((claim) => <label key={claim.claimNumber} className="flex cursor-pointer gap-3 rounded-lg border border-border p-3 hover:bg-muted/20"><input type="checkbox" checked={selected.includes(claim.claimNumber)} onChange={(event) => setSelectedClaims((current) => ({ ...current, [draft.publicId]: event.target.checked ? [...selected, claim.claimNumber] : selected.filter((number) => number !== claim.claimNumber) }))} className="mt-1" /><span><span className="font-medium">Claim {claim.claimNumber}</span><span className="mt-1 block text-sm text-muted-foreground">{claim.claimText}</span></span></label>)}</div></div>{dependent.length > 0 && <details><summary className="flex cursor-pointer items-center gap-2 text-sm font-semibold"><ChevronDown className="h-4 w-4" /> Dependent claims ({dependent.length})</summary><div className="mt-2 space-y-2 pl-6">{dependent.map((claim) => <div key={claim.claimNumber} className="rounded-lg bg-muted/30 p-3 text-sm"><span className="font-medium">Claim {claim.claimNumber}</span>{claim.dependsOnClaimNumber && <span className="ml-2 text-xs text-muted-foreground">depends on claim {claim.dependsOnClaimNumber}</span>}<p className="mt-1 text-muted-foreground">{claim.claimText}</p></div>)}</div></details>}<button type="button" disabled={commitPatent.isPending} onClick={() => commitDraft(draft)} className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-white disabled:opacity-50"><Check className="h-4 w-4" /> Add to project</button>{commitPatent.error && <p className="text-sm text-red-700">{commitPatent.error instanceof Error ? commitPatent.error.message : 'The patent could not be added.'}</p>}</> : <div className="rounded-lg border border-amber-200 bg-amber-50 p-4"><div className="flex gap-2 text-sm text-amber-900"><ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" /><div><p className="font-medium">The USPTO response was incomplete.</p><ul className="mt-1 list-disc pl-5">{draft.errors.map((message) => <li key={message}>{message}</li>)}</ul><p className="mt-2">No incomplete data was added automatically.</p></div></div>{canCreateWorkProduct && (manualDraft?.publicId === draft.publicId ? <form onSubmit={submitManual} className="mt-4 space-y-2 border-t border-amber-200 pt-4"><input required value={manual.title} onChange={(e) => setManual({ ...manual, title: e.target.value })} placeholder="Corrected patent title" className="w-full rounded-md border border-input bg-white px-3 py-2 text-sm" /><div className="grid gap-2 md:grid-cols-3"><input value={manual.claimNumber} onChange={(e) => setManual({ ...manual, claimNumber: e.target.value })} placeholder="Claim number" className="rounded-md border border-input bg-white px-3 py-2 text-sm" /><input value={manual.claimText} onChange={(e) => setManual({ ...manual, claimText: e.target.value })} placeholder="Optional corrected claim text" className="rounded-md border border-input bg-white px-3 py-2 text-sm md:col-span-2" /></div><div className="flex gap-2"><button disabled={createPatent.isPending} className="rounded-md bg-primary px-3 py-2 text-sm font-medium text-white disabled:opacity-50">Save manual correction</button><button type="button" onClick={() => setManualDraft(null)} className="rounded-md border border-border px-3 py-2 text-sm">Cancel</button></div>{createPatent.error && <p className="text-sm text-red-700">{createPatent.error instanceof Error ? createPatent.error.message : 'Manual correction failed.'}</p>}</form> : <button type="button" onClick={() => setManualDraft(draft)} className="mt-3 rounded-md border border-amber-300 bg-white px-3 py-2 text-sm font-medium text-amber-900">Enter manual correction</button>)}</div>}
+              </article>;
+            })}
+          </div>}
         </section>
 
         <section className="rounded-2xl border border-border bg-white shadow-sm">

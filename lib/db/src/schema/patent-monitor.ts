@@ -1,5 +1,7 @@
 import { sql } from "drizzle-orm";
 import {
+  boolean,
+  date,
   index,
   integer,
   jsonb,
@@ -32,6 +34,9 @@ export const analysisReviewStatusEnum = pgEnum("analysis_review_status", [
   "ATTORNEY_REVIEWED",
   "FINAL",
 ]);
+export const patentImportStatusEnum = pgEnum("patent_import_status", ["READY", "FAILED", "COMMITTED"]);
+export const patentVerificationStatusEnum = pgEnum("patent_verification_status", ["PENDING", "VERIFIED", "MANUALLY_CORRECTED"]);
+export const patentClaimTypeEnum = pgEnum("patent_claim_type", ["INDEPENDENT", "DEPENDENT", "UNKNOWN"]);
 
 export const projectAiConfigsTable = pgTable("project_ai_configs", {
   projectId: integer("project_id").primaryKey().references(() => projectsTable.id, { onDelete: "cascade" }),
@@ -49,8 +54,23 @@ export const monitoredPatentsTable = pgTable(
     projectId: integer("project_id").notNull().references(() => projectsTable.id, { onDelete: "cascade" }),
     patentNumber: varchar("patent_number", { length: 100 }).notNull(),
     title: text("title").notNull(),
+    applicationNumber: varchar("application_number", { length: 40 }),
+    filingDate: date("filing_date", { mode: "string" }),
+    issueDate: date("issue_date", { mode: "string" }),
+    earliestPriorityDate: date("earliest_priority_date", { mode: "string" }),
+    assignee: text("assignee"),
+    inventors: jsonb("inventors").notNull().default(sql`'[]'::jsonb`),
+    abstract: text("abstract"),
+    patentStatus: text("patent_status").notNull().default("UNKNOWN"),
     jurisdiction: varchar("jurisdiction", { length: 80 }).notNull().default("US"),
     sourceUrl: text("source_url"),
+    source: varchar("source", { length: 120 }).notNull().default("USPTO"),
+    sourceIdentifier: text("source_identifier"),
+    retrievalMethod: varchar("retrieval_method", { length: 40 }).notNull().default("AUTOMATIC"),
+    retrievedAt: timestamp("retrieved_at", { withTimezone: true }),
+    verificationStatus: patentVerificationStatusEnum("verification_status").notNull().default("PENDING"),
+    monitoringActive: boolean("monitoring_active").notNull().default(true),
+    lastAnalyzedAt: timestamp("last_analyzed_at", { withTimezone: true }),
     createdById: integer("created_by_id").notNull().references(() => portalUsersTable.id),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
@@ -70,6 +90,13 @@ export const patentClaimsTable = pgTable(
     claimNumber: varchar("claim_number", { length: 40 }).notNull(),
     version: integer("version").notNull().default(1),
     claimText: text("claim_text").notNull(),
+    claimType: patentClaimTypeEnum("claim_type").notNull().default("UNKNOWN"),
+    dependsOnClaimNumber: varchar("depends_on_claim_number", { length: 40 }),
+    source: varchar("source", { length: 120 }).notNull().default("USPTO"),
+    sourceIdentifier: text("source_identifier"),
+    retrievedAt: timestamp("retrieved_at", { withTimezone: true }),
+    verificationStatus: patentVerificationStatusEnum("verification_status").notNull().default("PENDING"),
+    selectedForMonitoring: boolean("selected_for_monitoring").notNull().default(false),
     createdById: integer("created_by_id").notNull().references(() => portalUsersTable.id),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
@@ -77,6 +104,30 @@ export const patentClaimsTable = pgTable(
     uniqueIndex("patent_claims_public_id_unique").on(table.publicId),
     uniqueIndex("patent_claims_patent_number_version_unique").on(table.patentId, table.claimNumber, table.version),
     index("patent_claims_patent_idx").on(table.patentId),
+  ],
+);
+
+export const patentImportDraftsTable = pgTable(
+  "patent_import_drafts",
+  {
+    id: serial("id").primaryKey(),
+    publicId: uuid("public_id").defaultRandom().notNull(),
+    projectId: integer("project_id").notNull().references(() => projectsTable.id, { onDelete: "cascade" }),
+    submittedById: integer("submitted_by_id").notNull().references(() => portalUsersTable.id),
+    normalizedPatentNumber: varchar("normalized_patent_number", { length: 100 }).notNull(),
+    status: patentImportStatusEnum("status").notNull(),
+    source: varchar("source", { length: 120 }).notNull().default("USPTO"),
+    sourceIdentifier: text("source_identifier"),
+    sourceUrl: text("source_url"),
+    retrievedAt: timestamp("retrieved_at", { withTimezone: true }),
+    payload: jsonb("payload").notNull().default(sql`'{}'::jsonb`),
+    errors: jsonb("errors").notNull().default(sql`'[]'::jsonb`),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }),
+  },
+  (table) => [
+    uniqueIndex("patent_import_drafts_public_id_unique").on(table.publicId),
+    index("patent_import_drafts_project_created_idx").on(table.projectId, table.createdAt),
   ],
 );
 

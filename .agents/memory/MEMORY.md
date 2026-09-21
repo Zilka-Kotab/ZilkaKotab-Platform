@@ -3,3 +3,4 @@
 - [Patent Monitor data boundaries](patent-monitor-data-boundaries.md) — preserve append-only analysis provenance and enforce classification filtering server-side.
 - [First-party production seeds](first-party-production-seeds.md) — required catalog records must be created idempotently at startup; Publish does not copy development rows.
 - [Runtime schema verification](runtime-schema-verification.md) — after schema changes, verify the live workflow database columns before restarting services.
+- [USPTO Open Data Portal API shape](uspto-api-shape.md) — live search uses GET q and grant XML downloads use redirecting fileLocationURI metadata.
