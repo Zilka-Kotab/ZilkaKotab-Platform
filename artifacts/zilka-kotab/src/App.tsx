@@ -30,6 +30,7 @@ import PortalClientDetail from '@/pages/portal/ClientDetail';
 import PortalTools from '@/pages/portal/Tools';
 import PortalToolDetail from '@/pages/portal/ToolDetail';
 import PortalAdmin from '@/pages/portal/Admin';
+import ProjectWorkspace from '@/pages/portal/ProjectWorkspace';
 
 const queryClient = new QueryClient();
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, '');
@@ -111,6 +112,9 @@ function Router() {
       </Route>
       <Route path="/portal/admin">
         <ProtectedPortalRoute component={PortalAdmin} />
+      </Route>
+      <Route path="/portal/projects/:projectId">
+        <ProtectedPortalRoute component={ProjectWorkspace} />
       </Route>
 
       {/* Public Routes */}

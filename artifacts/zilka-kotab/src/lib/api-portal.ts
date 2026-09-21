@@ -35,6 +35,80 @@ export interface Project {
   active: boolean;
 }
 
+export type AiProcessingProvider = 'CLIENT_MICROSOFT' | 'ZK_MANAGED_AI' | 'MANUAL';
+export type DataClassification = 'PUBLIC_SOURCE' | 'CLIENT_CONFIDENTIAL' | 'ATTORNEY_WORK_PRODUCT';
+export type AnalysisTriage = 'HIGH' | 'MEDIUM' | 'LOW';
+export type AnalysisReviewStatus = 'UNREVIEWED' | 'CLIENT_REVIEWED' | 'ATTORNEY_REVIEWED' | 'FINAL';
+
+export interface ProjectAiConfig {
+  projectId: number;
+  selectedProvider: AiProcessingProvider;
+  allowedProviders: AiProcessingProvider[];
+}
+
+export interface PatentClaim {
+  id: number;
+  patentId: number;
+  claimNumber: string;
+  version: number;
+  claimText: string;
+  createdAt: string;
+}
+
+export interface MonitoredPatent {
+  id: number;
+  projectId: number;
+  patentNumber: string;
+  title: string;
+  jurisdiction: string;
+  sourceUrl?: string | null;
+  claims: PatentClaim[];
+  createdAt: string;
+}
+
+export interface WorkspaceItem {
+  id: number;
+  projectId: number;
+  title: string;
+  itemType: string;
+  content: string;
+  sourceUrl?: string | null;
+  classification: DataClassification;
+  createdAt: string;
+}
+
+export interface AnalysisReview {
+  id: number;
+  analysisRunId: number;
+  status: AnalysisReviewStatus;
+  note: string;
+  classification: DataClassification;
+  createdAt: string;
+}
+
+export interface AnalysisRun {
+  id: number;
+  projectId: number;
+  patentId?: number | null;
+  claimId?: number | null;
+  provider: AiProcessingProvider;
+  triage: AnalysisTriage;
+  reviewStatus: AnalysisReviewStatus;
+  summary: string;
+  limitationAnalysis: unknown[];
+  evidence: unknown[];
+  createdAt: string;
+  reviews: AnalysisReview[];
+}
+
+export interface ProjectWorkspace {
+  project: Project;
+  aiConfig: ProjectAiConfig;
+  patents: MonitoredPatent[];
+  workspaceItems: WorkspaceItem[];
+  analysisRuns: AnalysisRun[];
+}
+
 export interface AuditEntry {
   id: number;
   adminId: number;
@@ -85,6 +159,17 @@ export const getTools = () => fetchPortal<{ tools: Tool[] }>('/tools');
 export const getTool = (slug: string) => fetchPortal<{ tool: Tool, projects: Project[] }>(`/tools/${slug}`);
 
 export const getProject = (id: number) => fetchPortal<{ project: Project, tool: Tool, client: Client }>(`/projects/${id}`);
+export const getProjectWorkspace = (id: number) => fetchPortal<ProjectWorkspace>(`/projects/${id}/workspace`);
+export const createWorkspaceItem = (projectId: number, data: Pick<WorkspaceItem, 'title' | 'itemType' | 'content' | 'classification'> & { sourceUrl?: string }) =>
+  fetchPortal<{ item: WorkspaceItem }>(`/projects/${projectId}/workspace-items`, { method: 'POST', body: JSON.stringify(data) });
+export const createManualAnalysis = (projectId: number, data: { summary: string; triage: AnalysisTriage; patentId?: number; claimId?: number }) =>
+  fetchPortal<{ run: AnalysisRun }>(`/projects/${projectId}/analysis-runs`, { method: 'POST', body: JSON.stringify(data) });
+export const createPatent = (projectId: number, data: { patentNumber: string; title: string; jurisdiction: string; sourceUrl?: string }) =>
+  fetchPortal<{ patent: MonitoredPatent }>(`/projects/${projectId}/patents`, { method: 'POST', body: JSON.stringify(data) });
+export const createAnalysisReview = (runId: number, data: { status: AnalysisReviewStatus; note?: string }) =>
+  fetchPortal<{ review: AnalysisReview }>(`/analysis-runs/${runId}/reviews`, { method: 'POST', body: JSON.stringify(data) });
+export const updateProjectAiConfig = (projectId: number, data: Pick<ProjectAiConfig, 'selectedProvider' | 'allowedProviders'>) =>
+  fetchPortal<{ aiConfig: ProjectAiConfig }>(`/projects/${projectId}/ai-config`, { method: 'PUT', body: JSON.stringify(data) });
 
 // Admin Queries
 export const getAdminUsers = () => fetchPortal<{ users: PortalUser[] }>('/admin/users');

@@ -12,6 +12,7 @@ export const portalKeys = {
   tool: (slug: string) => [...portalKeys.tools(), slug] as const,
   projects: () => [...portalKeys.all, 'projects'] as const,
   project: (id: number) => [...portalKeys.projects(), id] as const,
+  projectWorkspace: (id: number) => [...portalKeys.project(id), 'workspace'] as const,
   adminUsers: () => [...portalKeys.all, 'adminUsers'] as const,
   adminAudit: () => [...portalKeys.all, 'adminAudit'] as const,
   adminProjects: () => [...portalKeys.all, 'adminProjects'] as const,
@@ -69,6 +70,29 @@ export function usePortalProject(id: number) {
     enabled: !!id,
   });
 }
+
+export function useProjectWorkspace(id: number) {
+  return useQuery({ queryKey: portalKeys.projectWorkspace(id), queryFn: () => api.getProjectWorkspace(id), enabled: !!id });
+}
+
+function useWorkspaceMutation<T>(projectId: number, mutationFn: (data: T) => Promise<unknown>) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: portalKeys.projectWorkspace(projectId) }),
+  });
+}
+
+export const useCreateWorkspaceItem = (projectId: number) =>
+  useWorkspaceMutation(projectId, (data: Parameters<typeof api.createWorkspaceItem>[1]) => api.createWorkspaceItem(projectId, data));
+export const useCreateManualAnalysis = (projectId: number) =>
+  useWorkspaceMutation(projectId, (data: Parameters<typeof api.createManualAnalysis>[1]) => api.createManualAnalysis(projectId, data));
+export const useCreatePatent = (projectId: number) =>
+  useWorkspaceMutation(projectId, (data: Parameters<typeof api.createPatent>[1]) => api.createPatent(projectId, data));
+export const useCreateAnalysisReview = (projectId: number) =>
+  useWorkspaceMutation(projectId, ({ runId, data }: { runId: number; data: Parameters<typeof api.createAnalysisReview>[1] }) => api.createAnalysisReview(runId, data));
+export const useUpdateProjectAiConfig = (projectId: number) =>
+  useWorkspaceMutation(projectId, (data: Parameters<typeof api.updateProjectAiConfig>[1]) => api.updateProjectAiConfig(projectId, data));
 
 // Admin Hooks
 export function useAdminUsers() {

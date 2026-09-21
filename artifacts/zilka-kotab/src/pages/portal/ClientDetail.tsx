@@ -88,7 +88,7 @@ export default function PortalClientDetail() {
             {projects.map(project => {
               const tool = tools.find(t => t.id === project.toolId);
               return (
-                <div key={project.id} className="rounded-xl border border-border bg-white p-5 shadow-sm">
+                <Link href={`/portal/projects/${project.id}`} key={project.id} className="block rounded-xl border border-border bg-white p-5 shadow-sm transition hover:border-primary hover:shadow-md">
                   <div className="flex items-start justify-between mb-2">
                     <h3 className="font-semibold text-foreground">{project.name}</h3>
                     <span className="inline-flex items-center rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
@@ -99,7 +99,7 @@ export default function PortalClientDetail() {
                   <div className="flex items-center justify-between text-xs text-muted-foreground pt-3 border-t border-border">
                     <span>Tool: <span className="font-medium text-foreground">{tool?.name || 'Unknown'}</span></span>
                   </div>
-                </div>
+                </Link>
               );
             })}
             {projects.length === 0 && (

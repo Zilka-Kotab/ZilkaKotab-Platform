@@ -19,4 +19,5 @@
 
 export * from "./auth";
 export * from "./portal";
+export * from "./patent-monitor";
 export * from "./internal-access";

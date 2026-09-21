@@ -75,10 +75,9 @@ export default function PortalToolDetail() {
               </div>
               <p className="text-muted-foreground mb-4">{project.description}</p>
               
-              {/* Future: Launch Tool / View Project button would go here */}
-              <button disabled className="inline-flex h-9 items-center justify-center rounded-md bg-muted px-4 text-sm font-medium text-muted-foreground cursor-not-allowed">
-                Open Workspace (Coming Soon)
-              </button>
+              <Link href={`/portal/projects/${project.id}`} className="inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-white hover:bg-primary/90">
+                Open Workspace
+              </Link>
             </div>
           ))}
           {projects.length === 0 && (
