@@ -1,0 +1,141 @@
+REVISED AI ARCHITECTURE — ZK PORTAL IS THE SYSTEM OF RECORD
+
+Modify the proposed architecture as follows.
+
+The Zilka-Kotab AI Tools Portal must be the system of record for each Patent Infringement Monitor project.
+
+Microsoft Copilot or another approved AI environment may perform AI processing, but substantive outputs generated for the Patent Monitor must be capable of being returned to and stored in the appropriate client/project workspace in the ZK Portal.
+
+This is necessary because authorized Zilka-Kotab attorneys must be able to review the client's project, AI-generated analyses, evidence, reports, history, and attorney/client review status.
+
+1. Attorney visibility
+
+An assigned Zilka-Kotab attorney must be able to access the same project workspace as the client.
+
+Within the portal, authorized attorneys should be able to review:
+
+patents being monitored;
+selected claims;
+limitation-by-limitation analyses;
+public evidence and sources;
+AI-generated findings;
+HIGH/MEDIUM/LOW triage;
+historical analyses;
+reports;
+client-approved information intentionally submitted to the tool;
+attorney notes and review status.
+
+This does NOT mean Zilka-Kotab receives general access to the client's Microsoft tenant, Copilot history, SharePoint, OneDrive, email, or other Microsoft 365 information.
+
+Only information intentionally submitted to this particular ZK tool and outputs intentionally returned to the ZK project should cross that boundary.
+
+2. Pluggable AI-provider architecture
+
+Do not architect Patent Infringement Monitor around a single AI provider.
+
+Create an abstraction such as:
+
+AIProcessingProvider
+
+so that a client/project can use one of multiple approved processing modes.
+
+Initially design for:
+
+A. CLIENT_MICROSOFT
+
+The client's own Microsoft 365/Copilot/agent environment performs the AI processing using Microsoft's supported enterprise integration architecture.
+
+The relevant structured output is returned to the ZK Portal and stored within that client's isolated project.
+
+B. ZK_MANAGED_AI
+
+For clients that do not have an appropriate Microsoft Copilot environment, Zilka-Kotab provides an enterprise AI processing environment.
+
+This must NOT use an individual attorney's personal/ordinary Copilot account.
+
+Design this for a dedicated Zilka-Kotab enterprise AI/service environment with appropriate contractual privacy protections, data controls, client isolation, retention controls, and no model training on client information.
+
+C. MANUAL
+
+Permit a project to operate without external AI processing where appropriate.
+
+Architect the provider interface so additional approved enterprise AI providers can be added later without redesigning the Patent Monitor.
+
+3. Project-level AI configuration
+
+Each client/project should have an AI Processing configuration showing:
+
+Processing Environment
+
+Client Microsoft Environment
+Zilka-Kotab Managed AI
+Manual / No AI
+
+ADMIN should be able to configure which processing options are available to a client.
+
+The CLIENT should not be able to redirect processing to an arbitrary AI provider or endpoint.
+
+4. Data-boundary principle
+
+Minimize information crossing between ZK and the AI processing environment.
+
+For CLIENT_MICROSOFT, do not obtain general access to the client's Microsoft environment.
+
+Transfer only information required for the specific Patent Monitor operation.
+
+Likewise, only the intended structured output should be returned to the ZK Portal.
+
+Do not retrieve or synchronize unrelated Copilot conversations, email, SharePoint documents, OneDrive files, Teams content, or other tenant information.
+
+5. Public versus confidential information
+
+Architect the workflow so information can be classified as:
+
+PUBLIC_SOURCE
+
+CLIENT_CONFIDENTIAL
+
+ATTORNEY_WORK_PRODUCT
+
+At minimum, public patents, public product documentation, and public web evidence can be identified as PUBLIC_SOURCE.
+
+Client strategy, monitoring targets, private client documents, internal analysis, attorney notes, and similar information should remain client-confidential or attorney-work-product as appropriate.
+
+Do not expose confidential/work-product information to an AI provider merely because public-source information can be processed there.
+
+6. Persistent results
+
+AI results returned to the portal should be stored as immutable/versioned analysis runs rather than continually overwriting previous results.
+
+Each analysis run should record at minimum:
+
+client
+project
+patent
+claim/version
+processing provider
+timestamp
+structured limitation analysis
+evidence/sources
+triage result
+review status
+appropriate provenance/audit metadata
+
+This permits both the client and assigned ZK attorney to understand what was generated, when it was generated, and by which processing environment.
+
+7. DO NOT IMPLEMENT MICROSOFT CONNECTION YET
+
+Build the Patent Monitor and the provider abstraction, but before implementing the actual Microsoft Copilot connection, report back with:
+
+the specific Microsoft technology/API/agent architecture proposed;
+exactly what information leaves the ZK Portal;
+exactly what information is processed inside the client's Microsoft environment;
+exactly what information returns to ZK;
+what Microsoft permissions are required;
+what setup the client's Microsoft administrator must perform;
+whether the client's Copilot licensing level matters;
+what ZK-managed enterprise AI option you recommend for clients without Copilot;
+retention/logging implications of each option; and
+whether any client information would be used for model training.
+
+Do not implement a generic "Connect Copilot" button until these questions have been answered and the architecture has been approved.
