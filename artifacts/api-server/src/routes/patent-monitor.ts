@@ -96,6 +96,15 @@ function serializeClaim(claim: typeof patentClaimsTable.$inferSelect, patentPubl
   };
 }
 
+function latestClaims(claims: typeof patentClaimsTable.$inferSelect[]) {
+  const current = new Map<string, typeof patentClaimsTable.$inferSelect>();
+  for (const claim of claims) {
+    const existing = current.get(claim.claimNumber);
+    if (!existing || claim.version > existing.version) current.set(claim.claimNumber, claim);
+  }
+  return [...current.values()].sort((a, b) => Number(a.claimNumber) - Number(b.claimNumber));
+}
+
 function serializePatent(patent: typeof monitoredPatentsTable.$inferSelect, projectPublicId: string, claims: typeof patentClaimsTable.$inferSelect[]) {
   return {
     publicId: patent.publicId,
@@ -120,7 +129,7 @@ function serializePatent(patent: typeof monitoredPatentsTable.$inferSelect, proj
     monitoringActive: patent.monitoringActive,
     lastAnalyzedAt: patent.lastAnalyzedAt,
     createdAt: patent.createdAt,
-    claims: claims.map((claim) => serializeClaim(claim, patent.publicId)),
+    claims: latestClaims(claims).map((claim) => serializeClaim(claim, patent.publicId)),
   };
 }
 
@@ -399,6 +408,76 @@ router.get("/portal/patents/:id", async (req, res) => {
     tool: serializeTool(tool),
     analysisRuns: runs.map((run) => serializeRun(run, project.publicId, patentsById, claimsById, reviews.filter((review) => review.analysisRunId === run.id))),
   });
+});
+
+router.post("/portal/patents/:id/refresh", async (req, res) => {
+  const patentPublicId = publicIdOf(req.params.id);
+  const patent = patentPublicId ? await patentProject(req.portalUser!, patentPublicId) : null;
+  if (!patent) return void res.status(404).json({ error: "Patent not found." });
+
+  let payload: PatentImportPayload;
+  try {
+    payload = await retrievePatent(patent.patentNumber);
+  } catch (error) {
+    return void res.status(error instanceof Error && "status" in error ? Number((error as { status?: unknown }).status) || 502 : 502).json({
+      error: error instanceof Error ? error.message : "USPTO refresh failed.",
+    });
+  }
+  if (payload.errors.length || !payload.title || !payload.claims.length) {
+    return void res.status(422).json({
+      error: "USPTO refresh was incomplete. Existing claim versions were not changed.",
+      details: payload.errors,
+    });
+  }
+
+  const existingClaims = await db.select().from(patentClaimsTable).where(eq(patentClaimsTable.patentId, patent.id));
+  const currentByNumber = new Map<string, typeof patentClaimsTable.$inferSelect>();
+  for (const claim of existingClaims) {
+    const current = currentByNumber.get(claim.claimNumber);
+    if (!current || claim.version > current.version) currentByNumber.set(claim.claimNumber, claim);
+  }
+  const [project] = await db.select().from(projectsTable).where(eq(projectsTable.id, patent.projectId)).limit(1);
+  if (!project) return void res.status(404).json({ error: "Patent project not found." });
+
+  const [updatedPatent, refreshedClaims] = await db.transaction(async (tx) => {
+    const [updated] = await tx.update(monitoredPatentsTable).set({
+      title: patent.verificationStatus === "MANUALLY_CORRECTED" ? patent.title : payload.title,
+      applicationNumber: payload.applicationNumber,
+      filingDate: payload.filingDate,
+      issueDate: payload.issueDate,
+      earliestPriorityDate: payload.earliestPriorityDate,
+      assignee: payload.assignee,
+      inventors: payload.inventors,
+      abstract: payload.abstract,
+      patentStatus: payload.patentStatus,
+      source: payload.source,
+      sourceIdentifier: payload.sourceIdentifier,
+      sourceUrl: payload.sourceUrl,
+      retrievalMethod: "AUTOMATIC_REFRESH",
+      retrievedAt: payload.retrievedAt ? new Date(payload.retrievedAt) : new Date(),
+      verificationStatus: patent.verificationStatus === "MANUALLY_CORRECTED" ? "MANUALLY_CORRECTED" : "PENDING",
+    }).where(eq(monitoredPatentsTable.id, patent.id)).returning();
+    const inserted = await tx.insert(patentClaimsTable).values(payload.claims.map((claim) => {
+      const existing = currentByNumber.get(claim.claimNumber);
+      return {
+        patentId: patent.id,
+        claimNumber: claim.claimNumber,
+        version: (existing?.version ?? 0) + 1,
+        claimText: claim.claimText,
+        claimType: claim.claimType,
+        dependsOnClaimNumber: claim.dependsOnClaimNumber,
+        source: payload.source,
+        sourceIdentifier: payload.sourceIdentifier,
+        retrievedAt: payload.retrievedAt ? new Date(payload.retrievedAt) : new Date(),
+        verificationStatus: "PENDING" as const,
+        selectedForMonitoring: existing?.selectedForMonitoring ?? false,
+        createdById: req.portalUser!.id,
+      };
+    })).returning();
+    return [updated, inserted] as const;
+  });
+
+  res.json({ patent: serializePatent(updatedPatent, project.publicId, [...existingClaims, ...refreshedClaims]) });
 });
 
 router.patch("/portal/patents/:id/monitoring", async (req, res) => {

@@ -97,26 +97,54 @@ function decodeXmlEntities(value: string) {
     .replace(/&#(\d+);/g, (_, code) => String.fromCodePoint(Number(code)));
 }
 
-function textFromXmlFragment(fragment: string) {
-  return decodeXmlEntities(fragment.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim());
+function collectXmlText(fragment: string) {
+  const parts: string[] = [];
+  const tokens = fragment.match(/<!\[CDATA\[[\s\S]*?\]\]>|<[^>]+>|[^<]+/g) ?? [];
+  const appendBoundary = () => {
+    const current = parts.at(-1) ?? "";
+    if (current && !current.endsWith("\n")) parts.push("\n");
+  };
+
+  for (const token of tokens) {
+    if (token.startsWith("<")) {
+      const tagName = token.match(/^<\s*\/?\s*([A-Za-z0-9:_-]+)/)?.[1]?.toLowerCase();
+      if (tagName === "claim-text") {
+        if (token.startsWith("</")) appendBoundary();
+        else if (parts.length) appendBoundary();
+      } else if (tagName === "br" || tagName === "p" || tagName === "paragraph") {
+        appendBoundary();
+      }
+      continue;
+    }
+    const text = token.startsWith("<![CDATA[")
+      ? token.slice(9, -3)
+      : decodeXmlEntities(token);
+    parts.push(text);
+  }
+
+  return parts.join("")
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/\n[ \t]+/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
 }
 
 function xmlTagText(xml: string, tagNames: string[]) {
   for (const tagName of tagNames) {
     const expression = new RegExp(`<(?:(?:[A-Za-z0-9_-]+):)?${tagName}\\b[^>]*>([\\s\\S]*?)<\\/(?:(?:[A-Za-z0-9_-]+):)?${tagName}>`, "i");
     const match = xml.match(expression);
-    if (match?.[1]) return textFromXmlFragment(match[1]);
+    if (match?.[1]) return collectXmlText(match[1]);
   }
   return null;
 }
 
-function parseClaims(xml: string): ImportedClaim[] {
+export function parseClaims(xml: string): ImportedClaim[] {
   const claims: ImportedClaim[] = [];
   const claimExpression = /<(?:(?:[A-Za-z0-9_-]+):)?claim\b([^>]*)>([\s\S]*?)<\/(?:(?:[A-Za-z0-9_-]+):)?claim>/gi;
   for (const match of xml.matchAll(claimExpression)) {
     const attributes = match[1];
     const inner = match[2];
-    const claimText = xmlTagText(inner, ["claim-text"]) ?? textFromXmlFragment(inner);
+    const claimText = collectXmlText(inner);
     if (!claimText) continue;
     const numberMatch = attributes.match(/\bnum\s*=\s*["']?0*(\d+)/i) ?? attributes.match(/\bid\s*=\s*["'][^"']*?0*(\d+)["']/i);
     const claimNumber = numberMatch?.[1] ?? String(claims.length + 1);

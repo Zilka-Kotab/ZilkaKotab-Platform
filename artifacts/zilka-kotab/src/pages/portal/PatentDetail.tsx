@@ -1,7 +1,7 @@
 import { Link, useParams } from 'wouter';
-import { ArrowLeft, CalendarClock, CheckCircle2, ChevronDown, Loader2, PauseCircle, PlayCircle, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, CalendarClock, CheckCircle2, ChevronDown, Loader2, PauseCircle, PlayCircle, RefreshCw, ShieldCheck } from 'lucide-react';
 import { SEO } from '@/components/SEO';
-import { usePatent, useUpdatePatentMonitoring } from '@/lib/hooks-portal';
+import { usePatent, useRefreshPatent, useUpdatePatentMonitoring } from '@/lib/hooks-portal';
 
 function formatDate(value?: string | null) {
   return value ? new Date(`${value}T00:00:00`).toLocaleDateString() : 'Not provided';
@@ -10,6 +10,7 @@ function formatDate(value?: string | null) {
 export default function PatentDetail() {
   const patentId = useParams().patentId ?? '';
   const { data, isLoading, error } = usePatent(patentId);
+  const refresh = useRefreshPatent(patentId);
   const monitoring = useUpdatePatentMonitoring(patentId);
 
   if (isLoading) return <div className="flex min-h-[60vh] items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
@@ -28,11 +29,18 @@ export default function PatentDetail() {
           <h1 className="font-display text-3xl font-bold text-foreground">{data.patent.patentNumber}</h1>
           <p className="mt-2 max-w-3xl text-lg text-muted-foreground">{data.patent.title || 'Title unavailable'}</p>
         </div>
-        <button type="button" disabled={monitoring.isPending} onClick={() => monitoring.mutate(!data.patent.monitoringActive)} className={`inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium disabled:opacity-50 ${data.patent.monitoringActive ? 'border border-amber-300 bg-amber-50 text-amber-900' : 'bg-primary text-white'}`}>
-          {data.patent.monitoringActive ? <PauseCircle className="h-4 w-4" /> : <PlayCircle className="h-4 w-4" />}
-          {data.patent.monitoringActive ? 'Pause monitoring' : 'Resume monitoring'}
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <button type="button" disabled={refresh.isPending} onClick={() => refresh.mutate()} className="inline-flex items-center gap-2 rounded-md border border-border bg-white px-4 py-2 text-sm font-medium disabled:opacity-50">
+            <RefreshCw className={`h-4 w-4 ${refresh.isPending ? 'animate-spin' : ''}`} /> Refresh from USPTO
+          </button>
+          <button type="button" disabled={monitoring.isPending} onClick={() => monitoring.mutate(!data.patent.monitoringActive)} className={`inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium disabled:opacity-50 ${data.patent.monitoringActive ? 'border border-amber-300 bg-amber-50 text-amber-900' : 'bg-primary text-white'}`}>
+            {data.patent.monitoringActive ? <PauseCircle className="h-4 w-4" /> : <PlayCircle className="h-4 w-4" />}
+            {data.patent.monitoringActive ? 'Pause monitoring' : 'Resume monitoring'}
+          </button>
+        </div>
       </header>
+      {refresh.error && <div className="mb-6 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">{refresh.error instanceof Error ? refresh.error.message : 'USPTO refresh failed. Existing claim versions were not changed.'}</div>}
+      {refresh.isSuccess && <div className="mb-6 rounded-lg border border-green-200 bg-green-50 p-4 text-sm text-green-900">USPTO data refreshed. The previous claim version remains preserved.</div>}
 
       <div className="grid gap-6 lg:grid-cols-3">
         <section className="rounded-2xl border border-border bg-white p-6 shadow-sm lg:col-span-2">

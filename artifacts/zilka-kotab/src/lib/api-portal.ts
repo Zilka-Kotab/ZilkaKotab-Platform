@@ -233,6 +233,8 @@ export const previewPatentImport = (projectId: string, patentNumbers: string) =>
   fetchPortal<{ drafts: PatentImportDraft[] }>(`/projects/${projectId}/patent-imports/preview`, { method: 'POST', body: JSON.stringify({ patentNumbers }) });
 export const commitPatentImport = (draftId: string, selectedClaimNumbers: string[]) =>
   fetchPortal<{ patent: MonitoredPatent }>(`/patent-imports/${draftId}/commit`, { method: 'POST', body: JSON.stringify({ selectedClaimNumbers }) });
+export const refreshPatent = (publicId: string) =>
+  fetchPortal<{ patent: MonitoredPatent }>(`/patents/${publicId}/refresh`, { method: 'POST' });
 export const createPatent = (projectId: string, data: { patentNumber: string; title: string; jurisdiction: string; sourceUrl?: string; claims?: unknown[] }) =>
   fetchPortal<{ patent: MonitoredPatent }>(`/projects/${projectId}/patents`, { method: 'POST', body: JSON.stringify(data) });
 export const updatePatentMonitoring = (publicId: string, active: boolean) =>

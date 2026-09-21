@@ -82,6 +82,17 @@ export function usePatent(id: string) {
   return useQuery({ queryKey: portalKeys.patent(id), queryFn: () => api.getPatent(id), enabled: !!id });
 }
 
+export function useRefreshPatent(patentId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => api.refreshPatent(patentId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: portalKeys.patent(patentId) });
+      queryClient.invalidateQueries({ queryKey: portalKeys.all });
+    },
+  });
+}
+
 function useWorkspaceMutation<T>(projectId: string, mutationFn: (data: T) => Promise<unknown>) {
   const queryClient = useQueryClient();
   return useMutation({
