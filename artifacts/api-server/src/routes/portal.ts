@@ -32,6 +32,8 @@ const text = (value: unknown, fallback = "") => typeof value === "string" ? valu
 const boolean = (value: unknown, fallback: boolean) => typeof value === "boolean" ? value : fallback;
 const role = (value: unknown): PortalUser["role"] | null =>
   value === "CLIENT" || value === "ATTORNEY" || value === "ADMIN" ? value : null;
+const userStatus = (value: unknown): PortalUser["status"] | null =>
+  value === "PENDING" || value === "ACTIVE" || value === "DEACTIVATED" ? value : null;
 const ids = (value: unknown) =>
   Array.isArray(value) ? [...new Set(value.map(Number).filter(validId))] : [];
 
@@ -46,7 +48,7 @@ async function assignments(userId: number, userRole: PortalUser["role"]) {
 }
 
 async function serializeUser(user: PortalUser) {
-  return { ...user, clientAssignments: await assignments(user.id, user.role) };
+  return { ...user, active: user.status === "ACTIVE", clientAssignments: await assignments(user.id, user.role) };
 }
 
 async function canAccessClient(user: PortalUser, clientId: number) {
@@ -191,7 +193,14 @@ router.post("/portal/admin/users", async (req, res) => {
   const nextRole = role(req.body?.role);
   const name = text(req.body?.name);
   if (!EMAIL.test(email) || !nextRole || !name) return void res.status(400).json({ error: "Name, valid email, and role are required." });
-  const [created] = await db.insert(portalUsersTable).values({ email, name, role: nextRole, active: boolean(req.body?.active, true) }).returning();
+  const status = userStatus(req.body?.status) ?? "PENDING";
+  const [created] = await db.insert(portalUsersTable).values({
+    email,
+    name,
+    role: nextRole,
+    status,
+    active: status === "ACTIVE",
+  }).returning();
   await replaceAssignments(created.id, created.role, ids(req.body?.clientAssignments));
   await replaceProjects(created.id, ids(req.body?.projectIds));
   await audit(req, "USER_CREATED", null, created, created.id);
@@ -203,16 +212,24 @@ router.patch("/portal/admin/users/:id", async (req, res) => {
   const [current] = await db.select().from(portalUsersTable).where(eq(portalUsersTable.id, id)).limit(1);
   if (!current) return void res.status(404).json({ error: "User not found." });
   const nextRole = role(req.body?.role) ?? current.role;
-  const active = boolean(req.body?.active, current.active);
-  if (current.id === req.portalUser!.id && (!active || nextRole !== "ADMIN")) return void res.status(400).json({ error: "You cannot remove your own administrator access." });
+  const requestedStatus = userStatus(req.body?.status);
+  const legacyStatus = typeof req.body?.active === "boolean" ? (req.body.active ? "ACTIVE" : "DEACTIVATED") : null;
+  const status = requestedStatus ?? legacyStatus ?? current.status;
+  if (current.id === req.portalUser!.id && (status !== "ACTIVE" || nextRole !== "ADMIN")) return void res.status(400).json({ error: "You cannot remove your own administrator access." });
   const nextEmail = req.body?.email === undefined ? current.email : normalizeEmail(req.body.email);
   if (!EMAIL.test(nextEmail)) return void res.status(400).json({ error: "A valid email is required." });
+  const emailChanged = nextEmail !== current.email;
   const [updated] = await db.update(portalUsersTable).set({
     email: nextEmail,
     name: req.body?.name === undefined ? current.name : text(req.body.name, current.name),
     role: nextRole,
-    active,
-    ...(nextEmail !== current.email ? { authProviderId: null } : {}),
+    status: emailChanged ? "PENDING" : status,
+    active: emailChanged ? false : status === "ACTIVE",
+    ...(emailChanged ? {
+      microsoftTenantId: null,
+      microsoftObjectId: null,
+      boundAt: null,
+    } : {}),
     updatedAt: new Date(),
   }).where(eq(portalUsersTable.id, id)).returning();
   if (Array.isArray(req.body?.clientAssignments) || nextRole !== current.role) await replaceAssignments(id, nextRole, ids(req.body?.clientAssignments));

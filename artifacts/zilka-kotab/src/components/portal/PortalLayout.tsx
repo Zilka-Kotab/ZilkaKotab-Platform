@@ -1,6 +1,6 @@
 import { ReactNode } from 'react';
 import { Link, useLocation } from 'wouter';
-import { useAuth } from '@workspace/replit-auth-web';
+import { useAuth } from '@workspace/entra-auth-web';
 import { usePortalAccess } from '@/lib/hooks-portal';
 import { LayoutDashboard, Users, Wrench, Settings, LogOut, Loader2, ShieldAlert } from 'lucide-react';
 import { SEO } from '@/components/SEO';

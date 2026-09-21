@@ -1,10 +1,12 @@
 export type Role = 'CLIENT' | 'ATTORNEY' | 'ADMIN';
+export type UserStatus = 'PENDING' | 'ACTIVE' | 'DEACTIVATED';
 
 export interface PortalUser {
   id: number;
   email: string;
   name: string;
   role: Role;
+  status: UserStatus;
   active: boolean;
   clientAssignments: number[]; // Client IDs
 }
@@ -45,12 +47,21 @@ export interface AuditEntry {
 }
 
 const BASE_URL = '/api/portal';
+const csrfToken = () => document.cookie
+  .split('; ')
+  .find((item) => item.startsWith('zk_csrf='))
+  ?.split('=')
+  .slice(1)
+  .join('=');
 
 export async function fetchPortal<T>(endpoint: string, options?: RequestInit): Promise<T> {
+  const method = options?.method?.toUpperCase() ?? 'GET';
+  const csrf = !['GET', 'HEAD', 'OPTIONS'].includes(method) ? csrfToken() : undefined;
   const response = await fetch(`${BASE_URL}${endpoint}`, {
     ...options,
     headers: {
       'Content-Type': 'application/json',
+      ...(csrf ? { 'x-csrf-token': decodeURIComponent(csrf) } : {}),
       ...options?.headers,
     },
     credentials: 'include',

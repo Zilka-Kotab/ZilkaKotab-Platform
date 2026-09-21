@@ -1,8 +1,6 @@
 import type { NextFunction, Request, Response } from "express";
 import { db, portalUsersTable, type PortalUser } from "@workspace/db";
-import { and, eq, or } from "drizzle-orm";
-
-const BOOTSTRAP_ADMIN_EMAIL = "managezk@zilkakotab.com";
+import { and, eq, isNull } from "drizzle-orm";
 
 declare global {
   namespace Express {
@@ -18,29 +16,35 @@ export async function resolvePortalUser(req: Request): Promise<PortalUser | null
   let [portalUser] = await db
     .select()
     .from(portalUsersTable)
-    .where(or(eq(portalUsersTable.authProviderId, req.user.id), eq(portalUsersTable.email, email)))
+    .where(and(
+      eq(portalUsersTable.microsoftTenantId, req.user.tenantId),
+      eq(portalUsersTable.microsoftObjectId, req.user.objectId),
+    ))
     .limit(1);
 
-  if (!portalUser && email === BOOTSTRAP_ADMIN_EMAIL) {
-    [portalUser] = await db
-      .insert(portalUsersTable)
-      .values({ authProviderId: req.user.id, email, name: "Portal Administrator", role: "ADMIN", active: true })
-      .onConflictDoNothing()
-      .returning();
-    if (!portalUser) {
-      [portalUser] = await db.select().from(portalUsersTable).where(eq(portalUsersTable.email, email)).limit(1);
-    }
-  }
-
-  if (!portalUser?.active) return null;
-  if (portalUser.email !== email) return null;
-  if (!portalUser.authProviderId) {
+  if (!portalUser) {
     [portalUser] = await db
       .update(portalUsersTable)
-      .set({ authProviderId: req.user.id, updatedAt: new Date() })
-      .where(and(eq(portalUsersTable.id, portalUser.id), eq(portalUsersTable.email, email)))
+      .set({
+        microsoftTenantId: req.user.tenantId,
+        microsoftObjectId: req.user.objectId,
+        status: "ACTIVE",
+        active: true,
+        boundAt: new Date(),
+        lastLoginAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .where(and(
+        eq(portalUsersTable.email, email),
+        eq(portalUsersTable.status, "PENDING"),
+        isNull(portalUsersTable.microsoftTenantId),
+        isNull(portalUsersTable.microsoftObjectId),
+      ))
       .returning();
   }
+
+  if (!portalUser || portalUser.status !== "ACTIVE" || !portalUser.active) return null;
+  await db.update(portalUsersTable).set({ lastLoginAt: new Date() }).where(eq(portalUsersTable.id, portalUser.id));
   return portalUser;
 }
 

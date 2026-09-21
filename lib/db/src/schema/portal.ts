@@ -13,23 +13,31 @@ import {
 } from "drizzle-orm/pg-core";
 
 export const portalRoleEnum = pgEnum("portal_role", ["CLIENT", "ATTORNEY", "ADMIN"]);
+export const portalUserStatusEnum = pgEnum("portal_user_status", ["PENDING", "ACTIVE", "DEACTIVATED"]);
 
 export const portalUsersTable = pgTable(
   "portal_users",
   {
     id: serial("id").primaryKey(),
     authProviderId: varchar("auth_provider_id"),
+    microsoftTenantId: varchar("microsoft_tenant_id", { length: 36 }),
+    microsoftObjectId: varchar("microsoft_object_id", { length: 36 }),
     email: varchar("email", { length: 320 }).notNull(),
     name: text("name").notNull(),
     role: portalRoleEnum("role").notNull(),
+    status: portalUserStatusEnum("status").notNull().default("PENDING"),
     active: boolean("active").notNull().default(true),
+    boundAt: timestamp("bound_at", { withTimezone: true }),
+    lastLoginAt: timestamp("last_login_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
   },
   (table) => [
     uniqueIndex("portal_users_email_unique").on(table.email),
     uniqueIndex("portal_users_auth_provider_unique").on(table.authProviderId),
+    uniqueIndex("portal_users_microsoft_identity_unique").on(table.microsoftTenantId, table.microsoftObjectId),
     index("portal_users_active_role_idx").on(table.active, table.role),
+    index("portal_users_status_role_idx").on(table.status, table.role),
   ],
 );
 

@@ -2,10 +2,12 @@ import { createElement, Fragment, useCallback, useEffect, useMemo, useState, typ
 
 export interface AuthUser {
   id: string;
+  tenantId: string;
+  objectId: string;
   email: string | null;
+  displayName: string | null;
   firstName: string | null;
   lastName: string | null;
-  profileImageUrl: string | null;
 }
 
 interface AuthState {
@@ -53,12 +55,13 @@ function useAuthState(): AuthState {
 
   const login = useCallback(() => {
     const base = getBasePath();
-    window.location.href = `/api/login?returnTo=${encodeURIComponent(base)}`;
+    const returnTo = base === '/' ? '/portal' : `${base}/portal`;
+    window.location.href = `/api/auth/microsoft/login?returnTo=${encodeURIComponent(returnTo)}`;
   }, []);
 
   const logout = useCallback(() => {
     const base = getBasePath();
-    window.location.href = `/api/logout?returnTo=${encodeURIComponent(base)}`;
+    window.location.href = `/api/auth/logout?returnTo=${encodeURIComponent(base || '/')}`;
   }, []);
 
   return useMemo(() => ({

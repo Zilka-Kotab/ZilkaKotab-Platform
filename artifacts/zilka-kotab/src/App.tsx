@@ -4,7 +4,7 @@ import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { Route, Switch, Redirect, useLocation, Router as WouterRouter } from 'wouter';
 import { HelmetProvider } from 'react-helmet-async';
-import { useAuth } from '@workspace/replit-auth-web';
+import { useAuth } from '@workspace/entra-auth-web';
 
 // Layout Components
 import { Navbar } from '@/components/Navbar';

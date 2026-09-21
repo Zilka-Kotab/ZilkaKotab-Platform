@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link, useLocation } from 'wouter';
 import { Menu, X, CreditCard, LockKeyhole } from 'lucide-react';
-import { useAuth } from '@workspace/replit-auth-web';
+import { useAuth } from '@workspace/entra-auth-web';
 import zilkaLogo from '@assets/zilka-logo.png';
 import { motion } from 'framer-motion';
 

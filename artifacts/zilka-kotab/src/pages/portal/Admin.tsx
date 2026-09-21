@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useAdminUsers, useAdminAudit, useAdminProjects, usePortalClients, usePortalTools, useCreateAdminUser, useUpdateAdminUser, useCreateAdminClient, useUpdateAdminClient, useUpdateTool, useCreateTool, useSetClientTools, useCreateProject, useUpdateProject } from '@/lib/hooks-portal';
 import { Loader2, Settings, Users, Building2, Wrench, Briefcase, Activity, Plus } from 'lucide-react';
 import { SEO } from '@/components/SEO';
-import { PortalUser, Role, Client, Tool, Project } from '@/lib/api-portal';
+import { PortalUser, Role, UserStatus, Client, Tool, Project } from '@/lib/api-portal';
 
 export default function PortalAdmin() {
   const [activeTab, setActiveTab] = useState<'users' | 'clients' | 'tools' | 'projects' | 'audit'>('users');
@@ -91,7 +91,7 @@ function UsersAdmin() {
 
   const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();
-    createMutation.mutate({ email, name, role, active: true, clientAssignments: [] }, {
+    createMutation.mutate({ email, name, role, status: 'PENDING', active: false, clientAssignments: [] }, {
       onSuccess: () => {
         setEmail('');
         setName('');
@@ -168,15 +168,16 @@ function UsersAdmin() {
                   </select>
                 </td>
                 <td className="px-6 py-4">
-                  <button
-                    onClick={() => updateMutation.mutate({ id: user.id, data: { active: !user.active } })}
+                  <select
+                    value={user.status}
+                    onChange={event => updateMutation.mutate({ id: user.id, data: { status: event.target.value as UserStatus } })}
                     disabled={updateMutation.isPending}
-                    className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold transition-colors ${
-                      user.active ? 'bg-green-100 text-green-800 hover:bg-green-200' : 'bg-red-100 text-red-800 hover:bg-red-200'
-                    }`}
+                    className="rounded-md border border-border px-2 py-1 text-xs"
                   >
-                    {user.active ? 'Active' : 'Inactive'}
-                  </button>
+                    <option value="PENDING">Pending</option>
+                    <option value="ACTIVE">Active</option>
+                    <option value="DEACTIVATED">Deactivated</option>
+                  </select>
                 </td>
                 <td className="px-6 py-4 min-w-56">
                   {user.role === 'ADMIN' ? (

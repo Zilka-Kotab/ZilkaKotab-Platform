@@ -1,7 +1,5 @@
-import { useAuth } from '@workspace/replit-auth-web';
-import { Link } from 'wouter';
+import { useAuth } from '@workspace/entra-auth-web';
 import { SEO } from '@/components/SEO';
-import { LogIn } from 'lucide-react';
 
 export default function SignInPage() {
   const { login } = useAuth();
@@ -39,8 +37,13 @@ export default function SignInPage() {
                 onClick={() => login()}
                 className="flex w-full items-center justify-center gap-2 rounded-md bg-primary px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-primary/90"
               >
-                <LogIn className="h-4 w-4" />
-                Sign in with Provider
+                <svg aria-hidden="true" className="h-4 w-4" viewBox="0 0 23 23">
+                  <path fill="#f35325" d="M1 1h10v10H1z" />
+                  <path fill="#81bc06" d="M12 1h10v10H12z" />
+                  <path fill="#05a6f0" d="M1 12h10v10H1z" />
+                  <path fill="#ffba08" d="M12 12h10v10H12z" />
+                </svg>
+                Sign in with Microsoft
               </button>
             </div>
           </div>
