@@ -152,7 +152,7 @@ export async function fetchPortal<T>(endpoint: string, options?: RequestInit): P
 export const getPortalUser = () => fetchPortal<{ user: PortalUser | null }>('/access');
 export const getDashboard = () => fetchPortal<{ tools: Tool[], projects: Project[], clients?: Client[] }>('/dashboard');
 
-export const getClients = () => fetchPortal<{ clients: Client[] }>('/admin/clients');
+export const getClients = () => fetchPortal<{ clients: Client[] }>('/clients');
 export const getClient = (id: number) => fetchPortal<{ client: Client, tools: Tool[], projects: Project[] }>(`/clients/${id}`);
 
 export const getTools = () => fetchPortal<{ tools: Tool[] }>('/tools');

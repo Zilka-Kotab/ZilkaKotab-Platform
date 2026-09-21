@@ -1,5 +1,5 @@
 import { useParams, Link } from 'wouter';
-import { usePortalTool } from '@/lib/hooks-portal';
+import { usePortalAccess, usePortalTool } from '@/lib/hooks-portal';
 import { Loader2, Wrench, Briefcase, ArrowLeft } from 'lucide-react';
 import { SEO } from '@/components/SEO';
 
@@ -7,6 +7,7 @@ export default function PortalToolDetail() {
   const params = useParams();
   const slug = params.toolSlug || '';
   const { data, isLoading, error } = usePortalTool(slug);
+  const { data: access } = usePortalAccess();
 
   if (isLoading) {
     return (
@@ -70,7 +71,10 @@ export default function PortalToolDetail() {
             <Briefcase className="h-5 w-5 text-muted-foreground" />
             <h2 className="text-lg font-semibold text-foreground">Projects in this Tool</h2>
           </div>
-          <span className="text-sm font-medium text-muted-foreground">{projects.length} Total</span>
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-medium text-muted-foreground">{projects.length} Total</span>
+            {access?.user?.role === 'ADMIN' && <Link href="/portal/admin?tab=projects" className="rounded-md bg-primary px-3 py-2 text-xs font-semibold text-white hover:bg-primary/90">New Project</Link>}
+          </div>
         </div>
         
         <div className="divide-y divide-border">

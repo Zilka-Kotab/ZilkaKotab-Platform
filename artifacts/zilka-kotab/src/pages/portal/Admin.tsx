@@ -1,11 +1,14 @@
 import { useState } from 'react';
-import { useAdminUsers, useAdminAudit, useAdminProjects, usePortalClients, usePortalTools, useCreateAdminUser, useUpdateAdminUser, useCreateAdminClient, useUpdateAdminClient, useUpdateTool, useCreateTool, useSetClientTools, useCreateProject, useUpdateProject } from '@/lib/hooks-portal';
+import { Link } from 'wouter';
+import { useAdminUsers, useAdminAudit, useAdminProjects, useAdminToolAccess, useAdminClientTools, usePortalClients, usePortalTools, useCreateAdminUser, useUpdateAdminUser, useCreateAdminClient, useUpdateAdminClient, useUpdateTool, useCreateTool, useSetClientTools, useCreateProject, useUpdateProject } from '@/lib/hooks-portal';
 import { Loader2, Settings, Users, Building2, Wrench, Briefcase, Activity, Plus } from 'lucide-react';
 import { SEO } from '@/components/SEO';
 import { PortalUser, Role, UserStatus, Client, Tool, Project } from '@/lib/api-portal';
 
 export default function PortalAdmin() {
-  const [activeTab, setActiveTab] = useState<'users' | 'clients' | 'tools' | 'projects' | 'audit'>('users');
+  const requestedTab = new URLSearchParams(window.location.search).get('tab');
+  const initialTab = requestedTab === 'clients' || requestedTab === 'tools' || requestedTab === 'projects' || requestedTab === 'audit' ? requestedTab : 'users';
+  const [activeTab, setActiveTab] = useState<'users' | 'clients' | 'tools' | 'projects' | 'audit'>(initialTab);
 
   return (
     <div className="p-8 max-w-7xl mx-auto">
@@ -217,6 +220,7 @@ function ClientsAdmin() {
   const updateMutation = useUpdateAdminClient();
   const tools = usePortalTools();
   const setTools = useSetClientTools();
+  const assignedTools = useAdminClientTools();
   const [toolSelections, setToolSelections] = useState<Record<number, number[]>>({});
   
   const [name, setName] = useState('');
@@ -283,7 +287,7 @@ function ClientsAdmin() {
                   <div className="flex items-center gap-2">
                     <select
                       multiple
-                      value={(toolSelections[client.id] ?? []).map(String)}
+                      value={(toolSelections[client.id] ?? assignedTools.data?.assignments.filter(item => item.clientId === client.id).map(item => item.toolId) ?? []).map(String)}
                       onChange={(event) => setToolSelections(current => ({
                         ...current,
                         [client.id]: Array.from(event.currentTarget.selectedOptions, option => Number(option.value)),
@@ -294,7 +298,10 @@ function ClientsAdmin() {
                       {tools.data?.tools.map(tool => <option key={tool.id} value={tool.id}>{tool.name}</option>)}
                     </select>
                     <button
-                      onClick={() => setTools.mutate({ clientId: client.id, toolIds: toolSelections[client.id] ?? [] })}
+                      onClick={() => setTools.mutate({
+                        clientId: client.id,
+                        toolIds: toolSelections[client.id] ?? assignedTools.data?.assignments.filter(item => item.clientId === client.id).map(item => item.toolId) ?? [],
+                      })}
                       className="text-primary hover:underline font-medium"
                     >Save tools</button>
                   </div>
@@ -317,6 +324,7 @@ function ToolsAdmin() {
   const { data, isLoading } = usePortalTools();
   const updateMutation = useUpdateTool();
   const createMutation = useCreateTool();
+  const access = useAdminToolAccess();
   const [name, setName] = useState('');
   const [slug, setSlug] = useState('');
   
@@ -345,7 +353,9 @@ function ToolsAdmin() {
               <th className="px-6 py-3 font-medium">Name</th>
               <th className="px-6 py-3 font-medium">Slug</th>
               <th className="px-6 py-3 font-medium">Description</th>
+              <th className="px-6 py-3 font-medium">Assigned clients</th>
               <th className="px-6 py-3 font-medium">Status</th>
+              <th className="px-6 py-3 font-medium">Manage</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
@@ -354,6 +364,9 @@ function ToolsAdmin() {
                 <td className="px-6 py-4 font-medium text-foreground">{tool.name}</td>
                 <td className="px-6 py-4 text-muted-foreground">{tool.slug}</td>
                 <td className="px-6 py-4 text-muted-foreground max-w-xs truncate">{tool.description}</td>
+                <td className="px-6 py-4 text-muted-foreground">
+                  {access.data?.access.filter(item => item.toolId === tool.id).map(item => item.clientName).join(', ') || 'None'}
+                </td>
                 <td className="px-6 py-4">
                   <button
                     onClick={() => updateMutation.mutate({ id: tool.id, data: { active: !tool.active } })}
@@ -365,11 +378,16 @@ function ToolsAdmin() {
                     {tool.active ? 'Active' : 'Inactive'}
                   </button>
                 </td>
+                <td className="px-6 py-4">
+                  {tool.active
+                    ? <Link href={`/portal/tools/${tool.slug}`} className="font-medium text-primary hover:underline">Open / manage</Link>
+                    : <span className="text-xs text-muted-foreground">Activate to open</span>}
+                </td>
               </tr>
             ))}
             {data.tools.length === 0 && (
               <tr>
-                <td colSpan={4} className="px-6 py-8 text-center text-muted-foreground">No tools found.</td>
+                <td colSpan={6} className="px-6 py-8 text-center text-muted-foreground">No tools found.</td>
               </tr>
             )}
           </tbody>

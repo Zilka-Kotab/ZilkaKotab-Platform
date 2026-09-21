@@ -1,3 +1,4 @@
 - [Internal access policy](internal-access-policy.md) — private tools are for administrator-approved employees and invited guests; never expose public signup.
 - [Wouter root catch-all](wouter-root-catch-all.md) — a `/:rest*` wrapper may exclude `/`; use a final pathless route after specific routes.
 - [Patent Monitor data boundaries](patent-monitor-data-boundaries.md) — preserve append-only analysis provenance and enforce classification filtering server-side.
+- [First-party production seeds](first-party-production-seeds.md) — required catalog records must be created idempotently at startup; Publish does not copy development rows.

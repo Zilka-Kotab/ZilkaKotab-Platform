@@ -156,7 +156,7 @@ router.get("/portal/tools/:slug", async (req, res) => {
   const [tool] = await db.select().from(toolsTable).where(and(eq(toolsTable.slug, slug), eq(toolsTable.active, true))).limit(1);
   if (!tool) return void res.status(404).json({ error: "Tool not found." });
   const clientIds = await assignments(req.portalUser!.id, req.portalUser!.role);
-  if (!clientIds.length) return void res.status(404).json({ error: "Tool not found." });
+  if (!clientIds.length && req.portalUser!.role !== "ADMIN") return void res.status(404).json({ error: "Tool not found." });
   const enabledClients = await db.select({ clientId: clientToolsTable.clientId }).from(clientToolsTable).where(and(
     eq(clientToolsTable.toolId, tool.id), inArray(clientToolsTable.clientId, clientIds), eq(clientToolsTable.active, true),
   ));

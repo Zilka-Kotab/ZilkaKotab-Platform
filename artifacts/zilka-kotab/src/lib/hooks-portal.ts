@@ -186,6 +186,9 @@ export function useSetClientTools() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: portalKeys.clients() });
       queryClient.invalidateQueries({ queryKey: portalKeys.dashboard() });
+      queryClient.invalidateQueries({ queryKey: portalKeys.tools() });
+      queryClient.invalidateQueries({ queryKey: portalKeys.adminToolAccess() });
+      queryClient.invalidateQueries({ queryKey: portalKeys.adminClientTools() });
     },
   });
 }
