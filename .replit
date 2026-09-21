@@ -24,5 +24,8 @@ timeoutMs = 20000
 [userenv.shared]
 CONTACT_EMAIL = "britten@zilkakotab.com"
 
+[userenv.production]
+INITIAL_ADMIN_EMAIL = "britten@zilkakotab.com"
+
 [nix]
 channel = "stable-25_05"
