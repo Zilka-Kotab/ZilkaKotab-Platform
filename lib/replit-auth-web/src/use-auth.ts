@@ -56,7 +56,12 @@ function useAuthState(): AuthState {
   const login = useCallback(() => {
     const base = getBasePath();
     const returnTo = base === '/' ? '/portal' : `${base}/portal`;
-    window.location.href = `/api/auth/microsoft/login?returnTo=${encodeURIComponent(returnTo)}`;
+    const loginUrl = `/api/auth/microsoft/login?returnTo=${encodeURIComponent(returnTo)}`;
+    if (window.self !== window.top) {
+      window.open(loginUrl, '_blank', 'noopener,noreferrer');
+      return;
+    }
+    window.location.assign(loginUrl);
   }, []);
 
   const logout = useCallback(() => {
