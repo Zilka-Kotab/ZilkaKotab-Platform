@@ -1,0 +1,96 @@
+I need to clarify the current production state.
+
+The client, tool, and project information shown in my screenshot was manually entered by me as an example. Replit did not create that information, and those specific values should NOT be hard-coded or seeded.
+
+The Patent Infringement Monitor now appears in the Tools Hub, but I need the underlying client → tool → project → workspace workflow to function generically.
+
+Required behavior
+
+When an ADMIN goes to:
+
+Admin Console → Projects
+
+the ADMIN should be able to:
+
+Select any existing client.
+Select an active tool available in the system.
+Enter a project name and optional description.
+Click Create.
+
+Creating the project must:
+
+persist the project in the production database;
+associate it with the selected client;
+associate it with the selected tool;
+establish/verify the appropriate client-tool access;
+make the project immediately visible within that client's workspace for the selected tool; and
+provide a route for authorized users to open the actual project workspace.
+
+The generic hierarchy should be:
+
+Tools Hub
+→ Tool
+→ Client Workspace
+→ Project
+→ Project Workspace
+
+ADMIN behavior
+
+ADMIN must be able to see and administer all clients, tools, and projects.
+
+ADMIN access must not depend upon the ADMIN being separately assigned to a client.
+
+ATTORNEY behavior
+
+An ATTORNEY should see only clients specifically assigned to that attorney and only the tools/projects available for those clients.
+
+CLIENT behavior
+
+A CLIENT should see only their authorized client organization and the tools/projects enabled for that client.
+
+New Project from within a tool
+
+The Patent Infringement Monitor currently has a New Project button.
+
+When ADMIN clicks New Project from inside a particular tool, the tool is already known and should not need to be selected again.
+
+ADMIN should select:
+
+Client
+→ Project Name
+→ Description
+→ Create Project
+
+After successful creation, automatically open the new project workspace.
+
+For ATTORNEY, the Client selector must contain only clients assigned to that attorney.
+
+For CLIENT, client context should be predetermined from authorization and should not be user-selectable.
+
+Diagnose the current implementation
+
+Before adding more Patent Infringement Monitor functionality, inspect the current implementation and verify/fix:
+
+whether Create actually persists projects;
+whether project creation correctly establishes or validates client-tool access;
+whether ADMIN is incorrectly being subjected to attorney/client assignment restrictions;
+whether tool pages correctly retrieve their projects;
+whether client workspaces correctly retrieve their projects;
+whether the frontend updates after project creation;
+whether every project has a working protected workspace route;
+whether authorization is enforced server-side when opening a project directly by URL or API.
+Important: no hard-coded example data
+
+Do NOT create or seed specific clients, project names, or demonstration projects.
+
+This must be a generic production workflow that works with any clients, tools, and projects created through the Admin Console.
+
+Do not work on Microsoft Copilot or external AI processing yet.
+
+Once fixed, tell me:
+
+What was preventing the workflow from functioning.
+What you changed.
+Whether a database migration was required.
+Whether I need to republish.
+Exactly what I should click in production to test the complete workflow.
