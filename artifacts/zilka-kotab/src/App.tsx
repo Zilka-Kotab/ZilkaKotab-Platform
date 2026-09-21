@@ -114,7 +114,7 @@ function Router() {
       </Route>
 
       {/* Public Routes */}
-      <Route path="/:rest*">
+      <Route>
         <PublicLayout>
           <Switch>
             <Route path="/" component={HomeRoute} />

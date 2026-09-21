@@ -1,1 +1,2 @@
 - [Internal access policy](internal-access-policy.md) — private tools are for administrator-approved employees and invited guests; never expose public signup.
+- [Wouter root catch-all](wouter-root-catch-all.md) — a `/:rest*` wrapper may exclude `/`; use a final pathless route after specific routes.
