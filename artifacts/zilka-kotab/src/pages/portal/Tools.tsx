@@ -40,12 +40,13 @@ export default function PortalTools() {
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {data.tools.map(tool => (
-          <Link key={tool.id} href={`/portal/tools/${tool.slug}`} className="group rounded-xl border border-border bg-white p-6 shadow-sm transition-all hover:shadow-md hover:border-primary flex flex-col h-full">
+            <Link key={tool.id} href={`/portal/tools/${tool.slug}`} className="group rounded-xl border border-border bg-white p-6 shadow-sm transition-all hover:shadow-md hover:border-primary flex flex-col h-full">
             <div className="flex items-start justify-between mb-4">
               <h3 className="text-lg font-semibold text-foreground">{tool.name}</h3>
               <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
             </div>
             <p className="text-sm text-muted-foreground flex-1">{tool.description}</p>
+              <span className="mt-5 inline-flex w-fit items-center rounded-md bg-primary px-3 py-2 text-xs font-semibold text-white">Open Tool</span>
             <div className="mt-6 pt-4 border-t border-border flex justify-between items-center text-xs">
               <span className={`inline-flex items-center gap-1.5 font-medium ${tool.active ? 'text-green-600' : 'text-muted-foreground'}`}>
                 <span className={`h-1.5 w-1.5 rounded-full ${tool.active ? 'bg-green-600' : 'bg-muted-foreground'}`} />

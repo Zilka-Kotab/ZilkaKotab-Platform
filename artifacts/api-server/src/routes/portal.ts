@@ -161,14 +161,17 @@ router.get("/portal/tools/:slug", async (req, res) => {
     eq(clientToolsTable.toolId, tool.id), inArray(clientToolsTable.clientId, clientIds), eq(clientToolsTable.active, true),
   ));
   const enabledIds = enabledClients.map((x) => x.clientId);
-  if (!enabledIds.length) return void res.status(404).json({ error: "Tool not found." });
+  if (!enabledIds.length && req.portalUser!.role !== "ADMIN") return void res.status(404).json({ error: "Tool not found." });
   let projects = await db.select().from(projectsTable).where(and(eq(projectsTable.toolId, tool.id), inArray(projectsTable.clientId, enabledIds), eq(projectsTable.active, true)));
   if (req.portalUser!.role === "CLIENT" && projects.length) {
     const allowed = await db.select({ projectId: projectUsersTable.projectId }).from(projectUsersTable).where(and(eq(projectUsersTable.userId, req.portalUser!.id), inArray(projectUsersTable.projectId, projects.map((p) => p.id))));
     const allowedIds = new Set(allowed.map((p) => p.projectId));
     projects = projects.filter((p) => allowedIds.has(p.id));
   }
-  res.json({ tool, projects });
+  const clients = enabledIds.length
+    ? await db.select().from(clientsTable).where(and(inArray(clientsTable.id, enabledIds), eq(clientsTable.active, true))).orderBy(asc(clientsTable.name))
+    : [];
+  res.json({ tool, clients, projects });
 });
 
 router.get("/portal/projects/:id", async (req, res) => {
@@ -279,6 +282,26 @@ router.patch("/portal/admin/clients/:id", async (req, res) => {
 
 router.get("/portal/admin/tools", async (_req, res) => {
   res.json({ tools: await db.select().from(toolsTable).orderBy(asc(toolsTable.name)) });
+});
+router.get("/portal/admin/tool-access", async (_req, res) => {
+  const rows = await db
+    .select({
+      toolId: clientToolsTable.toolId,
+      clientId: clientsTable.id,
+      clientName: clientsTable.name,
+    })
+    .from(clientToolsTable)
+    .innerJoin(clientsTable, eq(clientToolsTable.clientId, clientsTable.id))
+    .where(eq(clientToolsTable.active, true))
+    .orderBy(asc(clientsTable.name));
+  res.json({ access: rows });
+});
+router.get("/portal/admin/client-tools", async (_req, res) => {
+  const rows = await db
+    .select({ clientId: clientToolsTable.clientId, toolId: clientToolsTable.toolId })
+    .from(clientToolsTable)
+    .where(eq(clientToolsTable.active, true));
+  res.json({ assignments: rows });
 });
 router.post("/portal/admin/tools", async (req, res) => {
   const name = text(req.body?.name);

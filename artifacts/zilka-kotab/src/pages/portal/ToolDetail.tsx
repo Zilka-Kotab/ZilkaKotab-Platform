@@ -26,7 +26,7 @@ export default function PortalToolDetail() {
     );
   }
 
-  const { tool, projects } = data;
+  const { tool, clients, projects } = data;
 
   return (
     <div className="p-8 max-w-7xl mx-auto">
@@ -55,6 +55,15 @@ export default function PortalToolDetail() {
         </div>
       </div>
 
+      <div className="mb-6 rounded-2xl border border-primary/20 bg-primary/5 p-5">
+        <p className="text-sm font-medium text-foreground">Client workspaces</p>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Select a client context by opening one of its projects below. Access is limited to the clients assigned to your portal account.
+        </p>
+        {clients.length > 0 && <div className="mt-3 flex flex-wrap gap-2">{clients.map(client => <span key={client.id} className="rounded-full border border-primary/20 bg-white px-3 py-1 text-xs font-medium text-foreground">{client.name}</span>)}</div>}
+        {clients.length === 0 && reqAdminHint()}
+      </div>
+
       <div className="rounded-2xl border border-border bg-white shadow-sm overflow-hidden">
         <div className="border-b border-border bg-muted/30 px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -66,7 +75,7 @@ export default function PortalToolDetail() {
         
         <div className="divide-y divide-border">
           {projects.map(project => (
-            <div key={project.id} className="p-6 transition-colors hover:bg-muted/10">
+              <div key={project.id} className="p-6 transition-colors hover:bg-muted/10">
               <div className="flex items-start justify-between mb-2">
                 <h3 className="font-semibold text-foreground text-lg">{project.name}</h3>
                 <span className="inline-flex items-center rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
@@ -89,4 +98,8 @@ export default function PortalToolDetail() {
       </div>
     </div>
   );
+}
+
+function reqAdminHint() {
+  return <p className="mt-3 text-sm text-muted-foreground">No client workspace is assigned yet. An administrator can assign this tool and create the first project.</p>;
 }

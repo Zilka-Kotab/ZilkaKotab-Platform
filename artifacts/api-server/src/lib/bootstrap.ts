@@ -1,5 +1,5 @@
 import { and, count, eq } from "drizzle-orm";
-import { db, portalUsersTable } from "@workspace/db";
+import { db, portalUsersTable, toolsTable } from "@workspace/db";
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -35,4 +35,17 @@ export async function ensureInitialAdminAuthorization() {
     status: "PENDING",
     active: false,
   }).onConflictDoNothing({ target: portalUsersTable.email });
+}
+
+/**
+ * Ensures the first-party Patent Monitor is present without changing an
+ * administrator's active/inactive decision on later startups.
+ */
+export async function ensurePatentMonitorTool() {
+  await db.insert(toolsTable).values({
+    name: "Patent Infringement Monitor",
+    slug: "patent-infringement-monitor",
+    description: "Monitor patent claims against potentially relevant products and technologies, organize evidence, and triage findings for attorney review.",
+    active: true,
+  }).onConflictDoNothing({ target: toolsTable.slug });
 }

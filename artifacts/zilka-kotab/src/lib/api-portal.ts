@@ -156,7 +156,7 @@ export const getClients = () => fetchPortal<{ clients: Client[] }>('/admin/clien
 export const getClient = (id: number) => fetchPortal<{ client: Client, tools: Tool[], projects: Project[] }>(`/clients/${id}`);
 
 export const getTools = () => fetchPortal<{ tools: Tool[] }>('/tools');
-export const getTool = (slug: string) => fetchPortal<{ tool: Tool, projects: Project[] }>(`/tools/${slug}`);
+export const getTool = (slug: string) => fetchPortal<{ tool: Tool, clients: Client[], projects: Project[] }>(`/tools/${slug}`);
 
 export const getProject = (id: number) => fetchPortal<{ project: Project, tool: Tool, client: Client }>(`/projects/${id}`);
 export const getProjectWorkspace = (id: number) => fetchPortal<ProjectWorkspace>(`/projects/${id}/workspace`);
@@ -175,6 +175,8 @@ export const updateProjectAiConfig = (projectId: number, data: Pick<ProjectAiCon
 export const getAdminUsers = () => fetchPortal<{ users: PortalUser[] }>('/admin/users');
 export const getAdminAuditLogs = () => fetchPortal<{ logs: AuditEntry[] }>('/admin/audit');
 export const getAdminProjects = () => fetchPortal<{ projects: Project[] }>('/admin/projects');
+export const getAdminToolAccess = () => fetchPortal<{ access: { toolId: number; clientId: number; clientName: string }[] }>('/admin/tool-access');
+export const getAdminClientTools = () => fetchPortal<{ assignments: { clientId: number; toolId: number }[] }>('/admin/client-tools');
 
 // Admin Mutations
 export const createAdminUser = (data: Partial<PortalUser>) => fetchPortal<{ user: PortalUser }>('/admin/users', { method: 'POST', body: JSON.stringify(data) });

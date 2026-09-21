@@ -16,6 +16,8 @@ export const portalKeys = {
   adminUsers: () => [...portalKeys.all, 'adminUsers'] as const,
   adminAudit: () => [...portalKeys.all, 'adminAudit'] as const,
   adminProjects: () => [...portalKeys.all, 'adminProjects'] as const,
+  adminToolAccess: () => [...portalKeys.all, 'adminToolAccess'] as const,
+  adminClientTools: () => [...portalKeys.all, 'adminClientTools'] as const,
 };
 
 export function usePortalAccess() {
@@ -111,6 +113,12 @@ export function useAdminAudit() {
 export function useAdminProjects() {
   return useQuery({ queryKey: portalKeys.adminProjects(), queryFn: api.getAdminProjects });
 }
+export function useAdminToolAccess() {
+  return useQuery({ queryKey: portalKeys.adminToolAccess(), queryFn: api.getAdminToolAccess });
+}
+export function useAdminClientTools() {
+  return useQuery({ queryKey: portalKeys.adminClientTools(), queryFn: api.getAdminClientTools });
+}
 
 export function useCreateAdminUser() {
   const queryClient = useQueryClient();
@@ -159,6 +167,8 @@ export function useUpdateTool() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: portalKeys.tools() });
       queryClient.invalidateQueries({ queryKey: portalKeys.dashboard() });
+      queryClient.invalidateQueries({ queryKey: portalKeys.adminToolAccess() });
+      queryClient.invalidateQueries({ queryKey: portalKeys.adminClientTools() });
     },
   });
 }
