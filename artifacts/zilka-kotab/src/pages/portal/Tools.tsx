@@ -40,7 +40,7 @@ export default function PortalTools() {
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {data.tools.map(tool => (
-            <Link key={tool.id} href={`/portal/tools/${tool.slug}`} className="group rounded-xl border border-border bg-white p-6 shadow-sm transition-all hover:shadow-md hover:border-primary flex flex-col h-full">
+            <Link key={tool.publicId} href={`/portal/tools/${tool.slug}`} className="group rounded-xl border border-border bg-white p-6 shadow-sm transition-all hover:shadow-md hover:border-primary flex flex-col h-full">
             <div className="flex items-start justify-between mb-4">
               <h3 className="text-lg font-semibold text-foreground">{tool.name}</h3>
               <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />

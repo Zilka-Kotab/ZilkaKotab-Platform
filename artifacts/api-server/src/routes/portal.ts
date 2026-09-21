@@ -21,12 +21,13 @@ import {
   type PortalUser,
 } from "@workspace/db";
 import { requireAdmin, requirePortalAccess, resolvePortalUser } from "../middlewares/portalAccess";
+import { projectRelations, serializeClient, serializeProject, serializeTool } from "../lib/portal-resources";
 
 const router = Router();
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
-const idOf = (value: string | string[]) => Number.parseInt(Array.isArray(value) ? value[0] : value, 10);
-const validId = (id: number) => Number.isSafeInteger(id) && id > 0;
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const publicIdOf = (value: unknown) => typeof value === "string" && UUID.test(value) ? value : "";
 const normalizeEmail = (value: unknown) => typeof value === "string" ? value.trim().toLowerCase() : "";
 const text = (value: unknown, fallback = "") => typeof value === "string" ? value.trim() : fallback;
 const boolean = (value: unknown, fallback: boolean) => typeof value === "boolean" ? value : fallback;
@@ -34,8 +35,8 @@ const role = (value: unknown): PortalUser["role"] | null =>
   value === "CLIENT" || value === "ATTORNEY" || value === "ADMIN" ? value : null;
 const userStatus = (value: unknown): PortalUser["status"] | null =>
   value === "PENDING" || value === "ACTIVE" || value === "DEACTIVATED" ? value : null;
-const ids = (value: unknown) =>
-  Array.isArray(value) ? [...new Set(value.map(Number).filter(validId))] : [];
+const publicIds = (value: unknown) =>
+  Array.isArray(value) ? [...new Set(value.map(publicIdOf).filter(Boolean))] : [];
 
 async function assignments(userId: number, userRole: PortalUser["role"]) {
   if (userRole === "CLIENT") {
@@ -48,7 +49,12 @@ async function assignments(userId: number, userRole: PortalUser["role"]) {
 }
 
 async function serializeUser(user: PortalUser) {
-  return { ...user, active: user.status === "ACTIVE", clientAssignments: await assignments(user.id, user.role) };
+  const clientIds = await assignments(user.id, user.role);
+  const clients = clientIds.length
+    ? await db.select({ publicId: clientsTable.publicId }).from(clientsTable).where(inArray(clientsTable.id, clientIds))
+    : [];
+  const { id: _internalId, ...safeUser } = user;
+  return { ...safeUser, publicId: user.publicId, active: user.status === "ACTIVE", clientAssignments: clients.map((client) => client.publicId) };
 }
 
 async function canAccessClient(user: PortalUser, clientId: number) {
@@ -78,7 +84,7 @@ async function clientEnvironment(user: PortalUser, clientId: number) {
   const [client] = await db.select().from(clientsTable).where(and(eq(clientsTable.id, clientId), eq(clientsTable.active, true))).limit(1);
   if (!client) return null;
   const tools = await db
-    .select({ id: toolsTable.id, name: toolsTable.name, slug: toolsTable.slug, description: toolsTable.description, active: toolsTable.active, createdAt: toolsTable.createdAt, updatedAt: toolsTable.updatedAt })
+    .select({ id: toolsTable.id, publicId: toolsTable.publicId, name: toolsTable.name, slug: toolsTable.slug, description: toolsTable.description, active: toolsTable.active, createdAt: toolsTable.createdAt, updatedAt: toolsTable.updatedAt })
     .from(clientToolsTable)
     .innerJoin(toolsTable, eq(clientToolsTable.toolId, toolsTable.id))
     .where(and(eq(clientToolsTable.clientId, clientId), eq(clientToolsTable.active, true), eq(toolsTable.active, true)))
@@ -90,7 +96,12 @@ async function clientEnvironment(user: PortalUser, clientId: number) {
     projects = projects.filter((p) => allowed.has(p.id));
   }
   const toolIds = new Set(tools.map((tool) => tool.id));
-  return { client, tools, projects: projects.filter((project) => toolIds.has(project.toolId)) };
+  const visibleProjects = projects.filter((project) => toolIds.has(project.toolId));
+  return {
+    client: serializeClient(client),
+    tools: await Promise.all(tools.map(serializeTool)),
+    projects: await Promise.all(visibleProjects.map(serializeProject)),
+  };
 }
 
 async function audit(req: Request, action: string, previousValue: unknown, newValue: unknown, affectedUserId?: number, affectedClientId?: number) {
@@ -102,6 +113,16 @@ async function audit(req: Request, action: string, previousValue: unknown, newVa
     previousValue: previousValue as Record<string, unknown> | null,
     newValue: newValue as Record<string, unknown> | null,
   });
+}
+
+function safeAuditValue(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(safeAuditValue);
+  if (!value || typeof value !== "object") return value;
+  return Object.fromEntries(
+    Object.entries(value)
+      .filter(([key]) => key === "publicId" || key !== "id" && !key.endsWith("Id"))
+      .map(([key, item]) => [key, safeAuditValue(item)]),
+  );
 }
 
 router.get("/portal/access", async (req, res) => {
@@ -117,20 +138,21 @@ router.get("/portal/dashboard", async (req, res) => {
   const clientIds = await assignments(req.portalUser!.id, req.portalUser!.role);
   const clients = clientIds.length ? await db.select().from(clientsTable).where(and(inArray(clientsTable.id, clientIds), eq(clientsTable.active, true))).orderBy(asc(clientsTable.name)) : [];
   const environments = await Promise.all(clients.map((client) => clientEnvironment(req.portalUser!, client.id)));
-  const tools = [...new Map(environments.flatMap((env) => env?.tools ?? []).map((item) => [item.id, item])).values()];
+  const tools = [...new Map(environments.flatMap((env) => env?.tools ?? []).map((item) => [item.publicId, item])).values()];
   const projects = environments.flatMap((env) => env?.projects ?? []);
-  res.json({ clients: req.portalUser!.role === "CLIENT" ? undefined : clients, tools, projects });
+  res.json({ clients: req.portalUser!.role === "CLIENT" ? undefined : clients.map(serializeClient), tools, projects });
 });
 
 router.get("/portal/clients", async (req, res) => {
   const clientIds = await assignments(req.portalUser!.id, req.portalUser!.role);
   const clients = clientIds.length ? await db.select().from(clientsTable).where(and(inArray(clientsTable.id, clientIds), eq(clientsTable.active, true))).orderBy(asc(clientsTable.name)) : [];
-  res.json({ clients });
+  res.json({ clients: clients.map(serializeClient) });
 });
 
 router.get("/portal/clients/:id", async (req, res) => {
-  const id = idOf(req.params.id);
-  const environment = validId(id) ? await clientEnvironment(req.portalUser!, id) : null;
+  const publicId = publicIdOf(req.params.id);
+  const [client] = publicId ? await db.select().from(clientsTable).where(and(eq(clientsTable.publicId, publicId), eq(clientsTable.active, true))).limit(1) : [];
+  const environment = client ? await clientEnvironment(req.portalUser!, client.id) : null;
   if (!environment) return void res.status(404).json({ error: "Client not found." });
   res.json(environment);
 });
@@ -138,17 +160,17 @@ router.get("/portal/clients/:id", async (req, res) => {
 router.get("/portal/tools", async (req, res) => {
   if (req.portalUser!.role === "ADMIN") {
     const tools = await db.select().from(toolsTable).orderBy(asc(toolsTable.name));
-    return void res.json({ tools });
+    return void res.json({ tools: tools.map(serializeTool) });
   }
   const clientIds = await assignments(req.portalUser!.id, req.portalUser!.role);
   if (!clientIds.length) return void res.json({ tools: [] });
   const tools = await db.selectDistinct({
-    id: toolsTable.id, name: toolsTable.name, slug: toolsTable.slug, description: toolsTable.description,
+    id: toolsTable.id, publicId: toolsTable.publicId, name: toolsTable.name, slug: toolsTable.slug, description: toolsTable.description,
     active: toolsTable.active, createdAt: toolsTable.createdAt, updatedAt: toolsTable.updatedAt,
   }).from(clientToolsTable).innerJoin(toolsTable, eq(clientToolsTable.toolId, toolsTable.id)).where(and(
     inArray(clientToolsTable.clientId, clientIds), eq(clientToolsTable.active, true), eq(toolsTable.active, true),
   )).orderBy(asc(toolsTable.name));
-  res.json({ tools });
+  res.json({ tools: await Promise.all(tools.map(serializeTool)) });
 });
 
 router.get("/portal/tools/:slug", async (req, res) => {
@@ -171,17 +193,22 @@ router.get("/portal/tools/:slug", async (req, res) => {
   const clients = enabledIds.length
     ? await db.select().from(clientsTable).where(and(inArray(clientsTable.id, enabledIds), eq(clientsTable.active, true))).orderBy(asc(clientsTable.name))
     : [];
-  res.json({ tool, clients, projects });
+  res.json({
+    tool: serializeTool(tool),
+    clients: clients.map(serializeClient),
+    projects: await Promise.all(projects.map(serializeProject)),
+  });
 });
 
 router.get("/portal/projects/:id", async (req, res) => {
-  const project = await canAccessProject(req.portalUser!, idOf(req.params.id));
+  const publicId = publicIdOf(req.params.id);
+  const [projectRecord] = publicId
+    ? await db.select().from(projectsTable).where(and(eq(projectsTable.publicId, publicId), eq(projectsTable.active, true))).limit(1)
+    : [];
+  const project = projectRecord ? await canAccessProject(req.portalUser!, projectRecord.id) : null;
   if (!project) return void res.status(404).json({ error: "Project not found." });
-  const [[tool], [client]] = await Promise.all([
-    db.select().from(toolsTable).where(eq(toolsTable.id, project.toolId)).limit(1),
-    db.select().from(clientsTable).where(eq(clientsTable.id, project.clientId)).limit(1),
-  ]);
-  res.json({ project, tool, client });
+  const { client, tool } = await projectRelations(project);
+  res.json({ project: await serializeProject(project), tool: serializeTool(tool), client: serializeClient(client) });
 });
 
 router.use("/portal/admin", requireAdmin);
@@ -204,16 +231,17 @@ router.post("/portal/admin/users", async (req, res) => {
     status,
     active: status === "ACTIVE",
   }).returning();
-  await replaceAssignments(created.id, created.role, ids(req.body?.clientAssignments));
-  await replaceProjects(created.id, ids(req.body?.projectIds));
+  await replaceAssignments(created.id, created.role, publicIds(req.body?.clientAssignments));
+  await replaceProjects(created.id, publicIds(req.body?.projectIds));
   await audit(req, "USER_CREATED", null, created, created.id);
   res.status(201).json({ user: await serializeUser(created) });
 });
 
 router.patch("/portal/admin/users/:id", async (req, res) => {
-  const id = idOf(req.params.id);
-  const [current] = await db.select().from(portalUsersTable).where(eq(portalUsersTable.id, id)).limit(1);
+  const publicId = publicIdOf(req.params.id);
+  const [current] = publicId ? await db.select().from(portalUsersTable).where(eq(portalUsersTable.publicId, publicId)).limit(1) : [];
   if (!current) return void res.status(404).json({ error: "User not found." });
+  const id = current.id;
   const nextRole = role(req.body?.role) ?? current.role;
   const requestedStatus = userStatus(req.body?.status);
   const legacyStatus = typeof req.body?.active === "boolean" ? (req.body.active ? "ACTIVE" : "DEACTIVATED") : null;
@@ -235,13 +263,17 @@ router.patch("/portal/admin/users/:id", async (req, res) => {
     } : {}),
     updatedAt: new Date(),
   }).where(eq(portalUsersTable.id, id)).returning();
-  if (Array.isArray(req.body?.clientAssignments) || nextRole !== current.role) await replaceAssignments(id, nextRole, ids(req.body?.clientAssignments));
-  if (Array.isArray(req.body?.projectIds)) await replaceProjects(id, ids(req.body.projectIds));
+  if (Array.isArray(req.body?.clientAssignments) || nextRole !== current.role) await replaceAssignments(id, nextRole, publicIds(req.body?.clientAssignments));
+  if (Array.isArray(req.body?.projectIds)) await replaceProjects(id, publicIds(req.body.projectIds));
   await audit(req, "USER_UPDATED", current, updated, id);
   res.json({ user: await serializeUser(updated) });
 });
 
-async function replaceAssignments(userId: number, userRole: PortalUser["role"], clientIds: number[]) {
+async function replaceAssignments(userId: number, userRole: PortalUser["role"], clientPublicIds: string[]) {
+  const clients = clientPublicIds.length
+    ? await db.select({ id: clientsTable.id }).from(clientsTable).where(inArray(clientsTable.publicId, clientPublicIds))
+    : [];
+  const clientIds = clients.map((client) => client.id);
   await db.transaction(async (tx) => {
     await tx.delete(clientUsersTable).where(eq(clientUsersTable.userId, userId));
     await tx.delete(attorneyClientsTable).where(eq(attorneyClientsTable.attorneyUserId, userId));
@@ -250,7 +282,11 @@ async function replaceAssignments(userId: number, userRole: PortalUser["role"], 
   });
 }
 
-async function replaceProjects(userId: number, projectIds: number[]) {
+async function replaceProjects(userId: number, projectPublicIds: string[]) {
+  const projects = projectPublicIds.length
+    ? await db.select({ id: projectsTable.id }).from(projectsTable).where(inArray(projectsTable.publicId, projectPublicIds))
+    : [];
+  const projectIds = projects.map((project) => project.id);
   await db.transaction(async (tx) => {
     await tx.delete(projectUsersTable).where(eq(projectUsersTable.userId, userId));
     if (projectIds.length) await tx.insert(projectUsersTable).values(projectIds.map((projectId) => ({ userId, projectId })));
@@ -258,48 +294,53 @@ async function replaceProjects(userId: number, projectIds: number[]) {
 }
 
 router.get("/portal/admin/clients", async (_req, res) => {
-  res.json({ clients: await db.select().from(clientsTable).orderBy(asc(clientsTable.name)) });
+  const clients = await db.select().from(clientsTable).orderBy(asc(clientsTable.name));
+  res.json({ clients: clients.map(serializeClient) });
 });
 router.post("/portal/admin/clients", async (req, res) => {
   const name = text(req.body?.name);
   if (!name) return void res.status(400).json({ error: "Client name is required." });
   const [client] = await db.insert(clientsTable).values({ name, active: boolean(req.body?.active, true) }).returning();
   await audit(req, "CLIENT_CREATED", null, client, undefined, client.id);
-  res.status(201).json({ client });
+  res.status(201).json({ client: serializeClient(client) });
 });
 router.patch("/portal/admin/clients/:id", async (req, res) => {
-  const id = idOf(req.params.id);
-  const [current] = await db.select().from(clientsTable).where(eq(clientsTable.id, id)).limit(1);
+  const publicId = publicIdOf(req.params.id);
+  const [current] = publicId ? await db.select().from(clientsTable).where(eq(clientsTable.publicId, publicId)).limit(1) : [];
   if (!current) return void res.status(404).json({ error: "Client not found." });
   const [client] = await db.update(clientsTable).set({
     name: req.body?.name === undefined ? current.name : text(req.body.name, current.name),
     active: boolean(req.body?.active, current.active),
     updatedAt: new Date(),
-  }).where(eq(clientsTable.id, id)).returning();
-  await audit(req, "CLIENT_UPDATED", current, client, undefined, id);
-  res.json({ client });
+  }).where(eq(clientsTable.id, current.id)).returning();
+  await audit(req, "CLIENT_UPDATED", current, client, undefined, current.id);
+  res.json({ client: serializeClient(client) });
 });
 
 router.get("/portal/admin/tools", async (_req, res) => {
-  res.json({ tools: await db.select().from(toolsTable).orderBy(asc(toolsTable.name)) });
+  const tools = await db.select().from(toolsTable).orderBy(asc(toolsTable.name));
+  res.json({ tools: tools.map(serializeTool) });
 });
 router.get("/portal/admin/tool-access", async (_req, res) => {
   const rows = await db
     .select({
-      toolId: clientToolsTable.toolId,
-      clientId: clientsTable.id,
+      toolId: toolsTable.publicId,
+      clientId: clientsTable.publicId,
       clientName: clientsTable.name,
     })
     .from(clientToolsTable)
     .innerJoin(clientsTable, eq(clientToolsTable.clientId, clientsTable.id))
+    .innerJoin(toolsTable, eq(clientToolsTable.toolId, toolsTable.id))
     .where(eq(clientToolsTable.active, true))
     .orderBy(asc(clientsTable.name));
   res.json({ access: rows });
 });
 router.get("/portal/admin/client-tools", async (_req, res) => {
   const rows = await db
-    .select({ clientId: clientToolsTable.clientId, toolId: clientToolsTable.toolId })
+    .select({ clientId: clientsTable.publicId, toolId: toolsTable.publicId })
     .from(clientToolsTable)
+    .innerJoin(clientsTable, eq(clientToolsTable.clientId, clientsTable.id))
+    .innerJoin(toolsTable, eq(clientToolsTable.toolId, toolsTable.id))
     .where(eq(clientToolsTable.active, true));
   res.json({ assignments: rows });
 });
@@ -309,11 +350,11 @@ router.post("/portal/admin/tools", async (req, res) => {
   if (!name || !SLUG.test(slug)) return void res.status(400).json({ error: "Tool name and a valid slug are required." });
   const [tool] = await db.insert(toolsTable).values({ name, slug, description: text(req.body?.description), active: boolean(req.body?.active, true) }).returning();
   await audit(req, "TOOL_CREATED", null, tool);
-  res.status(201).json({ tool });
+  res.status(201).json({ tool: serializeTool(tool) });
 });
 router.patch("/portal/admin/tools/:id", async (req, res) => {
-  const id = idOf(req.params.id);
-  const [current] = await db.select().from(toolsTable).where(eq(toolsTable.id, id)).limit(1);
+  const publicId = publicIdOf(req.params.id);
+  const [current] = publicId ? await db.select().from(toolsTable).where(eq(toolsTable.publicId, publicId)).limit(1) : [];
   if (!current) return void res.status(404).json({ error: "Tool not found." });
   const slug = req.body?.slug === undefined ? current.slug : text(req.body.slug).toLowerCase();
   if (!SLUG.test(slug)) return void res.status(400).json({ error: "A valid slug is required." });
@@ -323,14 +364,21 @@ router.patch("/portal/admin/tools/:id", async (req, res) => {
     description: req.body?.description === undefined ? current.description : text(req.body.description),
     active: boolean(req.body?.active, current.active),
     updatedAt: new Date(),
-  }).where(eq(toolsTable.id, id)).returning();
+  }).where(eq(toolsTable.id, current.id)).returning();
   await audit(req, "TOOL_UPDATED", current, tool);
-  res.json({ tool });
+  res.json({ tool: serializeTool(tool) });
 });
 
 router.put("/portal/admin/clients/:id/tools", async (req, res) => {
-  const clientId = idOf(req.params.id);
-  const toolIds = ids(req.body?.toolIds);
+  const clientPublicId = publicIdOf(req.params.id);
+  const [client] = clientPublicId ? await db.select({ id: clientsTable.id }).from(clientsTable).where(eq(clientsTable.publicId, clientPublicId)).limit(1) : [];
+  const toolPublicIds = publicIds(req.body?.toolIds);
+  const tools = toolPublicIds.length
+    ? await db.select({ id: toolsTable.id }).from(toolsTable).where(inArray(toolsTable.publicId, toolPublicIds))
+    : [];
+  if (!client) return void res.status(404).json({ error: "Client not found." });
+  const clientId = client.id;
+  const toolIds = tools.map((tool) => tool.id);
   await db.transaction(async (tx) => {
     await tx.delete(clientToolsTable).where(eq(clientToolsTable.clientId, clientId));
     if (toolIds.length) await tx.insert(clientToolsTable).values(toolIds.map((toolId) => ({ clientId, toolId, active: true })));
@@ -340,16 +388,18 @@ router.put("/portal/admin/clients/:id/tools", async (req, res) => {
 });
 
 router.post("/portal/admin/projects", async (req, res) => {
-  const clientId = Number(req.body?.clientId);
-  const toolId = Number(req.body?.toolId);
+  const clientPublicId = publicIdOf(req.body?.clientId);
+  const toolPublicId = publicIdOf(req.body?.toolId);
   const name = text(req.body?.name);
-  if (!validId(clientId) || !validId(toolId) || !name) return void res.status(400).json({ error: "Client, tool, and project name are required." });
+  if (!clientPublicId || !toolPublicId || !name) return void res.status(400).json({ error: "Client, tool, and project name are required." });
   const [client, tool] = await Promise.all([
-    db.select().from(clientsTable).where(and(eq(clientsTable.id, clientId), eq(clientsTable.active, true))).limit(1),
-    db.select().from(toolsTable).where(and(eq(toolsTable.id, toolId), eq(toolsTable.active, true))).limit(1),
+    db.select().from(clientsTable).where(and(eq(clientsTable.publicId, clientPublicId), eq(clientsTable.active, true))).limit(1),
+    db.select().from(toolsTable).where(and(eq(toolsTable.publicId, toolPublicId), eq(toolsTable.active, true))).limit(1),
   ]);
   if (!client.length) return void res.status(400).json({ error: "The selected client is not active or does not exist." });
   if (!tool.length) return void res.status(400).json({ error: "The selected tool is not active or does not exist." });
+  const clientId = client[0].id;
+  const toolId = tool[0].id;
   const [project] = await db.transaction(async (tx) => {
     await tx.insert(clientToolsTable).values({
       clientId,
@@ -364,14 +414,15 @@ router.post("/portal/admin/projects", async (req, res) => {
     }).returning();
   });
   await audit(req, "PROJECT_CREATED", null, project, undefined, clientId);
-  res.status(201).json({ project });
+  res.status(201).json({ project: await serializeProject(project) });
 });
 router.get("/portal/admin/projects", async (_req, res) => {
-  res.json({ projects: await db.select().from(projectsTable).orderBy(asc(projectsTable.name)) });
+  const projects = await db.select().from(projectsTable).orderBy(asc(projectsTable.name));
+  res.json({ projects: await Promise.all(projects.map(serializeProject)) });
 });
 router.patch("/portal/admin/projects/:id", async (req, res) => {
-  const id = idOf(req.params.id);
-  const [current] = await db.select().from(projectsTable).where(eq(projectsTable.id, id)).limit(1);
+  const publicId = publicIdOf(req.params.id);
+  const [current] = publicId ? await db.select().from(projectsTable).where(eq(projectsTable.publicId, publicId)).limit(1) : [];
   if (!current) return void res.status(404).json({ error: "Project not found." });
   const [project] = await db.update(projectsTable).set({
     name: req.body?.name === undefined ? current.name : text(req.body.name, current.name),
@@ -379,14 +430,21 @@ router.patch("/portal/admin/projects/:id", async (req, res) => {
     status: req.body?.status === undefined ? current.status : text(req.body.status, current.status),
     active: boolean(req.body?.active, current.active),
     updatedAt: new Date(),
-  }).where(eq(projectsTable.id, id)).returning();
+  }).where(eq(projectsTable.id, current.id)).returning();
   await audit(req, "PROJECT_UPDATED", current, project, undefined, current.clientId);
-  res.json({ project });
+  res.json({ project: await serializeProject(project) });
 });
 
 router.get("/portal/admin/audit", async (_req, res) => {
   const logs = await db.select().from(auditLogsTable).orderBy(desc(auditLogsTable.createdAt)).limit(250);
-  res.json({ logs });
+  res.json({
+    logs: logs.map((log) => ({
+      action: log.action,
+      previousValue: log.previousValue ? JSON.stringify(safeAuditValue(log.previousValue)) : undefined,
+      newValue: log.newValue ? JSON.stringify(safeAuditValue(log.newValue)) : undefined,
+      createdAt: log.createdAt,
+    })),
+  });
 });
 
 export default router;

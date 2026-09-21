@@ -5,7 +5,7 @@ import { SEO } from '@/components/SEO';
 
 export default function PortalClientDetail() {
   const params = useParams();
-  const clientId = parseInt(params.clientId || '0', 10);
+  const clientId = params.clientId || '';
   const { data, isLoading, error } = usePortalClient(clientId);
 
   if (isLoading) {
@@ -30,7 +30,7 @@ export default function PortalClientDetail() {
 
   return (
     <div className="p-8 max-w-7xl mx-auto">
-      <SEO title={client.name} description={`Client portal for ${client.name}`} url={`/portal/clients/${client.id}`} />
+      <SEO title={client.name} description={`Client portal for ${client.name}`} url={`/portal/clients/${client.publicId}`} />
       
       <div className="mb-6">
         <Link href="/portal/clients" className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground">
@@ -60,7 +60,7 @@ export default function PortalClientDetail() {
           </div>
           <div className="grid gap-4">
             {tools.map(tool => (
-              <Link key={tool.id} href={`/portal/tools/${tool.slug}`} className="group rounded-xl border border-border bg-white p-5 shadow-sm transition-all hover:shadow-md hover:border-primary">
+              <Link key={tool.publicId} href={`/portal/tools/${tool.slug}`} className="group rounded-xl border border-border bg-white p-5 shadow-sm transition-all hover:shadow-md hover:border-primary">
                 <div className="flex items-start justify-between">
                   <div>
                     <h3 className="font-semibold text-foreground">{tool.name}</h3>
@@ -86,9 +86,9 @@ export default function PortalClientDetail() {
           </div>
           <div className="grid gap-4">
             {projects.map(project => {
-              const tool = tools.find(t => t.id === project.toolId);
+              const tool = tools.find(t => t.publicId === project.toolId);
               return (
-                <Link href={`/portal/projects/${project.id}`} key={project.id} className="block rounded-xl border border-border bg-white p-5 shadow-sm transition hover:border-primary hover:shadow-md">
+                <Link href={`/portal/projects/${project.publicId}`} key={project.publicId} className="block rounded-xl border border-border bg-white p-5 shadow-sm transition hover:border-primary hover:shadow-md">
                   <div className="flex items-start justify-between mb-2">
                     <h3 className="font-semibold text-foreground">{project.name}</h3>
                     <span className="inline-flex items-center rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">

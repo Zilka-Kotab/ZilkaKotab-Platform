@@ -2,23 +2,23 @@ export type Role = 'CLIENT' | 'ATTORNEY' | 'ADMIN';
 export type UserStatus = 'PENDING' | 'ACTIVE' | 'DEACTIVATED';
 
 export interface PortalUser {
-  id: number;
+  publicId: string;
   email: string;
   name: string;
   role: Role;
   status: UserStatus;
   active: boolean;
-  clientAssignments: number[]; // Client IDs
+  clientAssignments: string[]; // Client public IDs
 }
 
 export interface Client {
-  id: number;
+  publicId: string;
   name: string;
   active: boolean;
 }
 
 export interface Tool {
-  id: number;
+  publicId: string;
   name: string;
   slug: string;
   description: string;
@@ -26,9 +26,9 @@ export interface Tool {
 }
 
 export interface Project {
-  id: number;
-  clientId: number;
-  toolId: number;
+  publicId: string;
+  clientId: string;
+  toolId: string;
   name: string;
   description: string;
   status: string;
@@ -41,14 +41,14 @@ export type AnalysisTriage = 'HIGH' | 'MEDIUM' | 'LOW';
 export type AnalysisReviewStatus = 'UNREVIEWED' | 'CLIENT_REVIEWED' | 'ATTORNEY_REVIEWED' | 'FINAL';
 
 export interface ProjectAiConfig {
-  projectId: number;
+  projectId: string;
   selectedProvider: AiProcessingProvider;
   allowedProviders: AiProcessingProvider[];
 }
 
 export interface PatentClaim {
-  id: number;
-  patentId: number;
+  publicId: string;
+  patentId: string;
   claimNumber: string;
   version: number;
   claimText: string;
@@ -56,8 +56,8 @@ export interface PatentClaim {
 }
 
 export interface MonitoredPatent {
-  id: number;
-  projectId: number;
+  publicId: string;
+  projectId: string;
   patentNumber: string;
   title: string;
   jurisdiction: string;
@@ -67,8 +67,8 @@ export interface MonitoredPatent {
 }
 
 export interface WorkspaceItem {
-  id: number;
-  projectId: number;
+  publicId: string;
+  projectId: string;
   title: string;
   itemType: string;
   content: string;
@@ -78,8 +78,8 @@ export interface WorkspaceItem {
 }
 
 export interface AnalysisReview {
-  id: number;
-  analysisRunId: number;
+  publicId: string;
+  analysisRunId: string;
   status: AnalysisReviewStatus;
   note: string;
   classification: DataClassification;
@@ -87,10 +87,10 @@ export interface AnalysisReview {
 }
 
 export interface AnalysisRun {
-  id: number;
-  projectId: number;
-  patentId?: number | null;
-  claimId?: number | null;
+  publicId: string;
+  projectId: string;
+  patentId?: string | null;
+  claimId?: string | null;
   provider: AiProcessingProvider;
   triage: AnalysisTriage;
   reviewStatus: AnalysisReviewStatus;
@@ -112,11 +112,7 @@ export interface ProjectWorkspace {
 }
 
 export interface AuditEntry {
-  id: number;
-  adminId: number;
   action: string;
-  affectedUserId?: number;
-  affectedClientId?: number;
   previousValue?: string;
   newValue?: string;
   createdAt: string;
@@ -155,40 +151,40 @@ export const getPortalUser = () => fetchPortal<{ user: PortalUser | null }>('/ac
 export const getDashboard = () => fetchPortal<{ tools: Tool[], projects: Project[], clients?: Client[] }>('/dashboard');
 
 export const getClients = () => fetchPortal<{ clients: Client[] }>('/clients');
-export const getClient = (id: number) => fetchPortal<{ client: Client, tools: Tool[], projects: Project[] }>(`/clients/${id}`);
+export const getClient = (publicId: string) => fetchPortal<{ client: Client, tools: Tool[], projects: Project[] }>(`/clients/${publicId}`);
 
 export const getTools = () => fetchPortal<{ tools: Tool[] }>('/tools');
 export const getTool = (slug: string) => fetchPortal<{ tool: Tool, clients: Client[], projects: Project[] }>(`/tools/${slug}`);
 
-export const getProject = (id: number) => fetchPortal<{ project: Project, tool: Tool, client: Client }>(`/projects/${id}`);
-export const getProjectWorkspace = (id: number) => fetchPortal<ProjectWorkspace>(`/projects/${id}/workspace`);
-export const createWorkspaceItem = (projectId: number, data: Pick<WorkspaceItem, 'title' | 'itemType' | 'content' | 'classification'> & { sourceUrl?: string }) =>
+export const getProject = (publicId: string) => fetchPortal<{ project: Project, tool: Tool, client: Client }>(`/projects/${publicId}`);
+export const getProjectWorkspace = (publicId: string) => fetchPortal<ProjectWorkspace>(`/projects/${publicId}/workspace`);
+export const createWorkspaceItem = (projectId: string, data: Pick<WorkspaceItem, 'title' | 'itemType' | 'content' | 'classification'> & { sourceUrl?: string }) =>
   fetchPortal<{ item: WorkspaceItem }>(`/projects/${projectId}/workspace-items`, { method: 'POST', body: JSON.stringify(data) });
-export const createManualAnalysis = (projectId: number, data: { summary: string; triage: AnalysisTriage; patentId?: number; claimId?: number }) =>
+export const createManualAnalysis = (projectId: string, data: { summary: string; triage: AnalysisTriage; patentId?: string; claimId?: string }) =>
   fetchPortal<{ run: AnalysisRun }>(`/projects/${projectId}/analysis-runs`, { method: 'POST', body: JSON.stringify(data) });
-export const createPatent = (projectId: number, data: { patentNumber: string; title: string; jurisdiction: string; sourceUrl?: string }) =>
+export const createPatent = (projectId: string, data: { patentNumber: string; title: string; jurisdiction: string; sourceUrl?: string }) =>
   fetchPortal<{ patent: MonitoredPatent }>(`/projects/${projectId}/patents`, { method: 'POST', body: JSON.stringify(data) });
-export const createAnalysisReview = (runId: number, data: { status: AnalysisReviewStatus; note?: string }) =>
+export const createAnalysisReview = (runId: string, data: { status: AnalysisReviewStatus; note?: string }) =>
   fetchPortal<{ review: AnalysisReview }>(`/analysis-runs/${runId}/reviews`, { method: 'POST', body: JSON.stringify(data) });
-export const updateProjectAiConfig = (projectId: number, data: Pick<ProjectAiConfig, 'selectedProvider' | 'allowedProviders'>) =>
+export const updateProjectAiConfig = (projectId: string, data: Pick<ProjectAiConfig, 'selectedProvider' | 'allowedProviders'>) =>
   fetchPortal<{ aiConfig: ProjectAiConfig }>(`/projects/${projectId}/ai-config`, { method: 'PUT', body: JSON.stringify(data) });
 
 // Admin Queries
 export const getAdminUsers = () => fetchPortal<{ users: PortalUser[] }>('/admin/users');
 export const getAdminAuditLogs = () => fetchPortal<{ logs: AuditEntry[] }>('/admin/audit');
 export const getAdminProjects = () => fetchPortal<{ projects: Project[] }>('/admin/projects');
-export const getAdminToolAccess = () => fetchPortal<{ access: { toolId: number; clientId: number; clientName: string }[] }>('/admin/tool-access');
-export const getAdminClientTools = () => fetchPortal<{ assignments: { clientId: number; toolId: number }[] }>('/admin/client-tools');
+export const getAdminToolAccess = () => fetchPortal<{ access: { toolId: string; clientId: string; clientName: string }[] }>('/admin/tool-access');
+export const getAdminClientTools = () => fetchPortal<{ assignments: { clientId: string; toolId: string }[] }>('/admin/client-tools');
 
 // Admin Mutations
 export const createAdminUser = (data: Partial<PortalUser>) => fetchPortal<{ user: PortalUser }>('/admin/users', { method: 'POST', body: JSON.stringify(data) });
-export const updateAdminUser = (id: number, data: Partial<PortalUser>) => fetchPortal<{ user: PortalUser }>(`/admin/users/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
+export const updateAdminUser = (publicId: string, data: Partial<PortalUser>) => fetchPortal<{ user: PortalUser }>(`/admin/users/${publicId}`, { method: 'PATCH', body: JSON.stringify(data) });
 
 export const createAdminClient = (data: Partial<Client>) => fetchPortal<{ client: Client }>('/admin/clients', { method: 'POST', body: JSON.stringify(data) });
-export const updateAdminClient = (id: number, data: Partial<Client>) => fetchPortal<{ client: Client }>(`/admin/clients/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
+export const updateAdminClient = (publicId: string, data: Partial<Client>) => fetchPortal<{ client: Client }>(`/admin/clients/${publicId}`, { method: 'PATCH', body: JSON.stringify(data) });
 
-export const updateTool = (id: number, data: Partial<Tool>) => fetchPortal<{ tool: Tool }>(`/admin/tools/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
+export const updateTool = (publicId: string, data: Partial<Tool>) => fetchPortal<{ tool: Tool }>(`/admin/tools/${publicId}`, { method: 'PATCH', body: JSON.stringify(data) });
 export const createTool = (data: Partial<Tool>) => fetchPortal<{ tool: Tool }>('/admin/tools', { method: 'POST', body: JSON.stringify(data) });
-export const setClientTools = (clientId: number, toolIds: number[]) => fetchPortal<{ success: true }>(`/admin/clients/${clientId}/tools`, { method: 'PUT', body: JSON.stringify({ toolIds }) });
+export const setClientTools = (clientId: string, toolIds: string[]) => fetchPortal<{ success: true }>(`/admin/clients/${clientId}/tools`, { method: 'PUT', body: JSON.stringify({ toolIds }) });
 export const createProject = (data: Partial<Project>) => fetchPortal<{ project: Project }>('/admin/projects', { method: 'POST', body: JSON.stringify(data) });
-export const updateProject = (id: number, data: Partial<Project>) => fetchPortal<{ project: Project }>(`/admin/projects/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
+export const updateProject = (publicId: string, data: Partial<Project>) => fetchPortal<{ project: Project }>(`/admin/projects/${publicId}`, { method: 'PATCH', body: JSON.stringify(data) });

@@ -40,7 +40,7 @@ export default function PortalClients() {
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {data.clients.map(client => (
-          <Link key={client.id} href={`/portal/clients/${client.id}`} className="group rounded-xl border border-border bg-white p-6 shadow-sm transition-all hover:shadow-md hover:border-primary">
+          <Link key={client.publicId} href={`/portal/clients/${client.publicId}`} className="group rounded-xl border border-border bg-white p-6 shadow-sm transition-all hover:shadow-md hover:border-primary">
             <div className="flex items-start justify-between">
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted group-hover:bg-primary/10 transition-colors">

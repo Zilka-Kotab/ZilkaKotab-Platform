@@ -23,7 +23,7 @@ const classificationLabels = {
 };
 
 export default function ProjectWorkspace() {
-  const projectId = Number(useParams().projectId ?? 0);
+  const projectId = useParams().projectId ?? '';
   const { data, isLoading, error } = useProjectWorkspace(projectId);
   const { data: access } = usePortalAccess();
   const createItem = useCreateWorkspaceItem(projectId);
@@ -72,7 +72,7 @@ export default function ProjectWorkspace() {
         <section className="rounded-2xl border border-border bg-white shadow-sm lg:col-span-2">
           <div className="flex items-center justify-between border-b border-border p-5"><div className="flex items-center gap-2"><Scale className="h-5 w-5 text-primary" /><h2 className="font-semibold">Monitored patents</h2></div><span className="text-sm text-muted-foreground">{data.patents.length}</span></div>
           <div className="divide-y divide-border">
-            {data.patents.map((entry) => <div key={entry.id} className="p-5"><div className="flex justify-between gap-4"><div><p className="font-semibold">{entry.patentNumber}</p><p className="text-sm text-muted-foreground">{entry.title}</p></div><span className="text-xs text-muted-foreground">{entry.jurisdiction}</span></div><p className="mt-3 text-xs font-medium text-muted-foreground">{entry.claims.length} claim version{entry.claims.length === 1 ? '' : 's'}</p></div>)}
+            {data.patents.map((entry) => <div key={entry.publicId} className="p-5"><div className="flex justify-between gap-4"><div><p className="font-semibold">{entry.patentNumber}</p><p className="text-sm text-muted-foreground">{entry.title}</p></div><span className="text-xs text-muted-foreground">{entry.jurisdiction}</span></div><p className="mt-3 text-xs font-medium text-muted-foreground">{entry.claims.length} claim version{entry.claims.length === 1 ? '' : 's'}</p></div>)}
             {!data.patents.length && <p className="p-8 text-center text-sm text-muted-foreground">No patents are being monitored yet.</p>}
           </div>
           <form onSubmit={submitPatent} className="grid gap-3 border-t border-border bg-muted/20 p-5 md:grid-cols-3">
@@ -94,7 +94,7 @@ export default function ProjectWorkspace() {
         <section className="rounded-2xl border border-border bg-white shadow-sm lg:col-span-2">
           <div className="flex items-center justify-between border-b border-border p-5"><div className="flex items-center gap-2"><FileSearch className="h-5 w-5 text-primary" /><h2 className="font-semibold">Project evidence and records</h2></div><span className="text-sm text-muted-foreground">{data.workspaceItems.length}</span></div>
           <div className="divide-y divide-border">
-            {data.workspaceItems.map((record) => <article key={record.id} className="p-5"><div className="flex flex-wrap items-center justify-between gap-2"><h3 className="font-semibold">{record.title}</h3><span className="rounded-full bg-muted px-2.5 py-1 text-xs font-medium">{classificationLabels[record.classification]}</span></div><p className="mt-2 whitespace-pre-wrap text-sm text-muted-foreground">{record.content}</p></article>)}
+            {data.workspaceItems.map((record) => <article key={record.publicId} className="p-5"><div className="flex flex-wrap items-center justify-between gap-2"><h3 className="font-semibold">{record.title}</h3><span className="rounded-full bg-muted px-2.5 py-1 text-xs font-medium">{classificationLabels[record.classification]}</span></div><p className="mt-2 whitespace-pre-wrap text-sm text-muted-foreground">{record.content}</p></article>)}
             {!data.workspaceItems.length && <p className="p-8 text-center text-sm text-muted-foreground">No evidence or project records have been added.</p>}
           </div>
           <form onSubmit={submitItem} className="space-y-3 border-t border-border bg-muted/20 p-5">
@@ -107,7 +107,7 @@ export default function ProjectWorkspace() {
         <section className="rounded-2xl border border-border bg-white shadow-sm">
           <div className="flex items-center gap-2 border-b border-border p-5"><BrainCircuit className="h-5 w-5 text-primary" /><h2 className="font-semibold">Analysis history</h2></div>
           <div className="divide-y divide-border">
-            {data.analysisRuns.map((run) => <article key={run.id} className="p-5"><div className="flex items-center justify-between gap-3"><span className={`rounded-full px-2.5 py-1 text-xs font-bold ${run.triage === 'HIGH' ? 'bg-red-100 text-red-800' : run.triage === 'MEDIUM' ? 'bg-amber-100 text-amber-800' : 'bg-green-100 text-green-800'}`}>{run.triage}</span><span className="text-xs text-muted-foreground">{new Date(run.createdAt).toLocaleDateString()}</span></div><p className="mt-3 text-sm">{run.summary}</p><p className="mt-2 text-xs text-muted-foreground">{run.provider} · {run.reviews.at(-1)?.status ?? run.reviewStatus}</p></article>)}
+            {data.analysisRuns.map((run) => <article key={run.publicId} className="p-5"><div className="flex items-center justify-between gap-3"><span className={`rounded-full px-2.5 py-1 text-xs font-bold ${run.triage === 'HIGH' ? 'bg-red-100 text-red-800' : run.triage === 'MEDIUM' ? 'bg-amber-100 text-amber-800' : 'bg-green-100 text-green-800'}`}>{run.triage}</span><span className="text-xs text-muted-foreground">{new Date(run.createdAt).toLocaleDateString()}</span></div><p className="mt-3 text-sm">{run.summary}</p><p className="mt-2 text-xs text-muted-foreground">{run.provider} · {run.reviews.at(-1)?.status ?? run.reviewStatus}</p></article>)}
             {!data.analysisRuns.length && <p className="p-8 text-center text-sm text-muted-foreground">No analysis runs have been recorded.</p>}
           </div>
           {data.aiConfig.selectedProvider === 'MANUAL' && <form onSubmit={submitAnalysis} className="space-y-3 border-t border-border bg-muted/20 p-5"><select value={analysis.triage} onChange={(e) => setAnalysis({ ...analysis, triage: e.target.value as AnalysisTriage })} className="w-full rounded-md border border-input bg-white px-3 py-2 text-sm"><option value="HIGH">High</option><option value="MEDIUM">Medium</option><option value="LOW">Low</option></select><textarea required value={analysis.summary} onChange={(e) => setAnalysis({ ...analysis, summary: e.target.value })} placeholder="Manual limitation-analysis summary" className="min-h-24 w-full rounded-md border border-input bg-white px-3 py-2 text-sm" /><button disabled={createRun.isPending} className="w-full rounded-md bg-primary px-4 py-2 text-sm font-medium text-white disabled:opacity-50">Record immutable analysis</button></form>}

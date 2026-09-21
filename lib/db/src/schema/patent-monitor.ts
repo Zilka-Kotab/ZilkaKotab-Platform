@@ -9,6 +9,7 @@ import {
   text,
   timestamp,
   uniqueIndex,
+  uuid,
   varchar,
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
@@ -44,6 +45,7 @@ export const monitoredPatentsTable = pgTable(
   "monitored_patents",
   {
     id: serial("id").primaryKey(),
+    publicId: uuid("public_id").defaultRandom().notNull(),
     projectId: integer("project_id").notNull().references(() => projectsTable.id, { onDelete: "cascade" }),
     patentNumber: varchar("patent_number", { length: 100 }).notNull(),
     title: text("title").notNull(),
@@ -53,6 +55,7 @@ export const monitoredPatentsTable = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
+    uniqueIndex("monitored_patents_public_id_unique").on(table.publicId),
     uniqueIndex("monitored_patents_project_number_unique").on(table.projectId, table.patentNumber),
     index("monitored_patents_project_idx").on(table.projectId),
   ],
@@ -62,6 +65,7 @@ export const patentClaimsTable = pgTable(
   "patent_claims",
   {
     id: serial("id").primaryKey(),
+    publicId: uuid("public_id").defaultRandom().notNull(),
     patentId: integer("patent_id").notNull().references(() => monitoredPatentsTable.id, { onDelete: "cascade" }),
     claimNumber: varchar("claim_number", { length: 40 }).notNull(),
     version: integer("version").notNull().default(1),
@@ -70,6 +74,7 @@ export const patentClaimsTable = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
+    uniqueIndex("patent_claims_public_id_unique").on(table.publicId),
     uniqueIndex("patent_claims_patent_number_version_unique").on(table.patentId, table.claimNumber, table.version),
     index("patent_claims_patent_idx").on(table.patentId),
   ],
@@ -79,6 +84,7 @@ export const projectWorkspaceItemsTable = pgTable(
   "project_workspace_items",
   {
     id: serial("id").primaryKey(),
+    publicId: uuid("public_id").defaultRandom().notNull(),
     projectId: integer("project_id").notNull().references(() => projectsTable.id, { onDelete: "cascade" }),
     title: text("title").notNull(),
     itemType: varchar("item_type", { length: 80 }).notNull(),
@@ -89,6 +95,7 @@ export const projectWorkspaceItemsTable = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
+    uniqueIndex("project_workspace_items_public_id_unique").on(table.publicId),
     index("project_workspace_items_project_idx").on(table.projectId),
     index("project_workspace_items_classification_idx").on(table.classification),
   ],
@@ -98,6 +105,7 @@ export const analysisRunsTable = pgTable(
   "analysis_runs",
   {
     id: serial("id").primaryKey(),
+    publicId: uuid("public_id").defaultRandom().notNull(),
     projectId: integer("project_id").notNull().references(() => projectsTable.id, { onDelete: "cascade" }),
     patentId: integer("patent_id").references(() => monitoredPatentsTable.id, { onDelete: "set null" }),
     claimId: integer("claim_id").references(() => patentClaimsTable.id, { onDelete: "set null" }),
@@ -113,6 +121,7 @@ export const analysisRunsTable = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
+    uniqueIndex("analysis_runs_public_id_unique").on(table.publicId),
     index("analysis_runs_project_created_idx").on(table.projectId, table.createdAt),
     index("analysis_runs_patent_idx").on(table.patentId),
   ],
@@ -122,6 +131,7 @@ export const analysisReviewsTable = pgTable(
   "analysis_reviews",
   {
     id: serial("id").primaryKey(),
+    publicId: uuid("public_id").defaultRandom().notNull(),
     analysisRunId: integer("analysis_run_id").notNull().references(() => analysisRunsTable.id, { onDelete: "cascade" }),
     status: analysisReviewStatusEnum("status").notNull(),
     note: text("note").notNull().default(""),
@@ -129,7 +139,10 @@ export const analysisReviewsTable = pgTable(
     reviewerId: integer("reviewer_id").notNull().references(() => portalUsersTable.id),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (table) => [index("analysis_reviews_run_created_idx").on(table.analysisRunId, table.createdAt)],
+  (table) => [
+    uniqueIndex("analysis_reviews_public_id_unique").on(table.publicId),
+    index("analysis_reviews_run_created_idx").on(table.analysisRunId, table.createdAt),
+  ],
 );
 
 export const insertProjectAiConfigSchema = createInsertSchema(projectAiConfigsTable);

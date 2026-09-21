@@ -155,13 +155,13 @@ function UsersAdmin() {
           </thead>
           <tbody className="divide-y divide-border">
             {data.users.map(user => (
-              <tr key={user.id} className="hover:bg-muted/10">
+              <tr key={user.publicId} className="hover:bg-muted/10">
                 <td className="px-6 py-4 font-medium text-foreground">{user.name || '—'}</td>
                 <td className="px-6 py-4 text-muted-foreground">{user.email}</td>
                 <td className="px-6 py-4">
                   <select 
                     value={user.role} 
-                    onChange={e => updateMutation.mutate({ id: user.id, data: { role: e.target.value as Role } })}
+                    onChange={e => updateMutation.mutate({ id: user.publicId, data: { role: e.target.value as Role } })}
                     disabled={updateMutation.isPending}
                     className="rounded-md border border-border px-2 py-1 text-xs"
                   >
@@ -173,7 +173,7 @@ function UsersAdmin() {
                 <td className="px-6 py-4">
                   <select
                     value={user.status}
-                    onChange={event => updateMutation.mutate({ id: user.id, data: { status: event.target.value as UserStatus } })}
+                    onChange={event => updateMutation.mutate({ id: user.publicId, data: { status: event.target.value as UserStatus } })}
                     disabled={updateMutation.isPending}
                     className="rounded-md border border-border px-2 py-1 text-xs"
                   >
@@ -190,13 +190,13 @@ function UsersAdmin() {
                       multiple
                       value={user.clientAssignments.map(String)}
                       onChange={(event) => updateMutation.mutate({
-                        id: user.id,
-                        data: { clientAssignments: Array.from(event.currentTarget.selectedOptions, option => Number(option.value)) },
+                         id: user.publicId,
+                         data: { clientAssignments: Array.from(event.currentTarget.selectedOptions, option => option.value) },
                       })}
                       className="h-20 w-full rounded-md border border-border px-2 py-1 text-xs"
                       aria-label={`Client assignments for ${user.name}`}
                     >
-                      {clientsData?.clients.map(client => <option key={client.id} value={client.id}>{client.name}</option>)}
+                      {clientsData?.clients.map(client => <option key={client.publicId} value={client.publicId}>{client.name}</option>)}
                     </select>
                   )}
                 </td>
@@ -221,7 +221,7 @@ function ClientsAdmin() {
   const tools = usePortalTools();
   const setTools = useSetClientTools();
   const assignedTools = useAdminClientTools();
-  const [toolSelections, setToolSelections] = useState<Record<number, number[]>>({});
+  const [toolSelections, setToolSelections] = useState<Record<string, string[]>>({});
   
   const [name, setName] = useState('');
   
@@ -261,7 +261,6 @@ function ClientsAdmin() {
         <table className="w-full text-left text-sm">
           <thead className="bg-muted/30 text-xs uppercase text-muted-foreground">
             <tr>
-              <th className="px-6 py-3 font-medium">ID</th>
               <th className="px-6 py-3 font-medium">Name</th>
               <th className="px-6 py-3 font-medium">Status</th>
               <th className="px-6 py-3 font-medium">Actions</th>
@@ -269,12 +268,11 @@ function ClientsAdmin() {
           </thead>
           <tbody className="divide-y divide-border">
             {data.clients.map(client => (
-              <tr key={client.id} className="hover:bg-muted/10">
-                <td className="px-6 py-4 text-muted-foreground">#{client.id}</td>
+              <tr key={client.publicId} className="hover:bg-muted/10">
                 <td className="px-6 py-4 font-medium text-foreground">{client.name}</td>
                 <td className="px-6 py-4">
                   <button
-                    onClick={() => updateMutation.mutate({ id: client.id, data: { active: !client.active } })}
+                    onClick={() => updateMutation.mutate({ id: client.publicId, data: { active: !client.active } })}
                     disabled={updateMutation.isPending}
                     className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold transition-colors ${
                       client.active ? 'bg-green-100 text-green-800 hover:bg-green-200' : 'bg-red-100 text-red-800 hover:bg-red-200'
@@ -287,20 +285,20 @@ function ClientsAdmin() {
                   <div className="flex items-center gap-2">
                     <select
                       multiple
-                      value={(toolSelections[client.id] ?? assignedTools.data?.assignments.filter(item => item.clientId === client.id).map(item => item.toolId) ?? []).map(String)}
+                      value={toolSelections[client.publicId] ?? assignedTools.data?.assignments.filter(item => item.clientId === client.publicId).map(item => item.toolId) ?? []}
                       onChange={(event) => setToolSelections(current => ({
                         ...current,
-                        [client.id]: Array.from(event.currentTarget.selectedOptions, option => Number(option.value)),
+                        [client.publicId]: Array.from(event.currentTarget.selectedOptions, option => option.value),
                       }))}
                       className="h-20 min-w-44 rounded-md border border-border px-2 py-1 text-xs"
                       aria-label={`Tools for ${client.name}`}
                     >
-                      {tools.data?.tools.map(tool => <option key={tool.id} value={tool.id}>{tool.name}</option>)}
+                      {tools.data?.tools.map(tool => <option key={tool.publicId} value={tool.publicId}>{tool.name}</option>)}
                     </select>
                     <button
                       onClick={() => setTools.mutate({
-                        clientId: client.id,
-                        toolIds: toolSelections[client.id] ?? assignedTools.data?.assignments.filter(item => item.clientId === client.id).map(item => item.toolId) ?? [],
+                        clientId: client.publicId,
+                        toolIds: toolSelections[client.publicId] ?? assignedTools.data?.assignments.filter(item => item.clientId === client.publicId).map(item => item.toolId) ?? [],
                       })}
                       className="text-primary hover:underline font-medium"
                     >Save tools</button>
@@ -360,16 +358,16 @@ function ToolsAdmin() {
           </thead>
           <tbody className="divide-y divide-border">
             {data.tools.map(tool => (
-              <tr key={tool.id} className="hover:bg-muted/10">
+              <tr key={tool.publicId} className="hover:bg-muted/10">
                 <td className="px-6 py-4 font-medium text-foreground">{tool.name}</td>
                 <td className="px-6 py-4 text-muted-foreground">{tool.slug}</td>
                 <td className="px-6 py-4 text-muted-foreground max-w-xs truncate">{tool.description}</td>
                 <td className="px-6 py-4 text-muted-foreground">
-                  {access.data?.access.filter(item => item.toolId === tool.id).map(item => item.clientName).join(', ') || 'None'}
+                  {access.data?.access.filter(item => item.toolId === tool.publicId).map(item => item.clientName).join(', ') || 'None'}
                 </td>
                 <td className="px-6 py-4">
                   <button
-                    onClick={() => updateMutation.mutate({ id: tool.id, data: { active: !tool.active } })}
+                    onClick={() => updateMutation.mutate({ id: tool.publicId, data: { active: !tool.active } })}
                     disabled={updateMutation.isPending}
                     className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold transition-colors ${
                       tool.active ? 'bg-green-100 text-green-800 hover:bg-green-200' : 'bg-red-100 text-red-800 hover:bg-red-200'
@@ -407,10 +405,10 @@ function ProjectsAdmin() {
   
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
-  const [clientId, setClientId] = useState<number>(0);
-  const requestedToolId = Number(new URLSearchParams(window.location.search).get('toolId'));
-  const [toolId, setToolId] = useState<number>(requestedToolId > 0 ? requestedToolId : 0);
-  const lockedTool = requestedToolId > 0 ? toolsData?.tools.find(tool => tool.id === requestedToolId) : undefined;
+  const [clientId, setClientId] = useState('');
+  const requestedToolId = new URLSearchParams(window.location.search).get('toolId') ?? '';
+  const [toolId, setToolId] = useState(requestedToolId);
+  const lockedTool = requestedToolId ? toolsData?.tools.find(tool => tool.publicId === requestedToolId) : undefined;
   
   const isReady = clientsData && toolsData;
 
@@ -421,7 +419,7 @@ function ProjectsAdmin() {
       onSuccess: ({ project }) => {
         setName('');
         setDescription('');
-        navigate(`/portal/projects/${project.id}`);
+        navigate(`/portal/projects/${project.publicId}`);
       }
     });
   };
@@ -438,11 +436,11 @@ function ProjectsAdmin() {
           <div className="lg:col-span-1">
             <label className="mb-1 block text-xs font-medium text-muted-foreground">Client</label>
             <select 
-              value={clientId} onChange={e => setClientId(Number(e.target.value))} required
+               value={clientId} onChange={e => setClientId(e.target.value)} required
               className="w-full rounded-md border border-border px-3 py-2 text-sm"
             >
-              <option value={0} disabled>Select Client</option>
-               {clientsData.clients.filter(client => client.active).map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+               <option value="" disabled>Select Client</option>
+                {clientsData.clients.filter(client => client.active).map(c => <option key={c.publicId} value={c.publicId}>{c.name}</option>)}
             </select>
           </div>
           <div className="lg:col-span-1">
@@ -453,11 +451,11 @@ function ProjectsAdmin() {
                </div>
              ) : (
                <select
-                 value={toolId} onChange={e => setToolId(Number(e.target.value))} required
+                  value={toolId} onChange={e => setToolId(e.target.value)} required
                  className="w-full rounded-md border border-border px-3 py-2 text-sm"
                >
-                 <option value={0} disabled>Select Tool</option>
-                 {toolsData.tools.filter(tool => tool.active).map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                  <option value="" disabled>Select Tool</option>
+                  {toolsData.tools.filter(tool => tool.active).map(t => <option key={t.publicId} value={t.publicId}>{t.name}</option>)}
                </select>
              )}
           </div>
@@ -498,13 +496,13 @@ function ProjectsAdmin() {
           </thead>
           <tbody className="divide-y divide-border">
             {projects.data?.projects.map(project => (
-              <tr key={project.id}>
+              <tr key={project.publicId}>
                 <td className="px-6 py-4 font-medium">{project.name}</td>
-                <td className="px-6 py-4 text-muted-foreground">#{project.clientId}</td>
-                <td className="px-6 py-4 text-muted-foreground">#{project.toolId}</td>
+                <td className="px-6 py-4 text-muted-foreground">{clientsData.clients.find(client => client.publicId === project.clientId)?.name ?? '—'}</td>
+                <td className="px-6 py-4 text-muted-foreground">{toolsData.tools.find(tool => tool.publicId === project.toolId)?.name ?? '—'}</td>
                 <td className="px-6 py-4">
                   <button
-                    onClick={() => updateMutation.mutate({ id: project.id, data: { active: !project.active } })}
+                    onClick={() => updateMutation.mutate({ id: project.publicId, data: { active: !project.active } })}
                     className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${project.active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}
                   >{project.active ? project.status : 'Inactive'}</button>
                 </td>
@@ -530,26 +528,24 @@ function AuditAdmin() {
         <thead className="bg-muted/30 text-xs uppercase text-muted-foreground">
           <tr>
             <th className="px-6 py-3 font-medium">Time</th>
-            <th className="px-6 py-3 font-medium">Admin ID</th>
+            <th className="px-6 py-3 font-medium">Actor</th>
             <th className="px-6 py-3 font-medium">Action</th>
             <th className="px-6 py-3 font-medium">Details</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-border">
           {data.logs.map(log => (
-            <tr key={log.id} className="hover:bg-muted/10">
+            <tr key={`${log.createdAt}-${log.action}`}>
               <td className="px-6 py-4 text-muted-foreground whitespace-nowrap">
                 {new Date(log.createdAt).toLocaleString()}
               </td>
-              <td className="px-6 py-4 text-foreground">Admin #{log.adminId}</td>
+              <td className="px-6 py-4 text-foreground">Administrator</td>
               <td className="px-6 py-4">
                 <span className="inline-flex items-center rounded-md bg-muted px-2 py-1 text-xs font-medium text-foreground">
                   {log.action}
                 </span>
               </td>
               <td className="px-6 py-4 text-muted-foreground text-xs">
-                {log.affectedUserId && `User: #${log.affectedUserId} `}
-                {log.affectedClientId && `Client: #${log.affectedClientId} `}
                 {log.previousValue && `From: ${log.previousValue} `}
                 {log.newValue && `To: ${log.newValue}`}
               </td>

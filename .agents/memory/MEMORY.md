@@ -2,3 +2,4 @@
 - [Wouter root catch-all](wouter-root-catch-all.md) — a `/:rest*` wrapper may exclude `/`; use a final pathless route after specific routes.
 - [Patent Monitor data boundaries](patent-monitor-data-boundaries.md) — preserve append-only analysis provenance and enforce classification filtering server-side.
 - [First-party production seeds](first-party-production-seeds.md) — required catalog records must be created idempotently at startup; Publish does not copy development rows.
+- [Runtime schema verification](runtime-schema-verification.md) — after schema changes, verify the live workflow database columns before restarting services.

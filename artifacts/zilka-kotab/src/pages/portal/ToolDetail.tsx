@@ -61,7 +61,7 @@ export default function PortalToolDetail() {
         <p className="mt-1 text-sm text-muted-foreground">
           Select a client context by opening one of its projects below. Access is limited to the clients assigned to your portal account.
         </p>
-        {clients.length > 0 && <div className="mt-3 flex flex-wrap gap-2">{clients.map(client => <Link key={client.id} href={`/portal/clients/${client.id}`} className="rounded-full border border-primary/20 bg-white px-3 py-1 text-xs font-medium text-foreground transition-colors hover:border-primary hover:text-primary">{client.name}</Link>)}</div>}
+        {clients.length > 0 && <div className="mt-3 flex flex-wrap gap-2">{clients.map(client => <Link key={client.publicId} href={`/portal/clients/${client.publicId}`} className="rounded-full border border-primary/20 bg-white px-3 py-1 text-xs font-medium text-foreground transition-colors hover:border-primary hover:text-primary">{client.name}</Link>)}</div>}
         {clients.length === 0 && reqAdminHint()}
       </div>
 
@@ -73,23 +73,23 @@ export default function PortalToolDetail() {
           </div>
           <div className="flex items-center gap-3">
             <span className="text-sm font-medium text-muted-foreground">{projects.length} Total</span>
-            {access?.user?.role === 'ADMIN' && <Link href={`/portal/admin?tab=projects&toolId=${tool.id}`} className="rounded-md bg-primary px-3 py-2 text-xs font-semibold text-white hover:bg-primary/90">New Project</Link>}
+            {access?.user?.role === 'ADMIN' && <Link href={`/portal/admin?tab=projects&toolId=${tool.publicId}`} className="rounded-md bg-primary px-3 py-2 text-xs font-semibold text-white hover:bg-primary/90">New Project</Link>}
           </div>
         </div>
         
         <div className="divide-y divide-border">
           {projects.map(project => (
-              <div key={project.id} className="p-6 transition-colors hover:bg-muted/10">
+              <div key={project.publicId} className="p-6 transition-colors hover:bg-muted/10">
               <div className="flex items-start justify-between mb-2">
                 <h3 className="font-semibold text-foreground text-lg">{project.name}</h3>
                 <span className="inline-flex items-center rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
                   {project.status}
                 </span>
               </div>
-              <p className="text-xs font-medium text-primary">{clients.find(client => client.id === project.clientId)?.name || 'Client workspace'}</p>
+               <p className="text-xs font-medium text-primary">{clients.find(client => client.publicId === project.clientId)?.name || 'Client workspace'}</p>
               <p className="mt-2 text-muted-foreground mb-4">{project.description}</p>
               
-              <Link href={`/portal/projects/${project.id}`} className="inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-white hover:bg-primary/90">
+               <Link href={`/portal/projects/${project.publicId}`} className="inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-white hover:bg-primary/90">
                 Open Workspace
               </Link>
             </div>

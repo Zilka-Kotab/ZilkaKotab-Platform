@@ -41,7 +41,7 @@ export default function PortalDashboard() {
               <p className="text-sm text-muted-foreground">No tools available.</p>
             ) : (
               dashboardData.tools.map(tool => (
-                <Link key={tool.id} href={`/portal/tools/${tool.slug}`} className="group flex items-center justify-between rounded-lg border border-border p-3 transition-colors hover:border-primary hover:bg-primary/5">
+                <Link key={tool.publicId} href={`/portal/tools/${tool.slug}`} className="group flex items-center justify-between rounded-lg border border-border p-3 transition-colors hover:border-primary hover:bg-primary/5">
                   <div>
                     <p className="font-medium text-foreground text-sm">{tool.name}</p>
                     <p className="text-xs text-muted-foreground line-clamp-1">{tool.description}</p>
@@ -69,7 +69,7 @@ export default function PortalDashboard() {
               <p className="text-sm text-muted-foreground">No active projects.</p>
             ) : (
               dashboardData.projects.slice(0, 5).map(project => (
-                <div key={project.id} className="rounded-lg border border-border p-3">
+                <div key={project.publicId} className="rounded-lg border border-border p-3">
                   <div className="flex items-center justify-between">
                     <p className="font-medium text-foreground text-sm">{project.name}</p>
                     <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
@@ -97,7 +97,7 @@ export default function PortalDashboard() {
                 <p className="text-sm text-muted-foreground">No clients assigned.</p>
               ) : (
                 dashboardData.clients.slice(0, 5).map(client => (
-                  <Link key={client.id} href={`/portal/clients/${client.id}`} className="group flex items-center justify-between rounded-lg border border-border p-3 transition-colors hover:border-green-600 hover:bg-green-50">
+                  <Link key={client.publicId} href={`/portal/clients/${client.publicId}`} className="group flex items-center justify-between rounded-lg border border-border p-3 transition-colors hover:border-green-600 hover:bg-green-50">
                     <p className="font-medium text-foreground text-sm">{client.name}</p>
                     <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-green-700" />
                   </Link>

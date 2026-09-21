@@ -7,12 +7,12 @@ export const portalKeys = {
   access: () => [...portalKeys.all, 'access'] as const,
   dashboard: () => [...portalKeys.all, 'dashboard'] as const,
   clients: () => [...portalKeys.all, 'clients'] as const,
-  client: (id: number) => [...portalKeys.clients(), id] as const,
+  client: (id: string) => [...portalKeys.clients(), id] as const,
   tools: () => [...portalKeys.all, 'tools'] as const,
   tool: (slug: string) => [...portalKeys.tools(), slug] as const,
   projects: () => [...portalKeys.all, 'projects'] as const,
-  project: (id: number) => [...portalKeys.projects(), id] as const,
-  projectWorkspace: (id: number) => [...portalKeys.project(id), 'workspace'] as const,
+  project: (id: string) => [...portalKeys.projects(), id] as const,
+  projectWorkspace: (id: string) => [...portalKeys.project(id), 'workspace'] as const,
   adminUsers: () => [...portalKeys.all, 'adminUsers'] as const,
   adminAudit: () => [...portalKeys.all, 'adminAudit'] as const,
   adminProjects: () => [...portalKeys.all, 'adminProjects'] as const,
@@ -42,7 +42,7 @@ export function usePortalClients() {
   });
 }
 
-export function usePortalClient(id: number) {
+export function usePortalClient(id: string) {
   return useQuery({
     queryKey: portalKeys.client(id),
     queryFn: () => api.getClient(id),
@@ -65,7 +65,7 @@ export function usePortalTool(slug: string) {
   });
 }
 
-export function usePortalProject(id: number) {
+export function usePortalProject(id: string) {
   return useQuery({
     queryKey: portalKeys.project(id),
     queryFn: () => api.getProject(id),
@@ -73,11 +73,11 @@ export function usePortalProject(id: number) {
   });
 }
 
-export function useProjectWorkspace(id: number) {
+export function useProjectWorkspace(id: string) {
   return useQuery({ queryKey: portalKeys.projectWorkspace(id), queryFn: () => api.getProjectWorkspace(id), enabled: !!id });
 }
 
-function useWorkspaceMutation<T>(projectId: number, mutationFn: (data: T) => Promise<unknown>) {
+function useWorkspaceMutation<T>(projectId: string, mutationFn: (data: T) => Promise<unknown>) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn,
@@ -85,15 +85,15 @@ function useWorkspaceMutation<T>(projectId: number, mutationFn: (data: T) => Pro
   });
 }
 
-export const useCreateWorkspaceItem = (projectId: number) =>
+export const useCreateWorkspaceItem = (projectId: string) =>
   useWorkspaceMutation(projectId, (data: Parameters<typeof api.createWorkspaceItem>[1]) => api.createWorkspaceItem(projectId, data));
-export const useCreateManualAnalysis = (projectId: number) =>
+export const useCreateManualAnalysis = (projectId: string) =>
   useWorkspaceMutation(projectId, (data: Parameters<typeof api.createManualAnalysis>[1]) => api.createManualAnalysis(projectId, data));
-export const useCreatePatent = (projectId: number) =>
+export const useCreatePatent = (projectId: string) =>
   useWorkspaceMutation(projectId, (data: Parameters<typeof api.createPatent>[1]) => api.createPatent(projectId, data));
-export const useCreateAnalysisReview = (projectId: number) =>
-  useWorkspaceMutation(projectId, ({ runId, data }: { runId: number; data: Parameters<typeof api.createAnalysisReview>[1] }) => api.createAnalysisReview(runId, data));
-export const useUpdateProjectAiConfig = (projectId: number) =>
+export const useCreateAnalysisReview = (projectId: string) =>
+  useWorkspaceMutation(projectId, ({ runId, data }: { runId: string; data: Parameters<typeof api.createAnalysisReview>[1] }) => api.createAnalysisReview(runId, data));
+export const useUpdateProjectAiConfig = (projectId: string) =>
   useWorkspaceMutation(projectId, (data: Parameters<typeof api.updateProjectAiConfig>[1]) => api.updateProjectAiConfig(projectId, data));
 
 // Admin Hooks
@@ -133,7 +133,7 @@ export function useCreateAdminUser() {
 export function useUpdateAdminUser() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, data }: { id: number; data: Partial<api.PortalUser> }) => api.updateAdminUser(id, data),
+    mutationFn: ({ id, data }: { id: string; data: Partial<api.PortalUser> }) => api.updateAdminUser(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: portalKeys.adminUsers() });
     },
@@ -153,7 +153,7 @@ export function useCreateAdminClient() {
 export function useUpdateAdminClient() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, data }: { id: number; data: Partial<api.Client> }) => api.updateAdminClient(id, data),
+    mutationFn: ({ id, data }: { id: string; data: Partial<api.Client> }) => api.updateAdminClient(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: portalKeys.clients() });
     },
@@ -163,7 +163,7 @@ export function useUpdateAdminClient() {
 export function useUpdateTool() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, data }: { id: number; data: Partial<api.Tool> }) => api.updateTool(id, data),
+    mutationFn: ({ id, data }: { id: string; data: Partial<api.Tool> }) => api.updateTool(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: portalKeys.tools() });
       queryClient.invalidateQueries({ queryKey: portalKeys.dashboard() });
@@ -182,7 +182,7 @@ export function useCreateTool() {
 export function useSetClientTools() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ clientId, toolIds }: { clientId: number; toolIds: number[] }) => api.setClientTools(clientId, toolIds),
+    mutationFn: ({ clientId, toolIds }: { clientId: string; toolIds: string[] }) => api.setClientTools(clientId, toolIds),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: portalKeys.clients() });
       queryClient.invalidateQueries({ queryKey: portalKeys.dashboard() });
@@ -210,7 +210,7 @@ export function useCreateProject() {
 export function useUpdateProject() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, data }: { id: number; data: Partial<api.Project> }) => api.updateProject(id, data),
+    mutationFn: ({ id, data }: { id: string; data: Partial<api.Project> }) => api.updateProject(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: portalKeys.projects() });
       queryClient.invalidateQueries({ queryKey: portalKeys.adminProjects() });
