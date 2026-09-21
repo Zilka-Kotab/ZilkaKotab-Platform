@@ -1,0 +1,119 @@
+I have now created/renamed the Microsoft Entra app registration as:
+
+Zilka-Kotab Website AI Tools Portal
+
+I want to use Microsoft Entra ID / OpenID Connect for authentication to the secure AI Tools Portal at zilkakotab.com.
+
+Do not implement Clerk or Replit Auth.
+
+Do not implement Microsoft Graph Mail.Send or SMTP as part of this work. Outbound email is a separate feature and is unrelated to portal authentication. I have removed Mail.Send from the Entra app registration.
+
+Intended portal architecture
+
+Authentication and authorization must be treated separately.
+
+Microsoft Entra will establish who the user is. Our application's own database will determine whether that person is authorized and what they are permitted to access.
+
+A successful Microsoft login must NEVER automatically grant access to the portal.
+
+There should be no public Sign Up, Create Account, or Register functionality on the website.
+
+Users must first be created/authorized by a Zilka-Kotab ADMIN in our application's database.
+
+After Microsoft authentication, the server should match the authenticated Microsoft identity against an active authorized-user record in our database. If no matching active authorized user exists, access must be denied.
+
+Three application roles
+
+CLIENT
+
+A client sees only the tools and projects specifically assigned to that client/client organization.
+
+ATTORNEY
+
+An attorney has the same tool/project functionality but can switch between separate client areas for each client specifically assigned to that attorney.
+
+ADMIN
+
+An admin has the attorney functionality plus an Admin Portal for managing users, roles, client organizations, attorney/client assignments, tools, projects, and access permissions.
+
+Authorization must be enforced server-side on every protected resource. Hiding frontend elements is not sufficient. Users must not be able to access unauthorized clients, tools, or projects by manipulating URLs, IDs, API requests, or request payloads.
+
+External client users are required
+
+Zilka-Kotab attorneys and administrators will generally have @zilkakotab.com Microsoft 365 accounts.
+
+However, CLIENT users will generally be outside Zilka-Kotab and may use Microsoft accounts belonging to other organizations.
+
+The authentication architecture therefore needs to accommodate authorized external client users while still preventing public/self-service portal enrollment.
+
+I have not yet changed the Entra app registration from its current single-tenant configuration, because I want you to determine the appropriate architecture first.
+
+Before implementing authentication, inspect the existing codebase and report back with the following:
+
+1. Exact production redirect/callback URI
+
+Tell me the exact redirect URI that I need to enter into Microsoft Entra.
+
+I expect it may be something like:
+
+https://zilkakotab.com/auth/microsoft/callback
+
+but DO NOT assume this URL. Determine the correct callback route from the implementation you recommend and give me the exact production URI.
+
+2. Entra platform type
+
+Tell me whether I should configure the redirect URI in Entra as:
+
+Web, or
+Single-page application (SPA)
+
+Prefer a server-side authorization-code-flow implementation if compatible with the existing application architecture, so authentication/session handling and credentials remain server-side.
+
+3. Required Entra credentials/secrets
+
+Tell me exactly which values you will need me to add to Replit Secrets.
+
+I expect this may include:
+
+AZURE_TENANT_ID
+AZURE_CLIENT_ID
+AZURE_CLIENT_SECRET
+
+But do not assume those names or requirements. Tell me exactly what the implementation requires.
+
+4. External client authentication architecture
+
+Determine and explain how you recommend supporting authorized external CLIENT users.
+
+Specifically, tell me whether the Entra application should be:
+
+single-tenant with external users invited into the Zilka-Kotab tenant;
+multi-tenant;
+Microsoft Entra External ID; or
+another appropriate Microsoft identity configuration.
+
+The solution must support outside clients while maintaining the requirement that Zilka-Kotab controls who receives portal access and there is no public portal enrollment.
+
+5. Identity matching
+
+Tell me which stable Microsoft identity identifiers you propose storing in our authorized-users database and using for authorization.
+
+Do not design authorization around email address alone if Microsoft provides a more appropriate immutable identity identifier. Explain how an ADMIN would initially authorize/invite a user and how the authenticated Microsoft identity would subsequently be linked to that authorized user record.
+
+6. Session security
+
+Explain briefly how you propose to implement server-side sessions, secure cookies, logout, session expiration, CSRF/state/nonce protection, and token validation.
+
+7. Existing code impact
+
+Identify which portions of the existing application will need to change and confirm that the existing public Zilka-Kotab website and its functionality will remain unaffected.
+
+IMPORTANT — DO NOT IMPLEMENT YET
+
+At this stage, do not make the authentication changes yet.
+
+First inspect the existing codebase and give me your recommended architecture and the seven answers above.
+
+I will configure the Microsoft Entra side based on your response and provide the required values through Replit Secrets, not through chat.
+
+Once the Entra configuration is complete, I will instruct you to proceed with implementation.
