@@ -23,8 +23,8 @@ export default function SignInPage() {
             <p className="mb-4 text-xs font-semibold uppercase tracking-[0.24em] text-accent">
               Authorized Access
             </p>
-            <h1 className="mb-6 text-4xl font-bold font-display text-foreground md:text-6xl">
-              Zilka-Kotab AI Portal
+            <h1 className="mb-6 whitespace-nowrap text-4xl font-bold font-display text-foreground md:text-6xl">
+              Zilka-Kotab AI Hub
             </h1>
             <p className="text-lg leading-relaxed text-muted-foreground">
               A secure, confidential workspace where clients and counsel collaborate on assigned matters using trusted AI tools.
