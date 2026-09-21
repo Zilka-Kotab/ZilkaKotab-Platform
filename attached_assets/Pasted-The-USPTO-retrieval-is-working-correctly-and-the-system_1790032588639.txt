@@ -1,0 +1,100 @@
+The USPTO retrieval is working correctly and the system is correctly identifying the independent claims. However, there is an important issue with the claim text.
+
+In the Patent Detail page, the independent claims are being truncated.
+
+For example, Claim 1 currently displays only the beginning:
+
+1. An apparatus, comprising: circuitry for: receiving a first image and a second image;
+
+The system needs to retrieve, store, and display the entire authoritative text of each claim, not merely the first clause/paragraph/element.
+
+Please diagnose whether the truncation is occurring:
+
+during USPTO XML parsing;
+when the claim is stored in the database;
+in API serialization; or
+only in frontend rendering.
+
+Then fix the underlying problem.
+
+1. Preserve complete USPTO claim text
+
+For every claim, store the complete claim text from the USPTO grant XML.
+
+A claim may contain:
+
+multiple paragraphs;
+semicolon-separated limitations;
+nested clauses;
+XML child elements;
+line breaks;
+indentation or other structural markup.
+
+Do not extract only the first XML text node or first paragraph.
+
+When parsing the USPTO XML, recursively collect all textual content belonging to that claim in the correct order.
+
+Preserve the substantive wording and punctuation of the authoritative claim.
+
+2. Verify the database
+
+Determine whether the existing database record contains the complete claim or whether the truncated text was originally stored.
+
+If the database contains truncated text, fix the parser and provide a way to Refresh from USPTO so an existing patent can retrieve and store the corrected full claims without requiring the patent to be deleted and re-added.
+
+Do not silently overwrite attorney-reviewed/manual claim versions.
+
+3. Display the complete claim
+
+The Patent Detail page should make the complete claim accessible.
+
+For independent claims, display:
+
+Claim 1 — Selected for monitoring
+
+followed by the complete claim text.
+
+For long claims, it is acceptable to use:
+
+Show full claim / Collapse
+
+for usability, but the underlying data must always contain the entire claim.
+
+Do not use CSS text truncation, ellipsis, line clamping, fixed-height clipping, or substring truncation for authoritative claim text.
+
+4. Dependent claims
+
+Verify the same behavior for dependent claims.
+
+The complete text of every dependent claim must also be stored, even if dependent claims are collapsed by default in the UI.
+
+5. Critical requirement for the next phase
+
+Future claim-limitation parsing and infringement analysis must always operate on the complete authoritative claim text stored from the USPTO, never a display preview or truncated representation.
+
+Keep separate fields/data structures for:
+
+authoritative full claim text;
+future parsed limitations;
+future AI analysis;
+optional UI preview text if ever needed.
+
+Never modify the authoritative claim text as part of limitation parsing.
+
+6. Validation
+
+After fixing this, test the same patent currently shown in my project.
+
+Verify:
+
+Claim 1 contains its complete USPTO claim text;
+Claim 18 contains its complete USPTO claim text;
+Claim 19 contains its complete USPTO claim text;
+dependent claims also contain their complete text;
+the complete text survives database storage and retrieval;
+refreshing the page does not truncate it; and
+selected-for-monitoring status remains intact.
+
+Tell me specifically where the truncation was occurring, what you changed, whether existing imported patents need to be refreshed, whether a database migration is required, and whether I need to republish.
+
+Do not proceed to AI/Copilot or claim-limitation analysis yet. Fix and validate the complete-claim issue first.
