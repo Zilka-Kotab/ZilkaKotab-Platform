@@ -1,9 +1,12 @@
 import { Router } from "express";
-import { and, asc, desc, eq, inArray, ne } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNull, ne } from "drizzle-orm";
 import {
   analysisReviewsTable,
   analysisRunsTable,
   attorneyClientsTable,
+  claimLimitationHistoryTable,
+  claimLimitationStructuresTable,
+  claimLimitationsTable,
   clientToolsTable,
   clientUsersTable,
   db,
@@ -14,6 +17,7 @@ import {
   projectsTable,
   projectUsersTable,
   projectWorkspaceItemsTable,
+  portalUsersTable,
   toolsTable,
   clientsTable,
   type AiProcessingProvider,
@@ -78,6 +82,16 @@ async function patentProject(user: PortalUser, patentPublicId: string) {
   return patent;
 }
 
+async function patentClaimContext(user: PortalUser, patentPublicId: string, claimPublicId: string) {
+  const patent = await patentProject(user, patentPublicId);
+  if (!patent) return null;
+  const [claim] = await db.select().from(patentClaimsTable).where(eq(patentClaimsTable.publicId, claimPublicId)).limit(1);
+  if (!claim || claim.patentId !== patent.id) return null;
+  const [project] = await db.select().from(projectsTable).where(eq(projectsTable.id, patent.projectId)).limit(1);
+  if (!project) return null;
+  return { patent, claim, project };
+}
+
 function serializeClaim(claim: typeof patentClaimsTable.$inferSelect, patentPublicId: string) {
   return {
     publicId: claim.publicId,
@@ -93,6 +107,185 @@ function serializeClaim(claim: typeof patentClaimsTable.$inferSelect, patentPubl
     verificationStatus: claim.verificationStatus,
     selectedForMonitoring: claim.selectedForMonitoring,
     createdAt: claim.createdAt,
+  };
+}
+
+function serializeLimitation(limitation: typeof claimLimitationsTable.$inferSelect) {
+  return {
+    publicId: limitation.publicId,
+    sequence: limitation.sequence,
+    identifier: limitation.identifier,
+    limitationText: limitation.limitationText,
+    creationMethod: limitation.creationMethod,
+    verificationStatus: limitation.verificationStatus,
+    verifiedById: limitation.verifiedById,
+    verifiedAt: limitation.verifiedAt,
+    createdAt: limitation.createdAt,
+    updatedAt: limitation.updatedAt,
+  };
+}
+
+function serializeLimitationStructure(
+  structure: typeof claimLimitationStructuresTable.$inferSelect | null,
+  verifiedBy: typeof portalUsersTable.$inferSelect | null,
+  claimVersionPublicId: string,
+) {
+  return structure
+    ? {
+        publicId: structure.publicId,
+        claimVersionId: claimVersionPublicId,
+        state: structure.state,
+        verifiedBy: verifiedBy ? { publicId: verifiedBy.publicId, name: verifiedBy.name } : null,
+        verifiedAt: structure.verifiedAt,
+        createdAt: structure.createdAt,
+        updatedAt: structure.updatedAt,
+      }
+    : null;
+}
+
+function limitationLetter(sequence: number) {
+  let value = sequence;
+  let letters = "";
+  while (value > 0) {
+    value -= 1;
+    letters = String.fromCharCode(65 + (value % 26)) + letters;
+    value = Math.floor(value / 26);
+  }
+  return letters || "A";
+}
+
+function defaultLimitationIdentifier(claimNumber: string, sequence: number) {
+  return `${claimNumber}${limitationLetter(sequence)}`;
+}
+
+function limitationEditor(user: PortalUser) {
+  return user.role === "ATTORNEY" || user.role === "ADMIN";
+}
+
+type LimitationHistoryAction = "CREATED" | "UPDATED" | "SPLIT" | "MERGED" | "REORDERED" | "DELETED" | "VERIFIED" | "UNVERIFIED";
+
+async function writeLimitationHistory(
+  tx: any,
+  limitation: typeof claimLimitationsTable.$inferSelect,
+  action: LimitationHistoryAction,
+  actorId: number,
+) {
+  await tx.insert(claimLimitationHistoryTable).values({
+    structureId: limitation.structureId,
+    limitationId: limitation.id,
+    action,
+    sequence: limitation.sequence,
+    identifier: limitation.identifier,
+    limitationText: limitation.limitationText,
+    creationMethod: limitation.creationMethod,
+    verificationStatus: limitation.verificationStatus,
+    actorId,
+  });
+}
+
+async function ensureLimitationStructure(tx: any, claimVersionId: number, actorId: number) {
+  let [structure] = await tx.select().from(claimLimitationStructuresTable)
+    .where(eq(claimLimitationStructuresTable.claimVersionId, claimVersionId))
+    .limit(1);
+  if (!structure) {
+    [structure] = await tx.insert(claimLimitationStructuresTable).values({
+      claimVersionId,
+      createdById: actorId,
+    }).onConflictDoNothing({ target: claimLimitationStructuresTable.claimVersionId }).returning();
+    if (!structure) {
+      [structure] = await tx.select().from(claimLimitationStructuresTable)
+        .where(eq(claimLimitationStructuresTable.claimVersionId, claimVersionId))
+        .limit(1);
+    }
+  }
+  return structure;
+}
+
+async function demoteLimitationStructure(tx: any, structure: typeof claimLimitationStructuresTable.$inferSelect, actorId: number) {
+  const activeLimitations = await tx.select().from(claimLimitationsTable).where(and(
+    eq(claimLimitationsTable.structureId, structure.id),
+    isNull(claimLimitationsTable.deletedAt),
+  ));
+  if (structure.state === "VERIFIED") {
+    for (const limitation of activeLimitations) {
+      await writeLimitationHistory(tx, limitation, "UNVERIFIED", actorId);
+    }
+  }
+  await tx.update(claimLimitationStructuresTable).set({
+    state: "DRAFT",
+    verifiedById: null,
+    verifiedAt: null,
+    updatedAt: new Date(),
+  }).where(eq(claimLimitationStructuresTable.id, structure.id));
+  await tx.update(claimLimitationsTable).set({
+    verificationStatus: "DRAFT",
+    verifiedById: null,
+    verifiedAt: null,
+    updatedById: actorId,
+    updatedAt: new Date(),
+  }).where(and(
+    eq(claimLimitationsTable.structureId, structure.id),
+    isNull(claimLimitationsTable.deletedAt),
+  ));
+  return activeLimitations;
+}
+
+async function limitationAnalysisData(context: Awaited<ReturnType<typeof patentClaimContext>>, user: PortalUser) {
+  if (!context) return null;
+  const [structure] = await db.select().from(claimLimitationStructuresTable)
+    .where(eq(claimLimitationStructuresTable.claimVersionId, context.claim.id))
+    .limit(1);
+  const limitations = structure
+    ? await db.select().from(claimLimitationsTable).where(and(
+        eq(claimLimitationsTable.structureId, structure.id),
+        isNull(claimLimitationsTable.deletedAt),
+      )).orderBy(asc(claimLimitationsTable.sequence), asc(claimLimitationsTable.id))
+    : [];
+  const visibleLimitations = user.role === "CLIENT" && structure?.state !== "VERIFIED" ? [] : limitations;
+  const [verifiedBy] = structure?.verifiedById
+    ? await db.select().from(portalUsersTable).where(eq(portalUsersTable.id, structure.verifiedById)).limit(1)
+    : [];
+  const history = structure && limitationEditor(user)
+    ? await db.select().from(claimLimitationHistoryTable)
+      .where(eq(claimLimitationHistoryTable.structureId, structure.id))
+      .orderBy(desc(claimLimitationHistoryTable.createdAt))
+    : [];
+  const actorIds = [...new Set(history.map((entry) => entry.actorId))];
+  const actors = actorIds.length
+    ? await db.select().from(portalUsersTable).where(inArray(portalUsersTable.id, actorIds))
+    : [];
+  const actorsById = new Map(actors.map((actor) => [actor.id, actor]));
+  return {
+    patent: serializePatent(context.patent, context.project.publicId, [context.claim]),
+    project: await serializeProject(context.project),
+    client: serializeClient((await projectRelations(context.project)).client),
+    tool: serializeTool((await projectRelations(context.project)).tool),
+    claim: serializeClaim(context.claim, context.patent.publicId),
+    structure: serializeLimitationStructure(structure ?? null, verifiedBy ?? null, context.claim.publicId),
+    limitations: visibleLimitations.map(serializeLimitation),
+    history: history.map((entry) => ({
+      publicId: entry.publicId,
+      action: entry.action,
+      limitationId: entry.limitationId,
+      sequence: entry.sequence,
+      identifier: entry.identifier,
+      limitationText: entry.limitationText,
+      verificationStatus: entry.verificationStatus,
+      actor: actorsById.has(entry.actorId)
+        ? { publicId: actorsById.get(entry.actorId)!.publicId, name: actorsById.get(entry.actorId)!.name }
+        : null,
+      createdAt: entry.createdAt,
+    })),
+    permissions: {
+      canEdit: limitationEditor(user),
+      canVerify: limitationEditor(user),
+      canViewHistory: limitationEditor(user),
+    },
+    ai: {
+      operation: "PARSE_CLAIM_LIMITATIONS",
+      enabled: false,
+      message: "AI processing not configured",
+    },
   };
 }
 
@@ -408,6 +601,342 @@ router.get("/portal/patents/:id", async (req, res) => {
     tool: serializeTool(tool),
     analysisRuns: runs.map((run) => serializeRun(run, project.publicId, patentsById, claimsById, reviews.filter((review) => review.analysisRunId === run.id))),
   });
+});
+
+router.get("/portal/patents/:patentId/claims/:claimId/analysis", async (req, res) => {
+  const patentPublicId = publicIdOf(req.params.patentId);
+  const claimPublicId = publicIdOf(req.params.claimId);
+  const context = patentPublicId && claimPublicId
+    ? await patentClaimContext(req.portalUser!, patentPublicId, claimPublicId)
+    : null;
+  if (!context) return void res.status(404).json({ error: "Claim not found." });
+  res.json(await limitationAnalysisData(context, req.portalUser!));
+});
+
+router.post("/portal/patents/:patentId/claims/:claimId/limitations", async (req, res) => {
+  const patentPublicId = publicIdOf(req.params.patentId);
+  const claimPublicId = publicIdOf(req.params.claimId);
+  const context = patentPublicId && claimPublicId
+    ? await patentClaimContext(req.portalUser!, patentPublicId, claimPublicId)
+    : null;
+  if (!context) return void res.status(404).json({ error: "Claim not found." });
+  if (!limitationEditor(req.portalUser!)) return void res.status(403).json({ error: "Only attorneys and administrators may edit claim limitations." });
+  const limitationText = text(req.body?.limitationText);
+  if (!limitationText) return void res.status(400).json({ error: "Limitation text is required." });
+
+  const created = await db.transaction(async (tx) => {
+    const structure = await ensureLimitationStructure(tx, context.claim.id, req.portalUser!.id);
+    const active = await demoteLimitationStructure(tx, structure, req.portalUser!.id);
+    const sequence = validId(Number(req.body?.sequence)) ? Number(req.body.sequence) : active.length + 1;
+    const identifier = text(req.body?.identifier) || defaultLimitationIdentifier(context.claim.claimNumber, sequence);
+    if (active.some((item: typeof claimLimitationsTable.$inferSelect) => item.identifier === identifier)) {
+      throw new Error("A limitation with this identifier already exists.");
+    }
+    const [limitation] = await tx.insert(claimLimitationsTable).values({
+      structureId: structure.id,
+      sequence,
+      identifier,
+      limitationText,
+      creationMethod: "MANUAL",
+      verificationStatus: "DRAFT",
+      createdById: req.portalUser!.id,
+      updatedById: req.portalUser!.id,
+    }).returning();
+    await writeLimitationHistory(tx, limitation, "CREATED", req.portalUser!.id);
+    return limitation;
+  }).catch((error) => {
+    if (error instanceof Error && error.message.includes("already exists")) return null;
+    throw error;
+  });
+  if (!created) return void res.status(409).json({ error: "A limitation with this identifier already exists." });
+  const latest = await limitationAnalysisData(context, req.portalUser!);
+  res.status(201).json({ limitation: serializeLimitation(created), analysis: latest });
+});
+
+router.patch("/portal/patents/:patentId/claims/:claimId/limitations/:limitationId", async (req, res) => {
+  const patentPublicId = publicIdOf(req.params.patentId);
+  const claimPublicId = publicIdOf(req.params.claimId);
+  const limitationPublicId = publicIdOf(req.params.limitationId);
+  const context = patentPublicId && claimPublicId
+    ? await patentClaimContext(req.portalUser!, patentPublicId, claimPublicId)
+    : null;
+  if (!context || !limitationPublicId) return void res.status(404).json({ error: "Claim limitation not found." });
+  if (!limitationEditor(req.portalUser!)) return void res.status(403).json({ error: "Only attorneys and administrators may edit claim limitations." });
+
+  const updated = await db.transaction(async (tx) => {
+    const [structure] = await tx.select().from(claimLimitationStructuresTable)
+      .where(eq(claimLimitationStructuresTable.claimVersionId, context.claim.id)).limit(1);
+    const [current] = structure
+      ? await tx.select().from(claimLimitationsTable).where(and(
+          eq(claimLimitationsTable.publicId, limitationPublicId),
+          eq(claimLimitationsTable.structureId, structure.id),
+          isNull(claimLimitationsTable.deletedAt),
+        )).limit(1)
+      : [];
+    if (!structure || !current) return null;
+    const nextText = req.body?.limitationText === undefined ? current.limitationText : text(req.body.limitationText);
+    const nextIdentifier = req.body?.identifier === undefined ? current.identifier : text(req.body.identifier);
+    const nextSequence = req.body?.sequence === undefined ? current.sequence : Number(req.body.sequence);
+    if (!nextText || !nextIdentifier || !validId(nextSequence)) throw new Error("Limitation text, identifier, and sequence are required.");
+    const duplicate = await tx.select().from(claimLimitationsTable).where(and(
+      eq(claimLimitationsTable.structureId, structure.id),
+      eq(claimLimitationsTable.identifier, nextIdentifier),
+      ne(claimLimitationsTable.id, current.id),
+      isNull(claimLimitationsTable.deletedAt),
+    )).limit(1);
+    if (duplicate.length) throw new Error("A limitation with this identifier already exists.");
+    await demoteLimitationStructure(tx, structure, req.portalUser!.id);
+    const [next] = await tx.update(claimLimitationsTable).set({
+      limitationText: nextText,
+      identifier: nextIdentifier,
+      sequence: nextSequence,
+      creationMethod: "MANUAL",
+      verificationStatus: "DRAFT",
+      verifiedById: null,
+      verifiedAt: null,
+      updatedById: req.portalUser!.id,
+      updatedAt: new Date(),
+    }).where(eq(claimLimitationsTable.id, current.id)).returning();
+    await writeLimitationHistory(tx, next, "UPDATED", req.portalUser!.id);
+    return next;
+  }).catch((error) => {
+    if (error instanceof Error && /required|already exists/.test(error.message)) return { error: error.message };
+    throw error;
+  });
+  if (!updated) return void res.status(404).json({ error: "Claim limitation not found." });
+  if ("error" in updated) return void res.status(400).json({ error: updated.error });
+  const latest = await limitationAnalysisData(context, req.portalUser!);
+  res.json({ limitation: serializeLimitation(updated), analysis: latest });
+});
+
+router.delete("/portal/patents/:patentId/claims/:claimId/limitations/:limitationId", async (req, res) => {
+  const patentPublicId = publicIdOf(req.params.patentId);
+  const claimPublicId = publicIdOf(req.params.claimId);
+  const limitationPublicId = publicIdOf(req.params.limitationId);
+  const context = patentPublicId && claimPublicId
+    ? await patentClaimContext(req.portalUser!, patentPublicId, claimPublicId)
+    : null;
+  if (!context || !limitationPublicId) return void res.status(404).json({ error: "Claim limitation not found." });
+  if (!limitationEditor(req.portalUser!)) return void res.status(403).json({ error: "Only attorneys and administrators may edit claim limitations." });
+  const deleted = await db.transaction(async (tx) => {
+    const [structure] = await tx.select().from(claimLimitationStructuresTable)
+      .where(eq(claimLimitationStructuresTable.claimVersionId, context.claim.id)).limit(1);
+    const [current] = structure
+      ? await tx.select().from(claimLimitationsTable).where(and(
+          eq(claimLimitationsTable.publicId, limitationPublicId),
+          eq(claimLimitationsTable.structureId, structure.id),
+          isNull(claimLimitationsTable.deletedAt),
+        )).limit(1)
+      : [];
+    if (!structure || !current) return null;
+    await demoteLimitationStructure(tx, structure, req.portalUser!.id);
+    const [removed] = await tx.update(claimLimitationsTable).set({
+      deletedAt: new Date(),
+      deletedById: req.portalUser!.id,
+      updatedById: req.portalUser!.id,
+      updatedAt: new Date(),
+      verificationStatus: "DRAFT",
+      verifiedById: null,
+      verifiedAt: null,
+    }).where(eq(claimLimitationsTable.id, current.id)).returning();
+    await writeLimitationHistory(tx, removed, "DELETED", req.portalUser!.id);
+    return removed;
+  });
+  if (!deleted) return void res.status(404).json({ error: "Claim limitation not found." });
+  const latest = await limitationAnalysisData(context, req.portalUser!);
+  res.json({ deleted: true, analysis: latest });
+});
+
+router.post("/portal/patents/:patentId/claims/:claimId/limitations/:limitationId/split", async (req, res) => {
+  const patentPublicId = publicIdOf(req.params.patentId);
+  const claimPublicId = publicIdOf(req.params.claimId);
+  const limitationPublicId = publicIdOf(req.params.limitationId);
+  const context = patentPublicId && claimPublicId
+    ? await patentClaimContext(req.portalUser!, patentPublicId, claimPublicId)
+    : null;
+  if (!context || !limitationPublicId) return void res.status(404).json({ error: "Claim limitation not found." });
+  if (!limitationEditor(req.portalUser!)) return void res.status(403).json({ error: "Only attorneys and administrators may edit claim limitations." });
+  const firstText = text(req.body?.firstText);
+  const secondText = text(req.body?.secondText);
+  if (!firstText || !secondText) return void res.status(400).json({ error: "Both split limitation texts are required." });
+
+  const split = await db.transaction(async (tx) => {
+    const [structure] = await tx.select().from(claimLimitationStructuresTable)
+      .where(eq(claimLimitationStructuresTable.claimVersionId, context.claim.id)).limit(1);
+    const [current] = structure
+      ? await tx.select().from(claimLimitationsTable).where(and(
+          eq(claimLimitationsTable.publicId, limitationPublicId),
+          eq(claimLimitationsTable.structureId, structure.id),
+          isNull(claimLimitationsTable.deletedAt),
+        )).limit(1)
+      : [];
+    if (!structure || !current) return null;
+    const active = await demoteLimitationStructure(tx, structure, req.portalUser!.id);
+    const following = active.filter((item: typeof claimLimitationsTable.$inferSelect) => item.id !== current.id && item.sequence > current.sequence)
+      .sort((a: typeof claimLimitationsTable.$inferSelect, b: typeof claimLimitationsTable.$inferSelect) => b.sequence - a.sequence);
+    for (const item of following) {
+      const [shifted] = await tx.update(claimLimitationsTable).set({ sequence: item.sequence + 1, updatedById: req.portalUser!.id, updatedAt: new Date() })
+        .where(eq(claimLimitationsTable.id, item.id)).returning();
+      await writeLimitationHistory(tx, shifted, "REORDERED", req.portalUser!.id);
+    }
+    const [updated] = await tx.update(claimLimitationsTable).set({
+      limitationText: firstText,
+      creationMethod: "MANUAL",
+      verificationStatus: "DRAFT",
+      verifiedById: null,
+      verifiedAt: null,
+      updatedById: req.portalUser!.id,
+      updatedAt: new Date(),
+    }).where(eq(claimLimitationsTable.id, current.id)).returning();
+    await writeLimitationHistory(tx, updated, "SPLIT", req.portalUser!.id);
+    const activeIdentifiers = new Set(active.map((item: typeof claimLimitationsTable.$inferSelect) => item.identifier));
+    let identifier = defaultLimitationIdentifier(context.claim.claimNumber, current.sequence + 1);
+    if (activeIdentifiers.has(identifier)) identifier = `${identifier}-SPLIT`;
+    const [created] = await tx.insert(claimLimitationsTable).values({
+      structureId: structure.id,
+      sequence: current.sequence + 1,
+      identifier,
+      limitationText: secondText,
+      creationMethod: "MANUAL",
+      verificationStatus: "DRAFT",
+      createdById: req.portalUser!.id,
+      updatedById: req.portalUser!.id,
+    }).returning();
+    await writeLimitationHistory(tx, created, "SPLIT", req.portalUser!.id);
+    return { updated, created };
+  });
+  if (!split) return void res.status(404).json({ error: "Claim limitation not found." });
+  const latest = await limitationAnalysisData(context, req.portalUser!);
+  res.json({ limitations: [serializeLimitation(split.updated), serializeLimitation(split.created)], analysis: latest });
+});
+
+router.post("/portal/patents/:patentId/claims/:claimId/limitations/:limitationId/merge", async (req, res) => {
+  const patentPublicId = publicIdOf(req.params.patentId);
+  const claimPublicId = publicIdOf(req.params.claimId);
+  const limitationPublicId = publicIdOf(req.params.limitationId);
+  const withLimitationPublicId = publicIdOf(req.body?.withLimitationId);
+  const context = patentPublicId && claimPublicId
+    ? await patentClaimContext(req.portalUser!, patentPublicId, claimPublicId)
+    : null;
+  if (!context || !limitationPublicId || !withLimitationPublicId) return void res.status(404).json({ error: "Adjacent limitations are required." });
+  if (!limitationEditor(req.portalUser!)) return void res.status(403).json({ error: "Only attorneys and administrators may edit claim limitations." });
+
+  const merged = await db.transaction(async (tx) => {
+    const [structure] = await tx.select().from(claimLimitationStructuresTable)
+      .where(eq(claimLimitationStructuresTable.claimVersionId, context.claim.id)).limit(1);
+    const active = structure
+      ? await tx.select().from(claimLimitationsTable).where(and(eq(claimLimitationsTable.structureId, structure.id), isNull(claimLimitationsTable.deletedAt)))
+      : [];
+    const first = active.find((item: typeof claimLimitationsTable.$inferSelect) => item.publicId === limitationPublicId);
+    const second = active.find((item: typeof claimLimitationsTable.$inferSelect) => item.publicId === withLimitationPublicId);
+    if (!structure || !first || !second || Math.abs(first.sequence - second.sequence) !== 1) return null;
+    const lower = first.sequence < second.sequence ? first : second;
+    const upper = lower.id === first.id ? second : first;
+    await demoteLimitationStructure(tx, structure, req.portalUser!.id);
+    const [updated] = await tx.update(claimLimitationsTable).set({
+      limitationText: `${lower.limitationText}\n\n${upper.limitationText}`,
+      creationMethod: "MANUAL",
+      verificationStatus: "DRAFT",
+      verifiedById: null,
+      verifiedAt: null,
+      updatedById: req.portalUser!.id,
+      updatedAt: new Date(),
+    }).where(eq(claimLimitationsTable.id, lower.id)).returning();
+    await writeLimitationHistory(tx, updated, "MERGED", req.portalUser!.id);
+    const [removed] = await tx.update(claimLimitationsTable).set({
+      deletedAt: new Date(),
+      deletedById: req.portalUser!.id,
+      updatedById: req.portalUser!.id,
+      updatedAt: new Date(),
+      verificationStatus: "DRAFT",
+      verifiedById: null,
+      verifiedAt: null,
+    }).where(eq(claimLimitationsTable.id, upper.id)).returning();
+    await writeLimitationHistory(tx, removed, "DELETED", req.portalUser!.id);
+    return updated;
+  });
+  if (!merged) return void res.status(409).json({ error: "Only adjacent active limitations can be merged." });
+  const latest = await limitationAnalysisData(context, req.portalUser!);
+  res.json({ limitation: serializeLimitation(merged), analysis: latest });
+});
+
+router.post("/portal/patents/:patentId/claims/:claimId/limitations/reorder", async (req, res) => {
+  const patentPublicId = publicIdOf(req.params.patentId);
+  const claimPublicId = publicIdOf(req.params.claimId);
+  const context = patentPublicId && claimPublicId
+    ? await patentClaimContext(req.portalUser!, patentPublicId, claimPublicId)
+    : null;
+  if (!context) return void res.status(404).json({ error: "Claim not found." });
+  if (!limitationEditor(req.portalUser!)) return void res.status(403).json({ error: "Only attorneys and administrators may edit claim limitations." });
+  const limitationIds = Array.isArray(req.body?.limitationIds)
+    ? req.body.limitationIds.filter((value: unknown): value is string => publicIdOf(value) !== "")
+    : [];
+  const reordered = await db.transaction(async (tx) => {
+    const [structure] = await tx.select().from(claimLimitationStructuresTable)
+      .where(eq(claimLimitationStructuresTable.claimVersionId, context.claim.id)).limit(1);
+    const active = structure
+      ? await tx.select().from(claimLimitationsTable).where(and(eq(claimLimitationsTable.structureId, structure.id), isNull(claimLimitationsTable.deletedAt)))
+      : [];
+    const activeById = new Map(active.map((item: typeof claimLimitationsTable.$inferSelect) => [item.publicId, item]));
+    if (!structure || limitationIds.length !== active.length || new Set(limitationIds).size !== active.length || limitationIds.some((id: string) => !activeById.has(id))) return null;
+    await demoteLimitationStructure(tx, structure, req.portalUser!.id);
+    const next = [];
+    for (const [index, publicId] of limitationIds.entries()) {
+      const current = activeById.get(publicId)!;
+      const [updated] = await tx.update(claimLimitationsTable).set({
+        sequence: index + 1,
+        updatedById: req.portalUser!.id,
+        updatedAt: new Date(),
+      }).where(eq(claimLimitationsTable.id, current.id)).returning();
+      await writeLimitationHistory(tx, updated, "REORDERED", req.portalUser!.id);
+      next.push(updated);
+    }
+    return next;
+  });
+  if (!reordered) return void res.status(400).json({ error: "The reorder list must contain every active limitation exactly once." });
+  const latest = await limitationAnalysisData(context, req.portalUser!);
+  res.json({ limitations: reordered.map(serializeLimitation), analysis: latest });
+});
+
+router.post("/portal/patents/:patentId/claims/:claimId/limitations/verify", async (req, res) => {
+  const patentPublicId = publicIdOf(req.params.patentId);
+  const claimPublicId = publicIdOf(req.params.claimId);
+  const context = patentPublicId && claimPublicId
+    ? await patentClaimContext(req.portalUser!, patentPublicId, claimPublicId)
+    : null;
+  if (!context) return void res.status(404).json({ error: "Claim not found." });
+  if (!limitationEditor(req.portalUser!)) return void res.status(403).json({ error: "Only attorneys and administrators may verify claim limitations." });
+  const verified = await db.transaction(async (tx) => {
+    const [structure] = await tx.select().from(claimLimitationStructuresTable)
+      .where(eq(claimLimitationStructuresTable.claimVersionId, context.claim.id)).limit(1);
+    const active = structure
+      ? await tx.select().from(claimLimitationsTable).where(and(eq(claimLimitationsTable.structureId, structure.id), isNull(claimLimitationsTable.deletedAt)))
+      : [];
+    if (!structure || !active.length) return null;
+    const verifiedAt = new Date();
+    await tx.update(claimLimitationStructuresTable).set({
+      state: "VERIFIED",
+      verifiedById: req.portalUser!.id,
+      verifiedAt,
+      updatedAt: verifiedAt,
+    }).where(eq(claimLimitationStructuresTable.id, structure.id));
+    const next = [];
+    for (const limitation of active) {
+      const [updated] = await tx.update(claimLimitationsTable).set({
+        verificationStatus: "VERIFIED",
+        verifiedById: req.portalUser!.id,
+        verifiedAt,
+        updatedById: req.portalUser!.id,
+        updatedAt: verifiedAt,
+      }).where(eq(claimLimitationsTable.id, limitation.id)).returning();
+      await writeLimitationHistory(tx, updated, "VERIFIED", req.portalUser!.id);
+      next.push(updated);
+    }
+    return next;
+  });
+  if (!verified) return void res.status(400).json({ error: "Add at least one limitation before verifying the structure." });
+  const latest = await limitationAnalysisData(context, req.portalUser!);
+  res.json({ limitations: verified.map(serializeLimitation), analysis: latest });
 });
 
 router.post("/portal/patents/:id/refresh", async (req, res) => {

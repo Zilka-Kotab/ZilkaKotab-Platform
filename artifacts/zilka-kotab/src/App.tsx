@@ -32,6 +32,7 @@ import PortalToolDetail from '@/pages/portal/ToolDetail';
 import PortalAdmin from '@/pages/portal/Admin';
 import ProjectWorkspace from '@/pages/portal/ProjectWorkspace';
 import PatentDetail from '@/pages/portal/PatentDetail';
+import ClaimAnalysis from '@/pages/portal/ClaimAnalysis';
 
 const queryClient = new QueryClient();
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, '');
@@ -116,6 +117,9 @@ function Router() {
       </Route>
       <Route path="/portal/projects/:projectId">
         <ProtectedPortalRoute component={ProjectWorkspace} />
+      </Route>
+      <Route path="/portal/patents/:patentId/claims/:claimId/analysis">
+        <ProtectedPortalRoute component={ClaimAnalysis} />
       </Route>
       <Route path="/portal/patents/:patentId">
         <ProtectedPortalRoute component={PatentDetail} />

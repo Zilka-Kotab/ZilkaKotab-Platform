@@ -14,6 +14,7 @@ export const portalKeys = {
   project: (id: string) => [...portalKeys.projects(), id] as const,
   projectWorkspace: (id: string) => [...portalKeys.project(id), 'workspace'] as const,
   patent: (id: string) => [...portalKeys.all, 'patent', id] as const,
+  claimAnalysis: (patentId: string, claimId: string) => [...portalKeys.patent(patentId), 'claim-analysis', claimId] as const,
   adminUsers: () => [...portalKeys.all, 'adminUsers'] as const,
   adminAudit: () => [...portalKeys.all, 'adminAudit'] as const,
   adminProjects: () => [...portalKeys.all, 'adminProjects'] as const,
@@ -92,6 +93,44 @@ export function useRefreshPatent(patentId: string) {
     },
   });
 }
+
+export function useClaimAnalysis(patentId: string, claimId: string) {
+  return useQuery({
+    queryKey: portalKeys.claimAnalysis(patentId, claimId),
+    queryFn: () => api.getClaimAnalysis(patentId, claimId),
+    enabled: !!patentId && !!claimId,
+  });
+}
+
+function useClaimAnalysisMutation<T>(patentId: string, claimId: string, mutationFn: (data: T) => Promise<unknown>) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: portalKeys.claimAnalysis(patentId, claimId) });
+      queryClient.invalidateQueries({ queryKey: portalKeys.patent(patentId) });
+      queryClient.invalidateQueries({ queryKey: portalKeys.all });
+    },
+  });
+}
+
+export const useCreateClaimLimitation = (patentId: string, claimId: string) =>
+  useClaimAnalysisMutation(patentId, claimId, (data: Parameters<typeof api.createClaimLimitation>[2]) => api.createClaimLimitation(patentId, claimId, data));
+export const useUpdateClaimLimitation = (patentId: string, claimId: string) =>
+  useClaimAnalysisMutation(patentId, claimId, ({ limitationId, data }: { limitationId: string; data: Parameters<typeof api.updateClaimLimitation>[3] }) =>
+    api.updateClaimLimitation(patentId, claimId, limitationId, data));
+export const useDeleteClaimLimitation = (patentId: string, claimId: string) =>
+  useClaimAnalysisMutation(patentId, claimId, (limitationId: string) => api.deleteClaimLimitation(patentId, claimId, limitationId));
+export const useSplitClaimLimitation = (patentId: string, claimId: string) =>
+  useClaimAnalysisMutation(patentId, claimId, ({ limitationId, data }: { limitationId: string; data: Parameters<typeof api.splitClaimLimitation>[3] }) =>
+    api.splitClaimLimitation(patentId, claimId, limitationId, data));
+export const useMergeClaimLimitations = (patentId: string, claimId: string) =>
+  useClaimAnalysisMutation(patentId, claimId, ({ limitationId, withLimitationId }: { limitationId: string; withLimitationId: string }) =>
+    api.mergeClaimLimitations(patentId, claimId, limitationId, withLimitationId));
+export const useReorderClaimLimitations = (patentId: string, claimId: string) =>
+  useClaimAnalysisMutation(patentId, claimId, (limitationIds: string[]) => api.reorderClaimLimitations(patentId, claimId, limitationIds));
+export const useVerifyClaimLimitations = (patentId: string, claimId: string) =>
+  useClaimAnalysisMutation(patentId, claimId, () => api.verifyClaimLimitations(patentId, claimId));
 
 function useWorkspaceMutation<T>(projectId: string, mutationFn: (data: T) => Promise<unknown>) {
   const queryClient = useQueryClient();

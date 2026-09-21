@@ -39,6 +39,9 @@ export type AiProcessingProvider = 'CLIENT_MICROSOFT' | 'ZK_MANAGED_AI' | 'MANUA
 export type DataClassification = 'PUBLIC_SOURCE' | 'CLIENT_CONFIDENTIAL' | 'ATTORNEY_WORK_PRODUCT';
 export type AnalysisTriage = 'HIGH' | 'MEDIUM' | 'LOW';
 export type AnalysisReviewStatus = 'UNREVIEWED' | 'CLIENT_REVIEWED' | 'ATTORNEY_REVIEWED' | 'FINAL';
+export type ClaimLimitationState = 'DRAFT' | 'VERIFIED';
+export type ClaimLimitationCreationMethod = 'MANUAL' | 'AI_GENERATED';
+export type ClaimLimitationHistoryAction = 'CREATED' | 'UPDATED' | 'SPLIT' | 'MERGED' | 'REORDERED' | 'DELETED' | 'VERIFIED' | 'UNVERIFIED';
 
 export interface ProjectAiConfig {
   projectId: string;
@@ -130,6 +133,62 @@ export interface PatentDetail {
   client: Client;
   tool: Tool;
   analysisRuns: AnalysisRun[];
+}
+
+export interface ClaimLimitation {
+  publicId: string;
+  sequence: number;
+  identifier: string;
+  limitationText: string;
+  creationMethod: ClaimLimitationCreationMethod;
+  verificationStatus: ClaimLimitationState;
+  verifiedById?: number | null;
+  verifiedAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ClaimLimitationStructure {
+  publicId: string;
+  claimVersionId: string;
+  state: ClaimLimitationState;
+  verifiedBy: { publicId: string; name: string } | null;
+  verifiedAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ClaimLimitationHistory {
+  publicId: string;
+  action: ClaimLimitationHistoryAction;
+  limitationId?: number | null;
+  sequence?: number | null;
+  identifier?: string | null;
+  limitationText?: string | null;
+  verificationStatus?: ClaimLimitationState | null;
+  actor: { publicId: string; name: string } | null;
+  createdAt: string;
+}
+
+export interface ClaimAnalysis {
+  patent: MonitoredPatent;
+  project: Project;
+  client: Client;
+  tool: Tool;
+  claim: PatentClaim;
+  structure: ClaimLimitationStructure | null;
+  limitations: ClaimLimitation[];
+  history: ClaimLimitationHistory[];
+  permissions: {
+    canEdit: boolean;
+    canVerify: boolean;
+    canViewHistory: boolean;
+  };
+  ai: {
+    operation: 'PARSE_CLAIM_LIMITATIONS';
+    enabled: boolean;
+    message: string;
+  };
 }
 
 export interface WorkspaceItem {
@@ -235,6 +294,22 @@ export const commitPatentImport = (draftId: string, selectedClaimNumbers: string
   fetchPortal<{ patent: MonitoredPatent }>(`/patent-imports/${draftId}/commit`, { method: 'POST', body: JSON.stringify({ selectedClaimNumbers }) });
 export const refreshPatent = (publicId: string) =>
   fetchPortal<{ patent: MonitoredPatent }>(`/patents/${publicId}/refresh`, { method: 'POST' });
+export const getClaimAnalysis = (patentId: string, claimId: string) =>
+  fetchPortal<ClaimAnalysis>(`/patents/${patentId}/claims/${claimId}/analysis`);
+export const createClaimLimitation = (patentId: string, claimId: string, data: { limitationText: string; identifier?: string; sequence?: number }) =>
+  fetchPortal<{ limitation: ClaimLimitation; analysis: ClaimAnalysis }>(`/patents/${patentId}/claims/${claimId}/limitations`, { method: 'POST', body: JSON.stringify(data) });
+export const updateClaimLimitation = (patentId: string, claimId: string, limitationId: string, data: { limitationText?: string; identifier?: string; sequence?: number }) =>
+  fetchPortal<{ limitation: ClaimLimitation; analysis: ClaimAnalysis }>(`/patents/${patentId}/claims/${claimId}/limitations/${limitationId}`, { method: 'PATCH', body: JSON.stringify(data) });
+export const deleteClaimLimitation = (patentId: string, claimId: string, limitationId: string) =>
+  fetchPortal<{ deleted: true; analysis: ClaimAnalysis }>(`/patents/${patentId}/claims/${claimId}/limitations/${limitationId}`, { method: 'DELETE' });
+export const splitClaimLimitation = (patentId: string, claimId: string, limitationId: string, data: { firstText: string; secondText: string }) =>
+  fetchPortal<{ limitations: ClaimLimitation[]; analysis: ClaimAnalysis }>(`/patents/${patentId}/claims/${claimId}/limitations/${limitationId}/split`, { method: 'POST', body: JSON.stringify(data) });
+export const mergeClaimLimitations = (patentId: string, claimId: string, limitationId: string, withLimitationId: string) =>
+  fetchPortal<{ limitation: ClaimLimitation; analysis: ClaimAnalysis }>(`/patents/${patentId}/claims/${claimId}/limitations/${limitationId}/merge`, { method: 'POST', body: JSON.stringify({ withLimitationId }) });
+export const reorderClaimLimitations = (patentId: string, claimId: string, limitationIds: string[]) =>
+  fetchPortal<{ limitations: ClaimLimitation[]; analysis: ClaimAnalysis }>(`/patents/${patentId}/claims/${claimId}/limitations/reorder`, { method: 'POST', body: JSON.stringify({ limitationIds }) });
+export const verifyClaimLimitations = (patentId: string, claimId: string) =>
+  fetchPortal<{ limitations: ClaimLimitation[]; analysis: ClaimAnalysis }>(`/patents/${patentId}/claims/${claimId}/limitations/verify`, { method: 'POST' });
 export const createPatent = (projectId: string, data: { patentNumber: string; title: string; jurisdiction: string; sourceUrl?: string; claims?: unknown[] }) =>
   fetchPortal<{ patent: MonitoredPatent }>(`/projects/${projectId}/patents`, { method: 'POST', body: JSON.stringify(data) });
 export const updatePatentMonitoring = (publicId: string, active: boolean) =>

@@ -1,5 +1,27 @@
 import type { AiProcessingProvider } from "@workspace/db";
 
+export const PARSE_CLAIM_LIMITATIONS_OPERATION = "PARSE_CLAIM_LIMITATIONS" as const;
+
+export interface ClaimLimitationParseInput {
+  operation: typeof PARSE_CLAIM_LIMITATIONS_OPERATION;
+  patentIdentifier: string;
+  claimNumber: string;
+  authoritativeClaimText: string;
+  attorneyInstructions?: string;
+}
+
+export interface ClaimLimitationParseOutput {
+  operation: typeof PARSE_CLAIM_LIMITATIONS_OPERATION;
+  limitations: Array<{
+    identifier: string;
+    limitationText: string;
+    rationale?: string;
+    confidence?: number;
+    uncertainty?: string;
+  }>;
+  providerProvenance?: Record<string, unknown>;
+}
+
 export interface AnalysisInput {
   projectId: number;
   patentId?: number;

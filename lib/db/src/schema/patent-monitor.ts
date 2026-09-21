@@ -37,6 +37,18 @@ export const analysisReviewStatusEnum = pgEnum("analysis_review_status", [
 export const patentImportStatusEnum = pgEnum("patent_import_status", ["READY", "FAILED", "COMMITTED"]);
 export const patentVerificationStatusEnum = pgEnum("patent_verification_status", ["PENDING", "VERIFIED", "MANUALLY_CORRECTED"]);
 export const patentClaimTypeEnum = pgEnum("patent_claim_type", ["INDEPENDENT", "DEPENDENT", "UNKNOWN"]);
+export const claimLimitationStateEnum = pgEnum("claim_limitation_state", ["DRAFT", "VERIFIED"]);
+export const claimLimitationCreationMethodEnum = pgEnum("claim_limitation_creation_method", ["MANUAL", "AI_GENERATED"]);
+export const claimLimitationHistoryActionEnum = pgEnum("claim_limitation_history_action", [
+  "CREATED",
+  "UPDATED",
+  "SPLIT",
+  "MERGED",
+  "REORDERED",
+  "DELETED",
+  "VERIFIED",
+  "UNVERIFIED",
+]);
 
 export const projectAiConfigsTable = pgTable("project_ai_configs", {
   projectId: integer("project_id").primaryKey().references(() => projectsTable.id, { onDelete: "cascade" }),
@@ -104,6 +116,76 @@ export const patentClaimsTable = pgTable(
     uniqueIndex("patent_claims_public_id_unique").on(table.publicId),
     uniqueIndex("patent_claims_patent_number_version_unique").on(table.patentId, table.claimNumber, table.version),
     index("patent_claims_patent_idx").on(table.patentId),
+  ],
+);
+
+export const claimLimitationStructuresTable = pgTable(
+  "claim_limitation_structures",
+  {
+    id: serial("id").primaryKey(),
+    publicId: uuid("public_id").defaultRandom().notNull(),
+    claimVersionId: integer("claim_version_id").notNull().references(() => patentClaimsTable.id, { onDelete: "cascade" }),
+    state: claimLimitationStateEnum("state").notNull().default("DRAFT"),
+    verifiedById: integer("verified_by_id").references(() => portalUsersTable.id, { onDelete: "set null" }),
+    verifiedAt: timestamp("verified_at", { withTimezone: true }),
+    createdById: integer("created_by_id").notNull().references(() => portalUsersTable.id),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
+  },
+  (table) => [
+    uniqueIndex("claim_limitation_structures_public_id_unique").on(table.publicId),
+    uniqueIndex("claim_limitation_structures_claim_version_unique").on(table.claimVersionId),
+    index("claim_limitation_structures_state_idx").on(table.state),
+  ],
+);
+
+export const claimLimitationsTable = pgTable(
+  "claim_limitations",
+  {
+    id: serial("id").primaryKey(),
+    publicId: uuid("public_id").defaultRandom().notNull(),
+    structureId: integer("structure_id").notNull().references(() => claimLimitationStructuresTable.id, { onDelete: "cascade" }),
+    sequence: integer("sequence").notNull(),
+    identifier: varchar("identifier", { length: 40 }).notNull(),
+    limitationText: text("limitation_text").notNull(),
+    creationMethod: claimLimitationCreationMethodEnum("creation_method").notNull().default("MANUAL"),
+    verificationStatus: claimLimitationStateEnum("verification_status").notNull().default("DRAFT"),
+    verifiedById: integer("verified_by_id").references(() => portalUsersTable.id, { onDelete: "set null" }),
+    verifiedAt: timestamp("verified_at", { withTimezone: true }),
+    createdById: integer("created_by_id").notNull().references(() => portalUsersTable.id),
+    updatedById: integer("updated_by_id").references(() => portalUsersTable.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+    deletedById: integer("deleted_by_id").references(() => portalUsersTable.id, { onDelete: "set null" }),
+  },
+  (table) => [
+    uniqueIndex("claim_limitations_public_id_unique").on(table.publicId),
+    index("claim_limitations_structure_sequence_idx").on(table.structureId, table.sequence),
+    index("claim_limitations_structure_status_idx").on(table.structureId, table.verificationStatus),
+  ],
+);
+
+export const claimLimitationHistoryTable = pgTable(
+  "claim_limitation_history",
+  {
+    id: serial("id").primaryKey(),
+    publicId: uuid("public_id").defaultRandom().notNull(),
+    structureId: integer("structure_id").notNull().references(() => claimLimitationStructuresTable.id, { onDelete: "cascade" }),
+    limitationId: integer("limitation_id").references(() => claimLimitationsTable.id, { onDelete: "set null" }),
+    action: claimLimitationHistoryActionEnum("action").notNull(),
+    sequence: integer("sequence"),
+    identifier: varchar("identifier", { length: 40 }),
+    limitationText: text("limitation_text"),
+    creationMethod: claimLimitationCreationMethodEnum("creation_method"),
+    verificationStatus: claimLimitationStateEnum("verification_status"),
+    actorId: integer("actor_id").notNull().references(() => portalUsersTable.id),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("claim_limitation_history_public_id_unique").on(table.publicId),
+    index("claim_limitation_history_structure_created_idx").on(table.structureId, table.createdAt),
+    index("claim_limitation_history_limitation_idx").on(table.limitationId),
   ],
 );
 
@@ -199,6 +281,9 @@ export const analysisReviewsTable = pgTable(
 export const insertProjectAiConfigSchema = createInsertSchema(projectAiConfigsTable);
 export const insertMonitoredPatentSchema = createInsertSchema(monitoredPatentsTable);
 export const insertPatentClaimSchema = createInsertSchema(patentClaimsTable);
+export const insertClaimLimitationStructureSchema = createInsertSchema(claimLimitationStructuresTable);
+export const insertClaimLimitationSchema = createInsertSchema(claimLimitationsTable);
+export const insertClaimLimitationHistorySchema = createInsertSchema(claimLimitationHistoryTable);
 export const insertProjectWorkspaceItemSchema = createInsertSchema(projectWorkspaceItemsTable);
 export const insertAnalysisRunSchema = createInsertSchema(analysisRunsTable);
 export const insertAnalysisReviewSchema = createInsertSchema(analysisReviewsTable);
@@ -206,3 +291,6 @@ export const insertAnalysisReviewSchema = createInsertSchema(analysisReviewsTabl
 export type AiProcessingProvider = typeof projectAiConfigsTable.$inferSelect.selectedProvider;
 export type DataClassification = typeof projectWorkspaceItemsTable.$inferSelect.classification;
 export type AnalysisRun = typeof analysisRunsTable.$inferSelect;
+export type ClaimLimitationStructure = typeof claimLimitationStructuresTable.$inferSelect;
+export type ClaimLimitation = typeof claimLimitationsTable.$inferSelect;
+export type ClaimLimitationHistory = typeof claimLimitationHistoryTable.$inferSelect;
