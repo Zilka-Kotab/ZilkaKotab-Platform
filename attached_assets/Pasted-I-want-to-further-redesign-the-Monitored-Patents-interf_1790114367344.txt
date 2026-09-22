@@ -1,0 +1,571 @@
+I want to further redesign the Monitored Patents interface into a compact portfolio-management and infringement-monitoring dashboard.
+
+Use the current interface as the starting point. Preserve all existing backend functionality, security, UUID architecture, USPTO retrieval, monitoring state, claim selection, claim limitation analysis, history, and tenant isolation.
+
+This task is primarily UI/information architecture plus preparation of the data model for future AI metrics.
+
+Do NOT generate fake AI results. If a metric has not actually been analyzed, display — or Not analyzed.
+
+1. Make each patent row substantially more compact
+
+The current rows are too tall.
+
+Reduce row height substantially so approximately 8–12 patents can be visible on a typical desktop screen without excessive scrolling.
+
+Remove unnecessary descriptive text from the collapsed row.
+
+The collapsed table should contain:
+
+PATENT | MONITORING | RECOMMENDATION | AI METRICS | ACTIONS
+
+Each patent should ordinarily occupy approximately one compact table row.
+
+2. Patent column
+
+The Patent column should contain:
+
+US9406147
+COLOR BALANCE IN DIGITAL PHOTOGRAPHY
+
+Keep the patent number prominent and the title smaller/secondary.
+
+Do NOT show claim counts or other secondary information in the collapsed row unless there is adequate space.
+
+Make the column sortable/filterable.
+
+3. Monitoring column
+
+Show:
+
+ACTIVE
+
+or:
+
+PAUSED
+
+Use the existing monitoring state.
+
+Authorized ADMIN/ATTORNEY users should be able to toggle this without opening the patent.
+
+Monitoring status remains independent from AI recommendation.
+
+4. Recommendation column
+
+Prepare a recommendation field with exactly these primary states:
+
+MAINTAIN
+
+REVIEW
+
+PRUNE
+
+plus:
+
+NOT ANALYZED
+
+These will eventually be produced by the AI portfolio-analysis system.
+
+For now, do NOT infer or fabricate a recommendation.
+
+PRUNE does NOT automatically:
+
+remove a patent;
+pause monitoring;
+abandon a patent;
+cause a maintenance fee not to be paid; or
+take any legal action.
+
+It is only an analytical recommendation requiring human review.
+
+Architect the recommendation so we can later preserve:
+
+AI recommendation;
+recommendation date;
+underlying analysis run;
+confidence, if used;
+AI rationale;
+attorney/manual override;
+override reason; and
+historical recommendations.
+5. AI Metrics column
+
+The collapsed row should provide an extremely concise summary of four metrics:
+
+CLAIMS | DETECT | HITS | CITES
+
+CLAIMS — Claim Scope
+
+Future conclusion:
+
+HIGH / MED / LOW
+
+This represents the AI's assessment of the practical breadth/scope of the selected monitored independent claim(s).
+
+DETECT — Detectability
+
+Future conclusion:
+
+HIGH / MED / LOW
+
+This represents how readily potential practice of the selected claim limitations can be detected from publicly available information.
+
+HITS — Infringement Hits
+
+Future conclusion:
+
+HIGH / MED / LOW
+
+This represents the strength/prevalence of potential infringement-monitoring hits based on actual evidence discovered by the monitoring process.
+
+It must not be presented as a final legal conclusion that infringement exists.
+
+CITES — Forward Citations
+
+This one should be an actual numerical value, not High/Medium/Low:
+
+89
+
+It should represent the actual number of later U.S. patent records identified by the implemented citation-data source as citing the subject patent, with source/provenance retained.
+
+Until forward-citation retrieval is actually implemented, show —.
+
+Example compact display:
+
+CLAIMS HIGH · DETECT MED · HITS HIGH · CITES 89
+
+Keep this visually compact.
+
+6. Filtering and sorting
+
+Add column-level filtering/sorting.
+
+Users should be able to filter by:
+
+Patent
+
+patent number
+title/search
+
+Monitoring
+
+Active
+Paused
+
+Recommendation
+
+Maintain
+Review
+Prune
+Not analyzed
+
+Claim Scope
+
+High
+Medium
+Low
+Not analyzed
+
+Detectability
+
+High
+Medium
+Low
+Not analyzed
+
+Infringement Hits
+
+High
+Medium
+Low
+Not analyzed
+
+Forward Citations
+
+sortable numerically
+optionally minimum/maximum filtering
+
+Allow multiple filters simultaneously.
+
+Provide an obvious:
+
+Clear Filters
+
+control when filters are active.
+
+Keep the existing search functionality.
+
+7. Entire row expands
+
+Clicking anywhere on the collapsed row, except an interactive control such as Monitoring or the action menu, should expand the row inline.
+
+Clicking it again collapses it.
+
+Do not immediately navigate to another page.
+
+The expanded area should become a detailed summary dashboard for that patent.
+
+Only one expanded patent at a time is acceptable if that creates a cleaner interface.
+
+8. Expanded row — summary layout
+
+The expanded panel should provide approximately five major information areas:
+
+AI OVERVIEW
+
+AI METRICS
+
+PATENT DETAILS
+
+MONITORED CLAIM(S)
+
+INFRINGEMENT TARGETS / FINDINGS
+
+Arrange these as clean cards/sections similar to the compact reference interface previously provided.
+
+The objective is that an attorney can understand the patent's monitoring situation without navigating away from the portfolio.
+
+9. AI Overview panel
+
+Provide a prominent:
+
+AI OVERVIEW
+
+panel.
+
+Eventually this should provide a concise narrative explaining the recommendation based upon the available metrics.
+
+For example, the future system might explain the interaction among:
+
+claim scope;
+detectability;
+infringement hits;
+forward citations;
+evidence quality; and
+other implemented metrics.
+
+Do NOT generate an AI overview yet.
+
+Until an actual analysis exists, display:
+
+No AI analysis has been performed yet.
+
+Architect this panel so its text is tied to an immutable analysis run and recommendation rather than being continually overwritten.
+
+10. AI Metrics cards
+
+In the expanded area, provide more detailed cards for:
+
+CLAIM SCOPE
+
+HIGH / MEDIUM / LOW / NOT ANALYZED
+
+Include future explanatory text/rationale.
+
+DETECTABILITY
+
+HIGH / MEDIUM / LOW / NOT ANALYZED
+
+Include future explanatory text addressing whether individual claim limitations are externally observable/detectable.
+
+INFRINGEMENT HITS
+
+HIGH / MEDIUM / LOW / NOT ANALYZED
+
+Include actual candidate targets/findings and supporting evidence once implemented.
+
+FORWARD CITATIONS
+
+Show the actual citation count.
+
+Provide the ability to inspect the actual citing patents rather than merely displaying a score.
+
+For example:
+
+89 forward citations
+
+→ View citing patents
+
+Future citation data must retain source and retrieval date.
+
+11. Bibliographic / Patent Details panel
+
+Add a concise:
+
+PATENT DETAILS
+
+panel showing, where reliably available:
+
+Current assignee
+Filing date
+Issue date
+Earliest priority date
+Current normalized patent status
+Estimated legal expiration
+Next maintenance-fee deadline
+Next maintenance-fee amount
+
+Important: filing date + 20 years is NOT sufficient for a definitive legal-expiration determination.
+
+If expiration is calculated, clearly label it:
+
+Estimated Legal Expiration
+
+and design the calculation so future logic can account for applicable priority/filing rules, PTA/PTE, terminal disclaimers, disclaimers, and other relevant USPTO information.
+
+Do not represent an estimate as a definitive legal conclusion.
+
+Likewise, maintenance-fee dates and amounts must come from reliable USPTO/current fee information. Do not hard-code dollar amounts that can become stale.
+
+If those data sources/calculations have not yet been implemented, display — rather than guessing.
+
+12. Monitored Claims panel
+
+The expanded row should not display the entire claim set by default.
+
+Show only the independent claim(s) currently selected for monitoring.
+
+Example:
+
+MONITORED CLAIM
+
+Claim 1 — Selected for monitoring
+
+[complete authoritative Claim 1]
+
+If multiple claims are selected, display each selected claim.
+
+Provide:
+
+View Full Claim Set
+
+13. Full Claim Set selector
+
+Clicking View Full Claim Set should open a modal/drawer or expanded claim-selection interface containing all claims.
+
+Clearly distinguish:
+
+Independent claims
+Dependent claims
+
+Allow authorized ADMIN/ATTORNEY users to select which independent claims should be actively monitored.
+
+For example:
+
+☑ Claim 1
+
+☐ Claim 18
+
+☐ Claim 19
+
+Save the selection using the existing versioned claim architecture.
+
+Do not alter the authoritative USPTO claim text.
+
+Dependent claims should remain viewable even if they are not directly selectable for independent monitoring.
+
+14. Infringement Targets / Findings
+
+Add:
+
+TOP POTENTIAL TARGETS
+
+Once actual infringement monitoring exists, display the strongest actual candidate company/product targets.
+
+Example structure:
+
+Company / Product — HIGH
+
+Clicking a target should eventually expose:
+
+selected claim;
+limitation-by-limitation mapping;
+evidence;
+source URLs;
+evidence date;
+AI assessment;
+attorney review.
+
+Until actual analysis exists, display:
+
+No infringement monitoring results yet.
+
+Do not insert fake example targets.
+
+15. Recommendation detail
+
+The expanded row should prominently display:
+
+RECOMMENDATION
+
+MAINTAIN / REVIEW / PRUNE / NOT ANALYZED
+
+Include:
+
+recommendation rationale;
+analysis date;
+AI/provider provenance;
+optional confidence;
+attorney/manual override.
+
+If an attorney overrides an AI recommendation, preserve both:
+
+AI recommendation
+
+and:
+
+Attorney disposition
+
+Do not overwrite the original AI result.
+
+16. Monitoring controls
+
+From both the collapsed and expanded views, authorized users should be able to:
+
+Pause Monitoring
+
+or:
+
+Resume Monitoring
+
+Preserve all prior findings, analyses, evidence, claim selections, and history when monitoring is paused.
+
+17. Actions
+
+Keep a compact ⋯ action menu containing:
+
+Open Full Detail
+Refresh from USPTO
+Pause/Resume Monitoring
+Remove/Archive from Project
+
+Removal remains different from pausing.
+
+Do not hard-delete historical analysis or audit records.
+
+18. Dense visual design
+
+The overall visual hierarchy should resemble the portfolio interface I previously provided:
+
+collapsed state = extremely compact triage
+
+expanded state = rich analysis
+
+Avoid large empty cards, oversized headings, excessive padding, or repeated labels.
+
+The user should be able to scan a large patent portfolio quickly.
+
+On desktop, prioritize information density.
+
+On mobile/small screens, convert rows into compact cards rather than forcing horizontal scrolling.
+
+19. Important distinction between factual data and AI conclusions
+
+Visually distinguish factual/source data from AI analytical conclusions.
+
+Factual:
+
+Patent number
+Bibliographic information
+Actual forward-citation count
+Claims
+USPTO status
+Maintenance-fee information
+
+Analytical:
+
+Claim Scope
+Detectability
+Infringement Hits
+Maintain/Review/Prune recommendation
+AI Overview
+
+Every AI-derived conclusion should retain provenance to the analysis run that produced it.
+
+20. Do not fabricate unfinished capabilities
+
+Build the UI/data structures necessary for this design, but where an analytical capability is not yet connected, show:
+
+Not analyzed
+
+or:
+
+—
+
+Do NOT populate placeholder:
+
+recommendations;
+High/Medium/Low conclusions;
+citation counts;
+expiration dates;
+maintenance fees;
+infringement targets; or
+AI narratives
+
+as though they were real results.
+
+21. Preserve existing functionality
+
+Do not break or replace the existing:
+
+USPTO retrieval;
+complete claim parsing;
+patent refresh/versioning;
+selected monitoring claims;
+Claim Limitation Analysis;
+limitation verification/history;
+UUID public identifiers;
+tenant/client/project isolation;
+role authorization;
+Active/Paused monitoring;
+archive/remove functionality;
+provenance;
+attorney-work-product protections;
+immutable analysis runs.
+
+Reuse these systems rather than building parallel versions.
+
+22. Desired collapsed interface
+
+Conceptually:
+
+PATENT | MONITORING | RECOMMENDATION | AI METRICS | ACTIONS
+
+US9406147 | ACTIVE | NOT ANALYZED | CLAIMS — · DETECT — · HITS — · CITES — | ⋯
+
+Color Balance in Digital Photography
+
+Once real analysis exists:
+
+USxxxxxxxx | ACTIVE | MAINTAIN | CLAIMS HIGH · DETECT HIGH · HITS MED · CITES 89 | ⋯
+
+23. Desired expanded interface
+
+Clicking the row should expose something conceptually like:
+
+AI OVERVIEW | PATENT DETAILS | RECOMMENDATION
+
+MONITORED CLAIM(S) | TOP POTENTIAL TARGETS | FORWARD CITATIONS
+
+CLAIM SCOPE | DETECTABILITY | INFRINGEMENT HITS
+
+The exact responsive layout can be optimized, but preserve this information hierarchy.
+
+24. Report back
+
+After implementation, tell me:
+
+what was changed to make the table more compact;
+filtering/sorting capabilities added;
+expanded-row behavior;
+recommendation data model;
+AI metric data model;
+how actual forward citations will be represented;
+how monitored claims are selected from the full claim set;
+bibliographic/expiration/maintenance-fee handling;
+how AI provenance/history is preserved;
+any schema changes;
+tests performed;
+whether I need to republish; and
+exact production testing steps.
+
+Do not connect or execute Microsoft Copilot or another AI provider in this task. Do not fabricate analysis results.
