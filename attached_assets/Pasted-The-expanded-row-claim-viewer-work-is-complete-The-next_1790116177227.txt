@@ -1,0 +1,287 @@
+The expanded-row/claim-viewer work is complete. The next phase is to make Claim Scope / Claim Limitation Analysis functional.
+
+Do not implement infringement searching, Detectability, forward citations, or Maintain/Review/Prune recommendations yet.
+
+Focus only on converting a monitored independent claim into a structured, attorney-reviewable limitation analysis.
+
+1. Existing architecture
+
+Reuse the existing Claim Limitation Analysis architecture already implemented:
+
+limitation structures tied to a specific claim version;
+ordered limitation records;
+DRAFT / VERIFIED states;
+split;
+merge;
+reorder;
+edit;
+delete;
+verification;
+append-only history;
+ADMIN/ATTORNEY editing;
+CLIENT visibility only for verified limitations.
+
+Do not create a parallel claim-analysis system.
+
+2. Generate Limitations
+
+Activate the existing disabled:
+
+Generate Limitations
+
+functionality.
+
+The purpose is to take the complete authoritative text of a selected monitored independent claim and propose a structured set of claim limitations.
+
+The AI-generated output must initially be:
+
+DRAFT — AI GENERATED
+
+It must never automatically become VERIFIED.
+
+Only an authorized ADMIN or ATTORNEY may verify it.
+
+3. Limitation methodology
+
+The goal is not simply to split the claim at every semicolon.
+
+The analysis should identify technically meaningful limitations suitable for later:
+
+infringement searching;
+evidence mapping;
+detectability analysis; and
+claim-chart construction.
+
+Preserve relationships within the claim where separating language would materially alter its meaning.
+
+For example, the system should distinguish between:
+
+preamble/context;
+structural elements;
+functional requirements;
+relationships between elements;
+sequential/process requirements;
+wherein clauses;
+nested limitations.
+
+Do not rewrite a limitation into broader language than the authoritative claim.
+
+4. Preserve authoritative language
+
+Each generated limitation should retain:
+
+Limitation ID
+
+Exact Claim Language
+
+Normalized/Search Concept
+
+Rationale
+
+Confidence
+
+Uncertainty/Notes
+
+The most important field is Exact Claim Language.
+
+This should consist of the actual claim language associated with the limitation rather than an AI paraphrase.
+
+The AI may separately provide a normalized/search concept, but that must never replace the authoritative language.
+
+5. Example conceptual structure
+
+For a claim beginning:
+
+1. An apparatus, comprising: circuitry for: receiving a first image and a second image; estimating a motion transform...
+
+the resulting structure might conceptually contain:
+
+L01 — Preamble / apparatus
+
+Exact language:
+An apparatus, comprising:
+
+L02 — Image reception
+
+Exact language:
+circuitry for: receiving a first image and a second image;
+
+L03 — Motion transform
+
+Exact language:
+estimating a motion transform between the first image and the second image;
+
+etc.
+
+This is only an illustration of the required structure. Do NOT hard-code this example or assume these are the correct legal limitation boundaries.
+
+6. Attorney review interface
+
+After generation, show the proposed limitations in the existing Claim Limitation Analysis editor.
+
+Make review efficient.
+
+Each limitation should show prominently:
+
+L01
+
+Exact claim language
+
+followed by smaller secondary information:
+
+normalized/search concept;
+AI rationale;
+confidence;
+uncertainty.
+
+Attorneys must continue to be able to:
+
+edit;
+split;
+merge;
+reorder;
+delete;
+add a limitation;
+regenerate;
+verify.
+
+Any attorney modification should be recorded in the existing append-only history.
+
+7. Claim coverage validation
+
+Add an important validation step before verification.
+
+The system should determine whether the proposed limitation structure collectively accounts for the entire substantive text of the authoritative claim.
+
+Before allowing verification, identify:
+
+Unmapped Claim Language
+
+if any substantive portion of the authoritative claim has not been assigned to a limitation.
+
+Do not silently omit difficult claim language.
+
+The attorney should be able to resolve any unmapped language before verification.
+
+This is particularly important for:
+
+wherein clauses;
+nested functional language;
+final relational clauses;
+unusual punctuation;
+Markush language.
+8. Verified structure
+
+Once an attorney selects:
+
+Verify Limitation Structure
+
+preserve:
+
+claim public ID;
+exact claim-version ID;
+limitation structure/version;
+verifying attorney;
+verification timestamp;
+AI provider/model used for the original proposal;
+generation timestamp;
+all subsequent human edits/history.
+
+Later infringement analysis must operate against the VERIFIED limitation structure, not an unreviewed AI draft, unless we explicitly change that rule later.
+
+9. Claim Scope metric
+
+Prepare the architecture for the future:
+
+CLAIM SCOPE: HIGH / MEDIUM / LOW
+
+but do not generate the metric yet.
+
+Claim Scope should eventually be a separate analysis performed against the VERIFIED limitation structure.
+
+Do not equate number of limitations with claim breadth.
+
+Do not infer Claim Scope simply because a claim is long or short.
+
+For this task, the dashboard should continue displaying:
+
+CLAIM SCOPE — Not analyzed
+
+10. AI provider boundary
+
+Before implementing the actual AI call, inspect the existing AIProcessingProvider architecture and tell me whether the PARSE_CLAIM_LIMITATIONS contract can now be connected cleanly to:
+
+a client-provided Microsoft AI/Copilot environment; and
+a Zilka-Kotab-managed AI provider as fallback.
+
+Do not connect either provider yet if doing so requires new Microsoft permissions, credentials, tenant consent, or transmitting client information externally.
+
+First report exactly what connection mechanism is proposed and what data would leave our Replit application.
+
+For the claim-limitation request, the minimum payload should ideally contain only:
+
+patent number;
+claim number;
+authoritative claim text;
+optional attorney instructions.
+
+Do NOT send:
+
+client name;
+project name;
+attorney notes;
+other client records;
+other patents in the portfolio;
+attorney work product unrelated to the particular request.
+11. Privacy requirement
+
+The system must continue to support our eventual two-provider model:
+
+CLIENT_MICROSOFT
+
+Client's approved Microsoft environment where technically feasible.
+
+ZK_MANAGED_AI
+
+Zilka-Kotab-controlled AI processing for clients that do not have an appropriate Microsoft AI environment.
+
+AI outputs must always be stored back in the Zilka-Kotab portal so authorized Zilka-Kotab attorneys can review the project regardless of which provider performed the processing.
+
+Provider provenance must be retained with every generated limitation structure.
+
+12. Do not implement unrelated capabilities
+
+Do not implement yet:
+
+infringement searching;
+web searching;
+product identification;
+Detectability scoring;
+Claim Scope scoring;
+Infringement Hits scoring;
+forward citations;
+Maintain/Review/Prune recommendations;
+scheduled monitoring.
+
+This phase is specifically:
+
+Authoritative Claim → AI Draft Limitations → Attorney Review → Verified Limitations
+
+13. Report back before connecting an external AI provider
+
+First inspect the existing implementation and report:
+
+how PARSE_CLAIM_LIMITATIONS currently works;
+what is missing to make Generate Limitations operational;
+proposed AI request payload;
+proposed structured response schema;
+how complete claim coverage will be validated;
+how generation provenance will be stored;
+how regeneration/versioning will work;
+exactly what information would be transmitted outside Replit;
+options for CLIENT_MICROSOFT;
+options for ZK_MANAGED_AI;
+what Microsoft/API permissions or credentials each option would require; and
+your recommended implementation sequence.
+
+Do not make an external AI connection yet. Wait for approval after reporting the proposed architecture.
