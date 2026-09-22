@@ -78,6 +78,7 @@ export interface MonitoredPatent {
   inventors: string[];
   abstract?: string | null;
   patentStatus: string;
+  sourceStatus?: string | null;
   jurisdiction: string;
   sourceUrl?: string | null;
   source: string;
@@ -110,6 +111,7 @@ export interface PatentImportDraft {
     assignee: string | null;
     inventors: string[];
     abstract: string | null;
+    sourceStatus: string;
     patentStatus: string;
     jurisdiction: string;
     source: string;

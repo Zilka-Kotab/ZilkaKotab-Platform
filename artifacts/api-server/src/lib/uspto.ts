@@ -20,6 +20,7 @@ export type PatentImportPayload = {
   assignee: string | null;
   inventors: string[];
   abstract: string | null;
+  sourceStatus: string;
   patentStatus: string;
   jurisdiction: "US";
   source: "USPTO";
@@ -82,8 +83,22 @@ function normalizeDigits(value: unknown) {
 }
 
 function safeDate(value: unknown) {
-  const text = typeof value === "string" ? value.trim().slice(0, 10) : "";
-  return UUID_SAFE_DATE.test(text) ? text : null;
+  const text = typeof value === "string" ? value.trim() : "";
+  if (/^\d{8}$/.test(text)) return `${text.slice(0, 4)}-${text.slice(4, 6)}-${text.slice(6, 8)}`;
+  const isoDate = text.slice(0, 10);
+  return UUID_SAFE_DATE.test(isoDate) ? isoDate : null;
+}
+
+export function normalizePatentStatus(issueDate: string | null, sourceStatus: string | null, officialGrantRetrieved: boolean) {
+  const normalizedSource = (sourceStatus ?? "").toLowerCase();
+  if (normalizedSource.includes("expired")) return "Expired";
+  if (normalizedSource.includes("lapsed")) return "Lapsed";
+  if (normalizedSource.includes("canceled") || normalizedSource.includes("cancelled") || normalizedSource.includes("disclaimed")) {
+    return "Canceled/Disclaimed";
+  }
+  if (issueDate || officialGrantRetrieved) return "Issued";
+  if (normalizedSource.includes("pending")) return "Pending";
+  return "Unknown";
 }
 
 function decodeXmlEntities(value: string) {
@@ -259,14 +274,15 @@ export async function retrievePatent(normalizedPatentNumber: string): Promise<Pa
   const applicationNumber = firstText(record, ["applicationNumberText", "applicationNumber"]);
   const metadata = asRecord(record)?.applicationMetaData ?? record;
   let title = firstText(metadata, ["inventionTitle", "title"]) ?? "";
-  const patentStatus = firstText(metadata, ["applicationStatusDescriptionText", "applicationStatus", "patentStatus"]) ?? "UNKNOWN";
+  const sourceStatus = firstText(metadata, ["applicationStatusDescriptionText", "applicationStatus", "patentStatus"]) ?? "UNKNOWN";
   const filingDate = safeDate(firstText(metadata, ["filingDate", "applicationFilingDate"]));
-  const issueDate = safeDate(firstText(metadata, ["grantDate", "issueDate", "patentIssueDate"]));
+  let issueDate = safeDate(firstText(metadata, ["grantDate", "issueDate", "patentIssueDate"]));
   const earliestPriorityDate = safeDate(firstText(metadata, ["earliestPriorityDate", "priorityDate", "parentApplicationfilingDate"]));
 
   let sourceUrl: string | null = null;
   let claims: ImportedClaim[] = [];
   let abstract: string | null = null;
+  let officialGrantRetrieved = false;
   const errors: string[] = [];
 
   if (applicationNumber) {
@@ -276,7 +292,12 @@ export async function retrievePatent(normalizedPatentNumber: string): Promise<Pa
     if (sourceUrl) {
       try {
         const xml = await requestXml(sourceUrl);
+        officialGrantRetrieved = true;
         claims = parseClaims(xml);
+        if (!issueDate) {
+          const xmlIssueDate = safeDate(xmlTagText(xml, ["date-of-grant", "grant-date", "issue-date"]));
+          if (xmlIssueDate) issueDate = xmlIssueDate;
+        }
         const xmlTitle = xmlTagText(xml, ["invention-title", "inventionTitle"]);
         if (!title && xmlTitle) title = xmlTitle;
         abstract = xmlTagText(xml, ["abstract"]);
@@ -302,7 +323,8 @@ export async function retrievePatent(normalizedPatentNumber: string): Promise<Pa
     assignee: extractAssignee(metadata),
     inventors: extractInventors(metadata),
     abstract,
-    patentStatus,
+    sourceStatus,
+    patentStatus: normalizePatentStatus(issueDate, sourceStatus, officialGrantRetrieved),
     jurisdiction: "US",
     source: "USPTO",
     sourceIdentifier: applicationNumber ?? `US${patentDigits}`,

@@ -74,6 +74,7 @@ export const monitoredPatentsTable = pgTable(
     inventors: jsonb("inventors").notNull().default(sql`'[]'::jsonb`),
     abstract: text("abstract"),
     patentStatus: text("patent_status").notNull().default("UNKNOWN"),
+    sourceStatus: text("source_status"),
     jurisdiction: varchar("jurisdiction", { length: 80 }).notNull().default("US"),
     sourceUrl: text("source_url"),
     source: varchar("source", { length: 120 }).notNull().default("USPTO"),

@@ -1,4 +1,4 @@
-import { FormEvent, useMemo, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'wouter';
 import {
   AlertTriangle,
@@ -43,6 +43,17 @@ function formatDate(value?: string | null, includeTime = false) {
 
 function actionLabel(action: string) {
   return action.charAt(0) + action.slice(1).toLowerCase();
+}
+
+function limitationLetter(sequence: number) {
+  let value = sequence;
+  let letters = '';
+  while (value > 0) {
+    value -= 1;
+    letters = String.fromCharCode(65 + (value % 26)) + letters;
+    value = Math.floor(value / 26);
+  }
+  return letters || 'A';
 }
 
 function Badge({ children, tone = 'neutral' }: { children: React.ReactNode; tone?: 'neutral' | 'green' | 'amber' | 'blue' }) {
@@ -93,9 +104,14 @@ export default function ClaimAnalysis() {
   const [actionMessage, setActionMessage] = useState<string | null>(null);
 
   const limitations = useMemo(() => data?.limitations ?? [], [data?.limitations]);
+  const nextIdentifier = data ? `${data.claim.claimNumber}${limitationLetter(limitations.length + 1)}` : '';
   const canEdit = Boolean(data?.permissions.canEdit);
   const canVerify = Boolean(data?.permissions.canVerify);
   const busy = create.isPending || update.isPending || remove.isPending || split.isPending || merge.isPending || reorder.isPending || verify.isPending;
+
+  useEffect(() => {
+    if (nextIdentifier && !newIdentifier.trim()) setNewIdentifier(nextIdentifier);
+  }, [nextIdentifier, newIdentifier]);
 
   if (isLoading) return <LoadingState />;
 
@@ -148,7 +164,7 @@ export default function ClaimAnalysis() {
       {
         onSuccess: () => {
           setNewText('');
-          setNewIdentifier('');
+          setNewIdentifier(`${data.claim.claimNumber}${limitationLetter(limitations.length + 2)}`);
           setActionMessage('Limitation added to the working structure.');
         },
       },
@@ -232,10 +248,10 @@ export default function ClaimAnalysis() {
           <div>
             <p className="mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-primary">{data.client.name} · {data.project.name}</p>
             <div className="flex flex-wrap items-center gap-3">
-              <h1 className="font-display text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">Claim {data.claim.claimNumber}</h1>
+               <h1 className="font-display text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">Claim Limitation Analysis</h1>
               <Badge tone={data.structure?.state === 'VERIFIED' ? 'green' : 'amber'}>{data.structure?.state ?? 'DRAFT'}</Badge>
             </div>
-            <p className="mt-2 text-sm text-muted-foreground">{data.patent.patentNumber} · {data.patent.title || 'Patent title unavailable'}</p>
+             <p className="mt-2 text-sm text-muted-foreground">Claim {data.claim.claimNumber} · {data.patent.patentNumber} · {data.patent.title || 'Patent title unavailable'}</p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <Badge tone={canEdit ? 'blue' : 'neutral'}>{canEdit ? 'Attorney workspace' : 'Read only'}</Badge>
@@ -278,7 +294,7 @@ export default function ClaimAnalysis() {
               <div className="mt-7 grid gap-4 border-t border-border pt-5 text-xs sm:grid-cols-3">
                 <div><p className="uppercase tracking-[0.12em] text-muted-foreground">Version</p><p className="mt-1 font-semibold text-foreground">v{data.claim.version}</p></div>
                 <div><p className="uppercase tracking-[0.12em] text-muted-foreground">Source</p><p className="mt-1 font-semibold text-foreground">{data.claim.source}</p></div>
-                <div><p className="uppercase tracking-[0.12em] text-muted-foreground">Claim status</p><p className="mt-1 font-semibold text-foreground">{data.claim.verificationStatus}</p></div>
+                 <div><p className="uppercase tracking-[0.12em] text-muted-foreground">Patent status</p><p className="mt-1 font-semibold text-foreground">{data.patent.patentStatus}</p></div>
               </div>
             </div>
           </section>
@@ -358,9 +374,9 @@ export default function ClaimAnalysis() {
             <form onSubmit={handleCreate} className="border-t border-border bg-muted/20 p-5 sm:p-6">
               <div className="flex items-center gap-2"><Plus className="h-4 w-4 text-primary" /><h3 className="font-display font-semibold">Add limitation</h3></div>
               <div className="mt-4 grid gap-3 lg:grid-cols-[140px_minmax(0,1fr)_auto]">
-                <label className="text-sm font-medium">Identifier<input value={newIdentifier} onChange={(event) => setNewIdentifier(event.target.value)} placeholder="L01" className="mt-1.5 w-full rounded-md border border-input bg-card px-3 py-2.5 text-sm outline-none ring-primary transition focus:ring-2" /></label>
+                 <label className="text-sm font-medium">Identifier<input value={newIdentifier} onChange={(event) => setNewIdentifier(event.target.value)} placeholder={nextIdentifier || '1A'} className="mt-1.5 w-full rounded-md border border-input bg-card px-3 py-2.5 text-sm outline-none ring-primary transition focus:ring-2" /></label>
                 <label className="text-sm font-medium">Limitation text<span className="sr-only"> required</span><textarea required value={newText} onChange={(event) => setNewText(event.target.value)} placeholder="Describe one claim limitation…" rows={3} className="mt-1.5 w-full resize-y rounded-md border border-input bg-card px-3 py-2.5 text-sm leading-6 outline-none ring-primary transition focus:ring-2" /></label>
-                <button type="submit" disabled={busy || !newText.trim()} className="inline-flex h-fit items-center justify-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50 lg:self-end"><Plus className="h-4 w-4" /> Add</button>
+                 <button type="submit" disabled={busy || !newText.trim()} className="inline-flex h-fit items-center justify-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50 lg:self-end">{create.isPending ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />} {create.isPending ? 'Adding…' : 'Add'}</button>
               </div>
             </form>
           )}

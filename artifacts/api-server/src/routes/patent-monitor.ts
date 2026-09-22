@@ -26,7 +26,8 @@ import {
 } from "@workspace/db";
 import { requireAdmin, requirePortalAccess } from "../middlewares/portalAccess";
 import { projectRelations, serializeClient, serializeProject, serializeTool } from "../lib/portal-resources";
-import { normalizePatentNumbers, retrievePatent, type PatentImportPayload } from "../lib/uspto";
+import { logger } from "../lib/logger";
+import { normalizePatentNumbers, normalizePatentStatus, retrievePatent, type PatentImportPayload } from "../lib/uspto";
 
 const router = Router();
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -311,7 +312,12 @@ function serializePatent(patent: typeof monitoredPatentsTable.$inferSelect, proj
     assignee: patent.assignee,
     inventors: patent.inventors,
     abstract: patent.abstract,
-    patentStatus: patent.patentStatus,
+    patentStatus: normalizePatentStatus(
+      patent.issueDate,
+      patent.sourceStatus ?? patent.patentStatus,
+      patent.source === "USPTO" && Boolean(patent.sourceUrl),
+    ),
+    sourceStatus: patent.sourceStatus ?? patent.patentStatus,
     jurisdiction: patent.jurisdiction,
     sourceUrl: patent.sourceUrl,
     source: patent.source,
@@ -428,6 +434,7 @@ router.post("/portal/projects/:id/patent-imports/preview", async (req, res) => {
         assignee: null,
         inventors: [],
         abstract: null,
+        sourceStatus: "UNKNOWN",
         patentStatus: "UNKNOWN",
         jurisdiction: "US",
         source: "USPTO",
@@ -503,6 +510,7 @@ router.post("/portal/patent-imports/:id/commit", async (req, res) => {
       assignee: payload.assignee,
       inventors: payload.inventors,
       abstract: payload.abstract,
+      sourceStatus: payload.sourceStatus,
       patentStatus: payload.patentStatus,
       jurisdiction: payload.jurisdiction,
       sourceUrl: payload.sourceUrl,
@@ -624,33 +632,44 @@ router.post("/portal/patents/:patentId/claims/:claimId/limitations", async (req,
   const limitationText = text(req.body?.limitationText);
   if (!limitationText) return void res.status(400).json({ error: "Limitation text is required." });
 
-  const created = await db.transaction(async (tx) => {
-    const structure = await ensureLimitationStructure(tx, context.claim.id, req.portalUser!.id);
-    const active = await demoteLimitationStructure(tx, structure, req.portalUser!.id);
-    const sequence = validId(Number(req.body?.sequence)) ? Number(req.body.sequence) : active.length + 1;
-    const identifier = text(req.body?.identifier) || defaultLimitationIdentifier(context.claim.claimNumber, sequence);
-    if (active.some((item: typeof claimLimitationsTable.$inferSelect) => item.identifier === identifier)) {
-      throw new Error("A limitation with this identifier already exists.");
-    }
-    const [limitation] = await tx.insert(claimLimitationsTable).values({
-      structureId: structure.id,
-      sequence,
-      identifier,
-      limitationText,
-      creationMethod: "MANUAL",
-      verificationStatus: "DRAFT",
-      createdById: req.portalUser!.id,
-      updatedById: req.portalUser!.id,
-    }).returning();
-    await writeLimitationHistory(tx, limitation, "CREATED", req.portalUser!.id);
-    return limitation;
-  }).catch((error) => {
-    if (error instanceof Error && error.message.includes("already exists")) return null;
-    throw error;
-  });
-  if (!created) return void res.status(409).json({ error: "A limitation with this identifier already exists." });
-  const latest = await limitationAnalysisData(context, req.portalUser!);
-  res.status(201).json({ limitation: serializeLimitation(created), analysis: latest });
+  try {
+    const created = await db.transaction(async (tx) => {
+      const structure = await ensureLimitationStructure(tx, context.claim.id, req.portalUser!.id);
+      const active = await demoteLimitationStructure(tx, structure, req.portalUser!.id);
+      const sequence = validId(Number(req.body?.sequence)) ? Number(req.body.sequence) : active.length + 1;
+      const identifier = text(req.body?.identifier) || defaultLimitationIdentifier(context.claim.claimNumber, sequence);
+      if (active.some((item: typeof claimLimitationsTable.$inferSelect) => item.identifier === identifier)) {
+        throw new Error("A limitation with this identifier already exists.");
+      }
+      const [limitation] = await tx.insert(claimLimitationsTable).values({
+        structureId: structure.id,
+        sequence,
+        identifier,
+        limitationText,
+        creationMethod: "MANUAL",
+        verificationStatus: "DRAFT",
+        createdById: req.portalUser!.id,
+        updatedById: req.portalUser!.id,
+      }).returning();
+      await writeLimitationHistory(tx, limitation, "CREATED", req.portalUser!.id);
+      return limitation;
+    }).catch((error) => {
+      if (error instanceof Error && error.message.includes("already exists")) return null;
+      throw error;
+    });
+    if (!created) return void res.status(409).json({ error: "A limitation with this identifier already exists." });
+    const latest = await limitationAnalysisData(context, req.portalUser!);
+    res.status(201).json({ limitation: serializeLimitation(created), analysis: latest });
+  } catch (error) {
+    logger.error({
+      err: error,
+      route: "create_claim_limitation",
+      patentId: context.patent.publicId,
+      claimId: context.claim.publicId,
+      actorId: req.portalUser!.id,
+    }, "Claim limitation creation failed");
+    res.status(500).json({ error: "The limitation could not be saved. Try again or contact an administrator." });
+  }
 });
 
 router.patch("/portal/patents/:patentId/claims/:claimId/limitations/:limitationId", async (req, res) => {
@@ -978,6 +997,7 @@ router.post("/portal/patents/:id/refresh", async (req, res) => {
       assignee: payload.assignee,
       inventors: payload.inventors,
       abstract: payload.abstract,
+      sourceStatus: payload.sourceStatus,
       patentStatus: payload.patentStatus,
       source: payload.source,
       sourceIdentifier: payload.sourceIdentifier,
@@ -1048,6 +1068,7 @@ router.post("/portal/projects/:id/patents", async (req, res) => {
       assignee: text(req.body?.assignee) || null,
       inventors: Array.isArray(req.body?.inventors) ? req.body.inventors.filter((item: unknown): item is string => typeof item === "string") : [],
       abstract: text(req.body?.abstract) || null,
+      sourceStatus: text(req.body?.sourceStatus) || null,
       patentStatus: text(req.body?.patentStatus) || "MANUALLY_ENTERED",
       jurisdiction: text(req.body?.jurisdiction) || "US",
       sourceUrl: text(req.body?.sourceUrl) || null,

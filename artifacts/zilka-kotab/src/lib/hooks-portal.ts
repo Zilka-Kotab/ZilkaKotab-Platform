@@ -106,7 +106,11 @@ function useClaimAnalysisMutation<T>(patentId: string, claimId: string, mutation
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn,
-    onSuccess: () => {
+    onSuccess: (result) => {
+      const analysis = result && typeof result === 'object' && 'analysis' in result
+        ? (result as { analysis?: api.ClaimAnalysis }).analysis
+        : undefined;
+      if (analysis) queryClient.setQueryData(portalKeys.claimAnalysis(patentId, claimId), analysis);
       queryClient.invalidateQueries({ queryKey: portalKeys.claimAnalysis(patentId, claimId) });
       queryClient.invalidateQueries({ queryKey: portalKeys.patent(patentId) });
       queryClient.invalidateQueries({ queryKey: portalKeys.all });
