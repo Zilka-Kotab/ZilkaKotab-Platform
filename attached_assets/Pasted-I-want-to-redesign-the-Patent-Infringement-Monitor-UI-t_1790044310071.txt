@@ -1,0 +1,446 @@
+I want to redesign the Patent Infringement Monitor UI to be substantially simpler and more portfolio-oriented.
+
+I have a separate Replit project containing a UI/design that illustrates the desired general approach. Use that other project as a visual/UX reference only if it is accessible in this workspace/account. Do NOT copy its sample data, fake scores, business logic, or hard-coded example patents into this application.
+
+Preserve the current Patent Infringement Monitor backend architecture, USPTO integration, UUID security, client/project isolation, claim/version data, limitation analysis, provenance, and authorization.
+
+The objective is primarily to reorganize the interface into:
+
+1. Simple monitoring dashboard
+→ click a patent/matter
+→ 2. Detailed patent monitoring page
+
+1. Simplify the main Patent Infringement Monitor project page
+
+The current project workspace exposes too much operational detail at once.
+
+Replace the main workspace with a compact portfolio-style dashboard.
+
+Each monitored patent should occupy approximately one row, similar to the reference interface.
+
+Suggested columns:
+
+PATENT | MONITORING | FINDINGS | LAST ANALYZED | TOP TARGETS | ACTIONS
+
+The PATENT column should show:
+
+US9406147B2
+Patent title
+
+Keep the title visually secondary and truncate the title visually if necessary.
+
+Do NOT truncate authoritative claim text on the detail page.
+
+2. Monitoring status
+
+Add a prominent monitoring control for every patent.
+
+Use:
+
+Active
+
+Paused
+
+These statuses are independent from whether the patent remains part of the project.
+
+An Active patent is eligible for future scheduled/automated infringement monitoring.
+
+A Paused patent remains in the project with all historical information intact but should not be included in future automated/scheduled monitoring runs.
+
+ADMIN and ATTORNEY should be able to change this directly from the dashboard.
+
+CLIENT users should only be allowed to change monitoring state if their permissions explicitly allow it. Otherwise they should see the current state read-only.
+
+Do not delete analysis history when monitoring is paused.
+
+3. Findings summary
+
+Instead of exposing detailed analysis on the main dashboard, provide a very concise findings summary.
+
+Suggested display:
+
+3 High · 2 Medium · 5 Low
+
+or:
+
+HIGH 3 | MED 2 | LOW 5
+
+These refer to research/evidence triage findings and must not be represented as final legal conclusions of infringement.
+
+If nothing has been analyzed yet, show:
+
+Not analyzed
+
+Do NOT manufacture scores or findings simply to populate the dashboard.
+
+4. Top Targets
+
+Include a compact Top Targets column.
+
+Once candidate-target functionality exists, display up to approximately 2–3 leading company/product targets.
+
+Example:
+
+Product A
+
+Product B
+
++2 more
+
+Until actual target data exists, display:
+
+—
+
+Do not populate this with sample/fake targets.
+
+5. Last analyzed
+
+Include:
+
+Last analyzed
+
+Examples:
+
+Sep 21, 2026
+
+or:
+
+Never
+
+This should come from actual immutable analysis-run data.
+
+6. Row interaction
+
+Clicking a patent row should open the detailed patent-monitoring page using the existing UUID/public-ID architecture.
+
+For example:
+
+/portal/patents/{public_id}
+
+Do not expose sequential internal database IDs.
+
+The entire row may be clickable, but buttons/toggles within the row must work independently without accidentally navigating.
+
+7. Add Patent
+
+Provide a clear:
+
++ Add Patent
+
+action at the top-right of the dashboard.
+
+Preserve the existing USPTO retrieval/review workflow:
+
+Add Patent
+→ enter one or multiple patent numbers
+→ retrieve USPTO information
+→ review patent/claims
+→ select independent claims for monitoring
+→ add to project.
+
+Do not require users to manually enter titles or bibliographic information.
+
+8. Remove Patent
+
+Provide the ability for an authorized ADMIN/ATTORNEY to remove a patent from the project's active list.
+
+This must be distinct from Pause Monitoring.
+
+Prefer a row action menu:
+
+⋯
+
+containing:
+
+Open Details
+Pause Monitoring / Resume Monitoring
+Refresh from USPTO
+Remove from Project
+
+Removal should require confirmation:
+
+Remove this patent from the project?
+
+Explain that historical analysis and audit information will be preserved.
+
+Do NOT hard-delete the underlying public patent record, claims, historical analysis, attorney work product, or audit history.
+
+Implement removal as an appropriate project-level archival/removal state so historical records remain available for authorized audit/recovery purposes.
+
+If useful, provide an Archived/Removed filter so an ADMIN/ATTORNEY can restore a previously removed patent.
+
+9. Filters
+
+Keep filtering simple.
+
+At the top provide:
+
+All | Active | Paused
+
+and optionally:
+
+High Findings
+
+Also provide a basic search field for patent number/title.
+
+Do not create a complicated analytics dashboard at this stage.
+
+10. Detailed Patent Monitoring page
+
+Clicking a patent should open a richer page inspired by the attached reference design, but using only our real data.
+
+The top of the page should provide a concise summary:
+
+Patent number + title
+
+Monitoring: Active / Paused
+
+Issued status
+
+Selected monitoring claims
+
+Last analyzed
+
+Findings summary
+
+Top candidate targets
+
+Then organize the detailed information into clear sections/tabs.
+
+I suggest:
+
+Overview | Claims | Findings | Evidence | Analysis History | Settings
+
+11. Overview
+
+Overview should provide concise cards for:
+
+Patent Details
+Current assignee, if reliably available
+Filing date
+Issue date
+Earliest priority date
+Normalized patent status
+USPTO source/provenance
+
+Do NOT display estimated expiration, maintenance-fee amounts, validity conclusions, citation scores, or similar information unless those capabilities are actually implemented from reliable sources.
+
+Monitoring Summary
+Active/Paused
+Claims being monitored
+Last analyzed
+Number of findings
+High/Medium/Low distribution
+Top Targets
+
+Show actual candidate targets once that functionality exists.
+
+12. Claims tab
+
+Move the detailed claim material here.
+
+Show:
+
+complete authoritative claims;
+independent/dependent claim classification;
+selected-for-monitoring status;
+Analyze Claim action;
+verified/draft limitation status.
+
+Preserve the recent UI correction:
+
+Do NOT display a redundant:
+
+Claim 3
+
+immediately followed by:
+
+3. The apparatus...
+
+If the authoritative claim text already begins with its claim number, don't duplicate the number in a separate header.
+
+13. Findings tab
+
+This will eventually be one of the most important sections.
+
+Prepare it for:
+
+TARGET | CLAIM | COVERAGE | TRIAGE | REVIEW STATUS | LAST ANALYZED
+
+Triage:
+
+HIGH
+MEDIUM
+LOW
+
+Again, these are research/evidence triage levels, not legal determinations of infringement.
+
+Clicking a finding should eventually open its limitation-by-limitation evidence mapping.
+
+Do not generate fake findings if this functionality has not yet been implemented.
+
+14. Evidence tab
+
+Prepare a clean area for the future evidence records associated with candidate targets and individual claim limitations.
+
+Do not implement fake/sample evidence.
+
+15. Analysis History
+
+Preserve the existing immutable analysis-run architecture.
+
+Display analysis runs chronologically with:
+
+date/time;
+provider;
+claims analyzed;
+number of targets/findings;
+status;
+attorney review status where applicable.
+
+Historical runs must never be overwritten by newer runs.
+
+16. Settings
+
+Move less-frequently-used controls away from the primary dashboard into Settings.
+
+Include as appropriate:
+
+Monitoring Active/Paused
+Selected claims
+Refresh from USPTO
+Future monitoring frequency
+Future processing provider
+Remove/Archive from project
+17. Do not implement the reference application's scoring model
+
+The reference UI contains concepts such as:
+
+Maintain/Prune
+Confidence percentages
+Infringement score
+Validity score
+Business relevance
+Detectability score
+citation scoring
+legal expiration estimates
+maintenance-fee recommendations
+
+Do NOT copy or implement those concepts merely because they appear in the reference screenshots/project.
+
+They illustrate the desired visual hierarchy and simplicity, not the substantive business logic for this tool.
+
+The current Patent Infringement Monitor is focused on:
+
+Patent → Claims → Monitoring → Candidate Targets → Evidence → HIGH/MEDIUM/LOW research triage → Attorney Review
+
+Keep that substantive architecture.
+
+18. Do not lose existing functionality
+
+This is primarily an information-architecture/UI redesign.
+
+Preserve the existing functionality for:
+
+USPTO retrieval;
+full authoritative claim text;
+patent refresh/versioning;
+selected claims;
+Claim Limitation Analysis;
+limitation editing;
+verification/history;
+public UUIDs;
+tenant/client/project isolation;
+role authorization;
+monitoring pause/resume;
+provenance;
+attorney-work-product protection;
+immutable analysis history.
+
+Do not rewrite working backend functionality merely to reproduce the appearance of the reference application.
+
+19. Important: this design reference is in another Replit project
+
+The reference interface/tool is located in another Replit project under my account.
+
+If you have access to that project from the current Replit environment, inspect it specifically for reusable visual components, layout patterns, typography, table behavior, cards, spacing, and responsive design.
+
+Do not alter that other project.
+
+Do not copy its database records, sample patents, fake analysis, credentials, secrets, or business logic.
+
+If you cannot directly access the other Replit project, tell me what you need from me (for example, screenshots or specific frontend component files) rather than guessing.
+
+20. Responsive design
+
+The compact table/dashboard should work well on desktop.
+
+On smaller screens, convert rows into compact patent cards rather than forcing a very wide horizontal table.
+
+Preserve the same information hierarchy:
+
+Patent
+→ Monitoring
+→ Findings
+→ Top Targets
+→ Open Details
+
+21. Desired user workflow
+
+The resulting experience should feel approximately like:
+
+PATENT INFRINGEMENT MONITOR
+
+[Search] All | Active | Paused + Add Patent
+
+US9406147B2
+Computational Photography...
+ACTIVE | Not analyzed | — | Never | ⋯
+
+USxxxxxxxxB2
+Another Patent...
+PAUSED | 2 High · 1 Medium | Product A, Product B | Sep 20, 2026 | ⋯
+
+Clicking a row:
+
+Patent Detail
+
+→ Overview
+→ Claims
+→ Findings
+→ Evidence
+→ Analysis History
+→ Settings
+
+The main dashboard should answer very quickly:
+
+What patents are we monitoring?
+
+Which are actively monitored?
+
+Where are the important findings?
+
+What was analyzed recently?
+
+Which products/companies are surfacing?
+
+Everything else belongs on the detailed page.
+
+22. Report back before adding new substantive capabilities
+
+Implement this redesign using existing real functionality/data.
+
+Then report:
+
+dashboard changes;
+detail-page changes;
+how Active/Paused works;
+how Remove/Archive/Restore works;
+which existing components/backend endpoints were reused;
+any schema changes;
+whether anything from the other Replit project was reused and exactly what;
+tests performed;
+whether I need to republish; and
+exact production test steps.
+
+Do not implement Microsoft Copilot, automatic infringement analysis, scoring, Maintain/Prune recommendations, or any other new AI functionality in this task.
