@@ -3,20 +3,28 @@ import { Link, useLocation, useParams } from 'wouter';
 import {
   Archive,
   ArrowLeft,
+  ArrowDownAZ,
+  ArrowUpAZ,
   Check,
   ChevronDown,
   ChevronRight,
+  ChevronUp,
   ExternalLink,
   FileSearch,
   Filter,
   LockKeyhole,
+  MoreHorizontal,
   PauseCircle,
   PlayCircle,
   Plus,
   RefreshCw,
   RotateCcw,
   Search,
+  SlidersHorizontal,
   ShieldAlert,
+  Sparkles,
+  Target,
+  X,
 } from 'lucide-react';
 import { SEO } from '@/components/SEO';
 import {
@@ -28,6 +36,7 @@ import {
   usePreviewPatentImport,
   useProjectWorkspace,
   useRefreshPatent,
+  useUpdateClaimMonitoringSelection,
   useUpdatePatentArchive,
   useUpdatePatentMonitoring,
 } from '@/lib/hooks-portal';
@@ -46,6 +55,31 @@ const classificationLabels = {
 };
 
 type PatentFilter = 'ALL' | 'ACTIVE' | 'PAUSED' | 'ARCHIVED';
+type MetricLevel = 'HIGH' | 'MEDIUM' | 'LOW' | 'NOT_ANALYZED';
+type Recommendation = 'MAINTAIN' | 'REVIEW' | 'PRUNE' | 'NOT_ANALYZED';
+type SortKey = 'patent' | 'monitoring' | 'recommendation' | 'citations';
+type SortDirection = 'asc' | 'desc';
+type MetricFilter = 'ALL' | MetricLevel;
+
+const emptyRecommendation: Recommendation = 'NOT_ANALYZED';
+const emptyMetric: MetricLevel = 'NOT_ANALYZED';
+
+const metricLabel = (value: MetricLevel) => value === 'NOT_ANALYZED' ? '—' : value;
+const recommendationLabel = (value: Recommendation) => value === 'NOT_ANALYZED' ? 'Not analyzed' : value;
+const recommendationTone = (value: Recommendation) => value === 'NOT_ANALYZED'
+  ? 'border-slate-200 bg-slate-50 text-slate-500'
+  : value === 'MAINTAIN'
+    ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+    : value === 'REVIEW'
+      ? 'border-amber-200 bg-amber-50 text-amber-700'
+      : 'border-red-200 bg-red-50 text-red-700';
+const metricTone = (value: MetricLevel) => value === 'NOT_ANALYZED'
+  ? 'text-slate-400'
+  : value === 'HIGH'
+    ? 'text-red-700'
+    : value === 'MEDIUM'
+      ? 'text-amber-700'
+      : 'text-emerald-700';
 
 function dateLabel(value?: string | null) {
   return value ? new Date(value).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : 'Not recorded';
@@ -71,6 +105,7 @@ function PatentRowActions({
   const monitoring = useUpdatePatentMonitoring(patent.publicId);
   const archive = useUpdatePatentArchive(patent.publicId);
   const isArchived = Boolean(patent.archivedAt);
+  const [open, setOpen] = useState(false);
 
   const archiveRecord = () => {
     const action = isArchived ? 'restore' : 'archive';
@@ -80,16 +115,56 @@ function PatentRowActions({
   };
 
   return (
-    <div className="mt-4 border-t border-primary/10 pt-4" onClick={(event) => event.stopPropagation()}>
-      <div className="flex flex-wrap items-center gap-2">
-        <button type="button" onClick={onOpen} className="rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary/90">Open details</button>
-        {!isArchived && canManageMonitoring && <button type="button" disabled={monitoring.isPending} onClick={() => monitoring.mutate(!patent.monitoringActive)} className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-2 text-xs font-semibold text-foreground hover:bg-muted/50 disabled:opacity-50">{patent.monitoringActive ? <PauseCircle className="h-3.5 w-3.5" /> : <PlayCircle className="h-3.5 w-3.5" />}{patent.monitoringActive ? 'Pause monitoring' : 'Resume monitoring'}</button>}
-        <button type="button" disabled={refresh.isPending} onClick={() => refresh.mutate()} className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-2 text-xs font-semibold text-foreground hover:bg-muted/50 disabled:opacity-50"><RefreshCw className={`h-3.5 w-3.5 ${refresh.isPending ? 'animate-spin' : ''}`} /> Refresh record</button>
-        {canArchive && <button type="button" disabled={archive.isPending} onClick={archiveRecord} className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-2 text-xs font-semibold text-muted-foreground hover:border-red-200 hover:bg-red-50 hover:text-red-700 disabled:opacity-50">{isArchived ? <RotateCcw className="h-3.5 w-3.5" /> : <Archive className="h-3.5 w-3.5" />}{isArchived ? 'Restore' : 'Archive'}</button>}
-      </div>
-      {(refresh.error || monitoring.error || archive.error) && <p className="mt-2 text-xs text-red-700">{(refresh.error || monitoring.error || archive.error) instanceof Error ? (refresh.error || monitoring.error || archive.error)?.message : 'The requested row action could not be completed.'}</p>}
+    <div className="relative" onClick={(event) => event.stopPropagation()}>
+      <button type="button" aria-label={`Actions for ${patent.patentNumber}`} aria-expanded={open} onClick={() => setOpen((value) => !value)} className="grid h-8 w-8 place-items-center rounded-lg border border-border bg-card text-muted-foreground hover:bg-muted hover:text-foreground"><MoreHorizontal className="h-4 w-4" /></button>
+      {open && <div className="absolute right-0 top-10 z-20 min-w-48 rounded-xl border border-border bg-card p-1.5 shadow-xl">
+        <button type="button" onClick={() => { setOpen(false); onOpen(); }} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-semibold hover:bg-muted"><ExternalLink className="h-3.5 w-3.5" /> Open full detail</button>
+        {!isArchived && canManageMonitoring && <button type="button" disabled={monitoring.isPending} onClick={() => { setOpen(false); monitoring.mutate(!patent.monitoringActive); }} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-semibold hover:bg-muted disabled:opacity-50">{patent.monitoringActive ? <PauseCircle className="h-3.5 w-3.5" /> : <PlayCircle className="h-3.5 w-3.5" />}{patent.monitoringActive ? 'Pause monitoring' : 'Resume monitoring'}</button>}
+        <button type="button" disabled={refresh.isPending} onClick={() => { setOpen(false); refresh.mutate(); }} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-semibold hover:bg-muted disabled:opacity-50"><RefreshCw className={`h-3.5 w-3.5 ${refresh.isPending ? 'animate-spin' : ''}`} /> Refresh from USPTO</button>
+        {canArchive && <button type="button" disabled={archive.isPending} onClick={() => { setOpen(false); archiveRecord(); }} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-semibold text-muted-foreground hover:bg-red-50 hover:text-red-700 disabled:opacity-50">{isArchived ? <RotateCcw className="h-3.5 w-3.5" /> : <Archive className="h-3.5 w-3.5" />}{isArchived ? 'Restore from archive' : 'Archive from project'}</button>}
+        {(refresh.error || monitoring.error || archive.error) && <p className="px-3 py-2 text-[11px] text-red-700">{(refresh.error || monitoring.error || archive.error) instanceof Error ? (refresh.error || monitoring.error || archive.error)?.message : 'The requested row action could not be completed.'}</p>}
+      </div>}
     </div>
   );
+}
+
+function PatentMonitoringButton({ patent, canManageMonitoring }: { patent: MonitoredPatent; canManageMonitoring: boolean }) {
+  const monitoring = useUpdatePatentMonitoring(patent.publicId);
+  if (!canManageMonitoring || patent.archivedAt) {
+    return <div className="hidden md:block"><StatusPill active={patent.monitoringActive} archived={Boolean(patent.archivedAt)} /></div>;
+  }
+  return <button type="button" disabled={monitoring.isPending} className={`inline-flex items-center rounded-full border px-2 py-1 text-[10px] font-bold uppercase tracking-[0.08em] disabled:opacity-50 ${patent.monitoringActive ? 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100' : 'border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100'}`} onClick={() => monitoring.mutate(!patent.monitoringActive)}>{patent.monitoringActive ? 'Active' : 'Paused'}</button>;
+}
+
+function MetricToken({ label, value }: { label: string; value: MetricLevel }) {
+  return <span className={`whitespace-nowrap text-[10px] font-bold uppercase tracking-[0.08em] ${metricTone(value)}`}><span className="text-muted-foreground">{label}</span> {metricLabel(value)}</span>;
+}
+
+function RecommendationPill({ value }: { value: Recommendation }) {
+  return <span className={`inline-flex items-center rounded-full border px-2 py-1 text-[10px] font-bold uppercase tracking-[0.08em] ${recommendationTone(value)}`}>{recommendationLabel(value)}</span>;
+}
+
+function CompactSortButton({ label, active, direction, onClick }: { label: string; active: boolean; direction: SortDirection; onClick: () => void }) {
+  return <button type="button" onClick={onClick} className={`inline-flex items-center gap-1 text-left text-[10px] font-bold uppercase tracking-[0.14em] transition ${active ? 'text-primary' : 'text-muted-foreground hover:text-foreground'}`}>{label}{active ? direction === 'asc' ? <ArrowUpAZ className="h-3 w-3" /> : <ArrowDownAZ className="h-3 w-3" /> : <ArrowDownAZ className="h-3 w-3 opacity-40" />}</button>;
+}
+
+function ClaimSelectionPanel({ patent, canEdit, onClose }: { patent: MonitoredPatent; canEdit: boolean; onClose: () => void }) {
+  const selection = useUpdateClaimMonitoringSelection(patent.publicId);
+  const [selected, setSelected] = useState(() => patent.claims.filter((claim) => claim.claimType === 'INDEPENDENT' && claim.selectedForMonitoring).map((claim) => claim.claimNumber));
+  const independent = patent.claims.filter((claim) => claim.claimType === 'INDEPENDENT');
+  const dependent = patent.claims.filter((claim) => claim.claimType !== 'INDEPENDENT');
+  const toggleClaim = (claimNumber: string, checked: boolean) => setSelected((current) => checked ? [...new Set([...current, claimNumber])] : current.filter((number) => number !== claimNumber));
+
+  return <div className="mt-4 rounded-xl border border-primary/20 bg-card p-4 shadow-sm" onClick={(event) => event.stopPropagation()}>
+    <div className="flex items-start justify-between gap-3"><div><h4 className="text-sm font-semibold">Full claim set</h4><p className="mt-1 text-xs leading-5 text-muted-foreground">Independent claims can be selected for monitoring. Authoritative claim text and prior versions remain unchanged.</p></div><button type="button" onClick={onClose} className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground" aria-label="Close full claim set"><X className="h-4 w-4" /></button></div>
+    <div className="mt-4 space-y-2">
+      {independent.map((claim) => <label key={claim.publicId} className={`flex gap-3 rounded-lg border p-3 ${canEdit ? 'cursor-pointer hover:border-primary/30 hover:bg-primary/[0.025]' : 'opacity-80'}`}><input type="checkbox" disabled={!canEdit} checked={selected.includes(claim.claimNumber)} onChange={(event) => toggleClaim(claim.claimNumber, event.target.checked)} className="mt-1 accent-[hsl(var(--primary))]" /><span className="min-w-0"><span className="text-xs font-semibold">Claim {claim.claimNumber} <span className="font-normal text-muted-foreground">· Independent · v{claim.version}</span></span><span className="mt-1 block whitespace-pre-wrap text-xs leading-5 text-muted-foreground">{claim.claimText}</span></span></label>)}
+      {!independent.length && <p className="rounded-lg border border-dashed border-border p-4 text-center text-xs text-muted-foreground">No independent claims are stored for this record.</p>}
+    </div>
+    {dependent.length > 0 && <details className="mt-4 rounded-lg border border-border bg-muted/25 p-3"><summary className="cursor-pointer text-xs font-semibold">Dependent and other claims ({dependent.length})</summary><div className="mt-3 space-y-2">{dependent.map((claim) => <div key={claim.publicId} className="rounded-lg bg-card p-3"><p className="text-xs font-semibold">Claim {claim.claimNumber}{claim.dependsOnClaimNumber && <span className="ml-1 font-normal text-muted-foreground">· depends on {claim.dependsOnClaimNumber}</span>}</p><p className="mt-1 whitespace-pre-wrap text-xs leading-5 text-muted-foreground">{claim.claimText}</p></div>)}</div></details>}
+    {canEdit && <div className="mt-4 flex flex-wrap items-center justify-between gap-3"><p className="text-[11px] text-muted-foreground">{selected.length} independent claim{selected.length === 1 ? '' : 's'} selected</p><button type="button" disabled={selection.isPending || (independent.length > 0 && selected.length === 0)} onClick={() => selection.mutate(selected, { onSuccess: onClose })} className="inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground disabled:opacity-50"><Check className="h-3.5 w-3.5" />{selection.isPending ? 'Saving…' : 'Save selection'}</button></div>}
+    {selection.error && <p className="mt-3 text-xs text-red-700">{selection.error instanceof Error ? selection.error.message : 'The claim selection could not be saved.'}</p>}
+  </div>;
 }
 
 export default function ProjectWorkspace() {
@@ -106,7 +181,18 @@ export default function ProjectWorkspace() {
 
   const [filter, setFilter] = useState<PatentFilter>('ALL');
   const [search, setSearch] = useState('');
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [monitorFilter, setMonitorFilter] = useState<'ALL' | 'ACTIVE' | 'PAUSED'>('ALL');
+  const [recommendationFilter, setRecommendationFilter] = useState<Recommendation | 'ALL'>('ALL');
+  const [claimScopeFilter, setClaimScopeFilter] = useState<MetricFilter>('ALL');
+  const [detectabilityFilter, setDetectabilityFilter] = useState<MetricFilter>('ALL');
+  const [hitsFilter, setHitsFilter] = useState<MetricFilter>('ALL');
+  const [citationMin, setCitationMin] = useState('');
+  const [citationMax, setCitationMax] = useState('');
+  const [sortKey, setSortKey] = useState<SortKey>('patent');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [claimSelectionId, setClaimSelectionId] = useState<string | null>(null);
   const [addOpen, setAddOpen] = useState(false);
   const [patentNumbers, setPatentNumbers] = useState('');
   const [drafts, setDrafts] = useState<PatentImportDraft[]>([]);
@@ -123,15 +209,55 @@ export default function ProjectWorkspace() {
 
   const patents = useMemo(() => {
     const query = search.trim().toLowerCase();
-    return (data?.patents ?? []).filter((patent) => {
+    const minimumCitations = citationMin === '' ? null : Number(citationMin);
+    const maximumCitations = citationMax === '' ? null : Number(citationMax);
+    const filtered = (data?.patents ?? []).filter((patent) => {
       const matchesFilter = (filter === 'ALL' && !patent.archivedAt)
         || (filter === 'ACTIVE' && !patent.archivedAt && patent.monitoringActive)
         || (filter === 'PAUSED' && !patent.archivedAt && !patent.monitoringActive)
         || (filter === 'ARCHIVED' && includeArchived && Boolean(patent.archivedAt));
       const matchesSearch = !query || patent.patentNumber.toLowerCase().includes(query) || patent.title.toLowerCase().includes(query);
-      return matchesFilter && matchesSearch;
+      const matchesMonitoring = monitorFilter === 'ALL'
+        || (monitorFilter === 'ACTIVE' && patent.monitoringActive && !patent.archivedAt)
+        || (monitorFilter === 'PAUSED' && !patent.monitoringActive && !patent.archivedAt);
+      const matchesRecommendation = recommendationFilter === 'ALL' || emptyRecommendation === recommendationFilter;
+      const matchesClaimScope = claimScopeFilter === 'ALL' || emptyMetric === claimScopeFilter;
+      const matchesDetectability = detectabilityFilter === 'ALL' || emptyMetric === detectabilityFilter;
+      const matchesHits = hitsFilter === 'ALL' || emptyMetric === hitsFilter;
+      const citations = null;
+      const matchesCitationRange = (minimumCitations === null || (citations !== null && citations >= minimumCitations))
+        && (maximumCitations === null || (citations !== null && citations <= maximumCitations));
+      return matchesFilter && matchesSearch && matchesMonitoring && matchesRecommendation && matchesClaimScope && matchesDetectability && matchesHits && matchesCitationRange;
     });
-  }, [data?.patents, filter, includeArchived, search]);
+    return [...filtered].sort((left, right) => {
+      let comparison = 0;
+      if (sortKey === 'patent') comparison = left.patentNumber.localeCompare(right.patentNumber, undefined, { numeric: true });
+      if (sortKey === 'monitoring') comparison = Number(right.monitoringActive) - Number(left.monitoringActive);
+      if (sortKey === 'recommendation') comparison = recommendationLabel(emptyRecommendation).localeCompare(recommendationLabel(emptyRecommendation));
+      if (sortKey === 'citations') comparison = 0;
+      return sortDirection === 'asc' ? comparison : comparison * -1;
+    });
+  }, [claimScopeFilter, citationMax, citationMin, data?.patents, detectabilityFilter, filter, hitsFilter, includeArchived, monitorFilter, recommendationFilter, search, sortDirection, sortKey]);
+
+  const filtersActive = Boolean(search.trim() || monitorFilter !== 'ALL' || recommendationFilter !== 'ALL' || claimScopeFilter !== 'ALL' || detectabilityFilter !== 'ALL' || hitsFilter !== 'ALL' || citationMin || citationMax);
+  const setSort = (nextKey: SortKey) => {
+    if (sortKey === nextKey) setSortDirection((value) => value === 'asc' ? 'desc' : 'asc');
+    else {
+      setSortKey(nextKey);
+      setSortDirection('asc');
+    }
+  };
+  const clearFilters = () => {
+    setSearch('');
+    setMonitorFilter('ALL');
+    setRecommendationFilter('ALL');
+    setClaimScopeFilter('ALL');
+    setDetectabilityFilter('ALL');
+    setHitsFilter('ALL');
+    setCitationMin('');
+    setCitationMax('');
+    setFilter('ALL');
+  };
 
   if (isLoading) {
     return <div className="mx-auto max-w-7xl p-6 lg:p-8"><div className="animate-pulse space-y-5"><div className="h-5 w-32 rounded bg-muted" /><div className="h-12 w-3/4 rounded bg-muted" /><div className="h-24 rounded-2xl bg-muted" /><div className="h-72 rounded-2xl bg-muted" /></div></div>;
@@ -222,11 +348,13 @@ export default function ProjectWorkspace() {
           <div className="border-b border-border px-4 py-4 sm:px-5">
             <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
               <div>
-                <div className="flex items-center gap-2"><h2 className="font-display text-lg font-semibold">Monitored patents</h2><span className="rounded-full bg-muted px-2 py-0.5 text-xs font-semibold text-muted-foreground">{counts.all}</span></div>
-                <p className="mt-1 text-xs text-muted-foreground">Select a record to review source data, claim versions, and monitoring state.</p>
+                <div className="flex items-center gap-2"><h2 className="font-display text-lg font-semibold">Monitored patents</h2><span className="rounded-full bg-muted px-2 py-0.5 text-xs font-semibold text-muted-foreground">{patents.length}</span></div>
+                <p className="mt-1 text-xs text-muted-foreground">Compact portfolio triage. Expand a row for source details, monitored claims, and recorded findings.</p>
               </div>
               <div className="flex flex-col gap-2 sm:flex-row">
-                <label className="relative min-w-0 sm:w-64"><Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><input type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search number or title" className="h-10 w-full rounded-lg border border-input bg-background pl-9 pr-3 text-sm outline-none ring-primary/20 transition focus:ring-4" /></label>
+                <label className="relative min-w-0 sm:w-64"><Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><input type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search patent or title" className="h-9 w-full rounded-lg border border-input bg-background pl-9 pr-3 text-sm outline-none ring-primary/20 transition focus:ring-4" /></label>
+                <button type="button" onClick={() => setFiltersOpen((value) => !value)} className={`inline-flex h-9 items-center justify-center gap-2 rounded-lg border px-3 text-xs font-semibold ${filtersActive ? 'border-primary/30 bg-primary/5 text-primary' : 'border-border bg-card text-foreground hover:bg-muted/50'}`}><SlidersHorizontal className="h-3.5 w-3.5" /> Filters{filtersActive && <span className="rounded-full bg-primary px-1.5 text-[10px] text-primary-foreground">•</span>}</button>
+                {filtersActive && <button type="button" onClick={clearFilters} className="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-border px-3 text-xs font-semibold text-muted-foreground hover:bg-muted/50 hover:text-foreground"><X className="h-3.5 w-3.5" /> Clear</button>}
               </div>
             </div>
             <div className="mt-4 flex max-w-full gap-1 overflow-x-auto rounded-xl bg-muted/70 p-1">
@@ -237,52 +365,63 @@ export default function ProjectWorkspace() {
                 ['ARCHIVED', 'Archived', counts.archived],
               ] as const).filter(([key]) => key !== 'ARCHIVED' || includeArchived).map(([key, label, count]) => <button key={key} type="button" onClick={() => setFilter(key)} className={`shrink-0 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${filter === key ? 'bg-card text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>{label} <span className="ml-1 text-[10px] opacity-70">{count}</span></button>)}
             </div>
+            {filtersOpen && <div className="mt-4 grid gap-3 rounded-xl border border-border bg-muted/25 p-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
+              <label className="text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground">Monitoring<select value={monitorFilter} onChange={(event) => setMonitorFilter(event.target.value as typeof monitorFilter)} className="mt-1.5 h-9 w-full rounded-lg border border-input bg-background px-2 text-xs font-medium normal-case tracking-normal text-foreground"><option value="ALL">All states</option><option value="ACTIVE">Active</option><option value="PAUSED">Paused</option></select></label>
+              <label className="text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground">Recommendation<select value={recommendationFilter} onChange={(event) => setRecommendationFilter(event.target.value as Recommendation | 'ALL')} className="mt-1.5 h-9 w-full rounded-lg border border-input bg-background px-2 text-xs font-medium normal-case tracking-normal text-foreground"><option value="ALL">All</option><option value="NOT_ANALYZED">Not analyzed</option><option value="MAINTAIN">Maintain</option><option value="REVIEW">Review</option><option value="PRUNE">Prune</option></select></label>
+              <label className="text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground">Claim scope<select value={claimScopeFilter} onChange={(event) => setClaimScopeFilter(event.target.value as MetricFilter)} className="mt-1.5 h-9 w-full rounded-lg border border-input bg-background px-2 text-xs font-medium normal-case tracking-normal text-foreground"><option value="ALL">All</option><option value="NOT_ANALYZED">Not analyzed</option><option value="HIGH">High</option><option value="MEDIUM">Medium</option><option value="LOW">Low</option></select></label>
+              <label className="text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground">Detectability<select value={detectabilityFilter} onChange={(event) => setDetectabilityFilter(event.target.value as MetricFilter)} className="mt-1.5 h-9 w-full rounded-lg border border-input bg-background px-2 text-xs font-medium normal-case tracking-normal text-foreground"><option value="ALL">All</option><option value="NOT_ANALYZED">Not analyzed</option><option value="HIGH">High</option><option value="MEDIUM">Medium</option><option value="LOW">Low</option></select></label>
+              <label className="text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground">Infringement hits<select value={hitsFilter} onChange={(event) => setHitsFilter(event.target.value as MetricFilter)} className="mt-1.5 h-9 w-full rounded-lg border border-input bg-background px-2 text-xs font-medium normal-case tracking-normal text-foreground"><option value="ALL">All</option><option value="NOT_ANALYZED">Not analyzed</option><option value="HIGH">High</option><option value="MEDIUM">Medium</option><option value="LOW">Low</option></select></label>
+              <label className="text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground">Cites min<input inputMode="numeric" value={citationMin} onChange={(event) => setCitationMin(event.target.value.replace(/\D/g, ''))} placeholder="—" className="mt-1.5 h-9 w-full rounded-lg border border-input bg-background px-2 text-xs font-medium normal-case tracking-normal text-foreground" /></label>
+              <label className="text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground">Cites max<input inputMode="numeric" value={citationMax} onChange={(event) => setCitationMax(event.target.value.replace(/\D/g, ''))} placeholder="—" className="mt-1.5 h-9 w-full rounded-lg border border-input bg-background px-2 text-xs font-medium normal-case tracking-normal text-foreground" /></label>
+            </div>}
           </div>
 
-          <div className="hidden grid-cols-[30px_minmax(230px,1.5fr)_minmax(150px,0.8fr)_minmax(150px,0.85fr)_minmax(170px,1fr)_minmax(150px,0.8fr)] gap-4 border-b border-border bg-muted/30 px-5 py-3 text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground md:grid">
-            <span />
-            <span>Patent</span><span>Record status</span><span>Findings</span><span>Source status</span><span>Last analyzed</span>
+          <div className="hidden grid-cols-[minmax(240px,1.5fr)_minmax(130px,.7fr)_minmax(150px,.8fr)_minmax(290px,1.6fr)_48px] items-center gap-4 border-b border-border bg-muted/30 px-5 py-3 md:grid">
+            <CompactSortButton label="Patent" active={sortKey === 'patent'} direction={sortDirection} onClick={() => setSort('patent')} />
+            <CompactSortButton label="Monitoring" active={sortKey === 'monitoring'} direction={sortDirection} onClick={() => setSort('monitoring')} />
+            <CompactSortButton label="Recommendation" active={sortKey === 'recommendation'} direction={sortDirection} onClick={() => setSort('recommendation')} />
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1"><CompactSortButton label="AI metrics" active={sortKey === 'citations'} direction={sortDirection} onClick={() => setSort('citations')} /><span className="text-[10px] font-bold uppercase tracking-[0.08em] text-muted-foreground">Claims · Detect · Hits · Cites</span></div>
+            <span className="text-right text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Actions</span>
           </div>
           <div className="divide-y divide-border">
             {patents.map((patent) => {
               const expanded = expandedId === patent.publicId;
-              const independent = patent.claims.filter((claim) => claim.claimType === 'INDEPENDENT').length;
+              const selectedClaimsForMonitoring = patent.claims.filter((claim) => claim.claimType === 'INDEPENDENT' && claim.selectedForMonitoring);
               const findings = data.analysisRuns.filter((run) => run.patentId === patent.publicId);
               const findingCounts = findings.reduce((countsByTriage, run) => {
                 countsByTriage[run.triage] += 1;
                 return countsByTriage;
               }, { HIGH: 0, MEDIUM: 0, LOW: 0 });
+              const toggleExpanded = () => {
+                setExpandedId(expanded ? null : patent.publicId);
+                if (expanded) setClaimSelectionId(null);
+              };
               return (
                 <div key={patent.publicId} className={`${expanded ? 'bg-primary/[0.035]' : 'bg-card'} transition-colors`}>
-                  <div role="button" tabIndex={0} onClick={() => setExpandedId(expanded ? null : patent.publicId)} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') setExpandedId(expanded ? null : patent.publicId); }} className="grid cursor-pointer gap-3 px-4 py-4 outline-none transition hover:bg-primary/[0.035] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary sm:px-5 md:grid-cols-[30px_minmax(230px,1.5fr)_minmax(150px,0.8fr)_minmax(150px,0.85fr)_minmax(170px,1fr)_minmax(150px,0.8fr)] md:items-center md:gap-4">
-                    <span className="hidden text-muted-foreground md:block">{expanded ? <ChevronDown className="h-4 w-4 text-primary" /> : <ChevronRight className="h-4 w-4" />}</span>
-                    <div className="min-w-0">
-                      <div className="flex items-start justify-between gap-3 md:block"><p className="font-mono text-sm font-semibold tracking-tight text-foreground">{patent.patentNumber}</p><div className="md:hidden"><StatusPill active={patent.monitoringActive} archived={Boolean(patent.archivedAt)} /></div></div>
-                      <p className="mt-1 truncate text-sm text-muted-foreground">{patent.title || 'Title unavailable'}</p>
-                      <p className="mt-2 text-[11px] font-medium text-muted-foreground">{patent.claims.length} claim{patent.claims.length === 1 ? '' : 's'} <span className="mx-1 text-border">·</span> {independent} independent</p>
-                    </div>
-                    <div className="hidden md:block"><StatusPill active={patent.monitoringActive} archived={Boolean(patent.archivedAt)} /></div>
-                    <div className="hidden text-xs text-muted-foreground md:block" title="Recorded triage entries; not legal conclusions.">{findings.length ? <><span className="font-semibold text-red-700">H {findingCounts.HIGH}</span><span className="mx-1 text-border">·</span><span className="font-semibold text-amber-700">M {findingCounts.MEDIUM}</span><span className="mx-1 text-border">·</span><span className="font-semibold text-emerald-700">L {findingCounts.LOW}</span></> : 'Not analyzed'}</div>
-                    <div className="hidden text-sm text-muted-foreground md:block">{patent.sourceStatus || patent.verificationStatus}<p className="mt-1 text-[11px]">{patent.source}</p></div>
-                     <div className="hidden text-sm text-muted-foreground md:block">{dateLabel(patent.lastAnalyzedAt || findings[0]?.createdAt)}</div>
+                  <div role="button" tabIndex={0} onClick={toggleExpanded} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); toggleExpanded(); } }} className="grid cursor-pointer gap-3 px-4 py-3 outline-none transition hover:bg-primary/[0.035] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary sm:px-5 md:grid-cols-[minmax(240px,1.5fr)_minmax(130px,.7fr)_minmax(150px,.8fr)_minmax(290px,1.6fr)_48px] md:items-center md:gap-4">
+                    <div className="flex min-w-0 items-center gap-2"><span className="hidden shrink-0 text-muted-foreground md:block">{expanded ? <ChevronDown className="h-4 w-4 text-primary" /> : <ChevronRight className="h-4 w-4" />}</span><div className="min-w-0"><p className="font-mono text-sm font-semibold tracking-tight text-foreground">{patent.patentNumber}</p><p className="truncate text-xs text-muted-foreground">{patent.title || 'Title unavailable'}</p></div><div className="ml-auto md:hidden">{(!canManageMonitoring || patent.archivedAt) && <StatusPill active={patent.monitoringActive} archived={Boolean(patent.archivedAt)} />}</div></div>
+                    <div onClick={(event) => event.stopPropagation()}><PatentMonitoringButton patent={patent} canManageMonitoring={canManageMonitoring} /></div>
+                    <div><RecommendationPill value={emptyRecommendation} /></div>
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 md:gap-x-2"><MetricToken label="Claims" value={emptyMetric} /><MetricToken label="Detect" value={emptyMetric} /><MetricToken label="Hits" value={emptyMetric} /><MetricToken label="Cites" value={emptyMetric} /></div>
+                    <div className="ml-auto"><PatentRowActions patent={patent} canManageMonitoring={canManageMonitoring} canArchive={canArchive} onOpen={() => setLocation(`/portal/patents/${patent.publicId}`)} /></div>
                   </div>
-                  {expanded && <div className="border-t border-primary/10 bg-primary/[0.025] px-4 pb-5 pt-4 sm:px-5 md:pl-[74px]">
-                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-                      <div><p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Jurisdiction</p><p className="mt-1 text-sm font-medium">{patent.jurisdiction}</p></div>
-                      <div><p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Assignee</p><p className="mt-1 truncate text-sm font-medium">{patent.assignee || 'Not provided'}</p></div>
-                      <div><p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Retrieved</p><p className="mt-1 text-sm font-medium">{dateLabel(patent.retrievedAt)}</p></div>
-                      <div><p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Verification</p><p className="mt-1 text-sm font-medium">{patent.verificationStatus}</p></div>
-                      <div><p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Recorded findings</p><p className="mt-1 text-sm font-medium">{findings.length ? `${findings.length} triage entr${findings.length === 1 ? 'y' : 'ies'}` : 'Not analyzed'}</p><p className="mt-1 text-[11px] text-muted-foreground">Not a legal conclusion.</p></div>
+                  {expanded && <div className="border-t border-primary/10 bg-primary/[0.025] px-4 pb-5 pt-4 sm:px-5">
+                    <div className="mb-4 flex flex-wrap items-center justify-between gap-3"><div><p className="text-[10px] font-bold uppercase tracking-[0.16em] text-primary">Expanded portfolio view</p><p className="mt-1 text-xs text-muted-foreground">Factual source data is separated from analytical conclusions.</p></div><div className="flex flex-wrap gap-2"><span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-2.5 py-1 text-[10px] font-semibold text-muted-foreground"><span className="h-1.5 w-1.5 rounded-full bg-slate-400" /> Recommendation not analyzed</span><span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-2.5 py-1 text-[10px] font-semibold text-muted-foreground"><span className="h-1.5 w-1.5 rounded-full bg-slate-400" /> AI metrics not analyzed</span></div></div>
+                    <div className="grid gap-3 lg:grid-cols-3">
+                      <section className="rounded-xl border border-primary/15 bg-card p-4 lg:col-span-2"><div className="flex items-start gap-3"><span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary"><Sparkles className="h-4 w-4" /></span><div><h3 className="text-sm font-semibold">AI overview</h3><p className="mt-1 text-xs leading-5 text-muted-foreground">No AI analysis has been performed yet.</p><p className="mt-3 text-[11px] leading-5 text-muted-foreground">A future overview will reference an immutable analysis run, recommendation, and supporting provenance. No conclusion is inferred from this record.</p></div></div></section>
+                      <section className="rounded-xl border border-border bg-card p-4"><h3 className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Recommendation</h3><div className="mt-3"><RecommendationPill value={emptyRecommendation} /></div><p className="mt-3 text-xs leading-5 text-muted-foreground">Rationale, analysis date, provider provenance, and attorney disposition will appear here only when recorded.</p></section>
+                      <section className="rounded-xl border border-border bg-card p-4 lg:col-span-2"><div className="flex items-center gap-2"><Sparkles className="h-4 w-4 text-primary" /><h3 className="text-sm font-semibold">AI metrics</h3></div><div className="mt-4 grid gap-3 sm:grid-cols-4"><div className="rounded-lg bg-muted/35 p-3"><p className="text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground">Claim scope</p><p className="mt-2 text-sm font-semibold text-muted-foreground">Not analyzed</p><p className="mt-1 text-[11px] leading-5 text-muted-foreground">No scope rationale recorded.</p></div><div className="rounded-lg bg-muted/35 p-3"><p className="text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground">Detectability</p><p className="mt-2 text-sm font-semibold text-muted-foreground">Not analyzed</p><p className="mt-1 text-[11px] leading-5 text-muted-foreground">No limitation detectability result.</p></div><div className="rounded-lg bg-muted/35 p-3"><p className="text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground">Infringement hits</p><p className="mt-2 text-sm font-semibold text-muted-foreground">Not analyzed</p><p className="mt-1 text-[11px] leading-5 text-muted-foreground">No monitoring result recorded.</p></div><div className="rounded-lg bg-muted/35 p-3"><p className="text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground">Forward citations</p><p className="mt-2 text-sm font-semibold text-muted-foreground">—</p><p className="mt-1 text-[11px] leading-5 text-muted-foreground">Citation retrieval is not connected.</p></div></div></section>
+                      <section className="rounded-xl border border-border bg-card p-4"><h3 className="text-sm font-semibold">Patent details</h3><dl className="mt-3 grid gap-3 text-xs"><div><dt className="text-muted-foreground">Assignee</dt><dd className="mt-0.5 font-medium">{patent.assignee || 'Not provided'}</dd></div><div><dt className="text-muted-foreground">Filing / issue</dt><dd className="mt-0.5 font-medium">{dateLabel(patent.filingDate)} / {dateLabel(patent.issueDate)}</dd></div><div><dt className="text-muted-foreground">Earliest priority</dt><dd className="mt-0.5 font-medium">{dateLabel(patent.earliestPriorityDate)}</dd></div><div><dt className="text-muted-foreground">Normalized status</dt><dd className="mt-0.5 font-medium">{patent.patentStatus || 'Not recorded'}</dd></div><div><dt className="text-muted-foreground">Estimated legal expiration</dt><dd className="mt-0.5 font-medium">—</dd></div><div><dt className="text-muted-foreground">Maintenance deadline / amount</dt><dd className="mt-0.5 font-medium">—</dd></div></dl></section>
+                      <section className="rounded-xl border border-border bg-card p-4 lg:col-span-2"><div className="flex flex-wrap items-center justify-between gap-2"><div><h3 className="text-sm font-semibold">Monitored claims</h3><p className="mt-1 text-xs text-muted-foreground">Only selected independent claims are shown in the compact view.</p></div><button type="button" onClick={(event) => { event.stopPropagation(); setClaimSelectionId(claimSelectionId === patent.publicId ? null : patent.publicId); }} className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-2 text-xs font-semibold hover:bg-muted/50">{claimSelectionId === patent.publicId ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />} View full claim set</button></div><div className="mt-3 space-y-2">{selectedClaimsForMonitoring.map((claim) => <article key={claim.publicId} className="rounded-lg bg-muted/35 p-3"><p className="text-xs font-semibold">Claim {claim.claimNumber} <span className="font-normal text-muted-foreground">· Selected for monitoring</span></p><p className="mt-1 line-clamp-3 whitespace-pre-wrap text-xs leading-5 text-muted-foreground">{claim.claimText}</p><Link href={`/portal/patents/${patent.publicId}/claims/${claim.publicId}/analysis`} onClick={(event) => event.stopPropagation()} className="mt-2 inline-flex text-[11px] font-semibold text-primary hover:underline">Open limitation analysis</Link></article>)}{!selectedClaimsForMonitoring.length && <p className="rounded-lg border border-dashed border-border p-4 text-center text-xs text-muted-foreground">No independent claims are selected for monitoring.</p>}</div>{claimSelectionId === patent.publicId && <ClaimSelectionPanel key={patent.publicId} patent={patent} canEdit={canManageMonitoring} onClose={() => setClaimSelectionId(null)} />}</section>
+                      <section className="rounded-xl border border-border bg-card p-4"><div className="flex items-center gap-2"><Target className="h-4 w-4 text-primary" /><h3 className="text-sm font-semibold">Top potential targets</h3></div><p className="mt-3 text-xs leading-5 text-muted-foreground">No infringement monitoring results yet.</p><p className="mt-2 text-[11px] leading-5 text-muted-foreground">Candidate companies, products, evidence, and attorney review will appear only after actual monitoring results are recorded.</p></section>
+                      <section className="rounded-xl border border-border bg-card p-4 lg:col-span-3"><div className="flex flex-wrap items-center justify-between gap-3"><div><h3 className="text-sm font-semibold">Recorded findings</h3><p className="mt-1 text-xs text-muted-foreground">Existing patent-linked analysis entries, shown as recorded triage rather than legal conclusions.</p></div><span className="text-xs font-semibold text-muted-foreground">{findings.length ? `${findings.length} entr${findings.length === 1 ? 'y' : 'ies'}` : 'Not analyzed'}</span></div>{findings.length > 0 ? <div className="mt-3 flex flex-wrap gap-2"><span className="rounded-full bg-red-50 px-2.5 py-1 text-[10px] font-bold text-red-700">HIGH {findingCounts.HIGH}</span><span className="rounded-full bg-amber-50 px-2.5 py-1 text-[10px] font-bold text-amber-700">MEDIUM {findingCounts.MEDIUM}</span><span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-bold text-emerald-700">LOW {findingCounts.LOW}</span></div> : <p className="mt-3 text-xs text-muted-foreground">No patent-linked analysis runs have been recorded.</p>}</section>
                     </div>
-                    <div className="mt-4 flex flex-wrap items-center gap-2">
-                      {patent.sourceUrl && <a href={patent.sourceUrl} target="_blank" rel="noreferrer" onClick={(event) => event.stopPropagation()} className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-3.5 py-2 text-xs font-semibold text-foreground hover:bg-muted/50">Source record <ExternalLink className="h-3.5 w-3.5" /></a>}
-                    </div>
-                    <PatentRowActions patent={patent} canManageMonitoring={canManageMonitoring} canArchive={canArchive} onOpen={() => setLocation(`/portal/patents/${patent.publicId}`)} />
+                    <div className="mt-4 flex flex-wrap items-center gap-2">{patent.sourceUrl && <a href={patent.sourceUrl} target="_blank" rel="noreferrer" onClick={(event) => event.stopPropagation()} className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-3.5 py-2 text-xs font-semibold text-foreground hover:bg-muted/50">Open USPTO source <ExternalLink className="h-3.5 w-3.5" /></a>}<button type="button" onClick={(event) => { event.stopPropagation(); setLocation(`/portal/patents/${patent.publicId}`); }} className="inline-flex items-center gap-2 rounded-lg bg-primary px-3.5 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary/90">Open full detail <ExternalLink className="h-3.5 w-3.5" /></button><span className="ml-auto text-[11px] text-muted-foreground">Last analyzed {dateLabel(patent.lastAnalyzedAt || findings[0]?.createdAt)}</span></div>
                   </div>}
                 </div>
               );
             })}
-            {!patents.length && <div className="px-6 py-16 text-center"><Filter className="mx-auto h-7 w-7 text-muted-foreground/60" /><p className="mt-3 text-sm font-semibold">No records match this view</p><p className="mt-1 text-sm text-muted-foreground">{search ? 'Try a different patent number or title.' : 'Add a patent to begin monitoring this project.'}</p></div>}
+            {!patents.length && <div className="px-6 py-16 text-center"><Filter className="mx-auto h-7 w-7 text-muted-foreground/60" /><p className="mt-3 text-sm font-semibold">No records match this view</p><p className="mt-1 text-sm text-muted-foreground">{filtersActive ? 'Clear or adjust the active filters.' : 'Add a patent to begin monitoring this project.'}</p></div>}
           </div>
         </section>
 

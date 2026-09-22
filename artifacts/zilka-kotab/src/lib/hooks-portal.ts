@@ -165,6 +165,16 @@ export const useUpdatePatentMonitoring = (patentId: string) => {
     },
   });
 };
+export const useUpdateClaimMonitoringSelection = (patentId: string) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (selectedClaimNumbers: string[]) => api.updateClaimMonitoringSelection(patentId, selectedClaimNumbers),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: portalKeys.patent(patentId) });
+      queryClient.invalidateQueries({ queryKey: portalKeys.all });
+    },
+  });
+};
 export const useUpdatePatentArchive = (patentId: string) => {
   const queryClient = useQueryClient();
   return useMutation({

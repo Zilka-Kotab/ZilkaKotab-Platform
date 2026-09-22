@@ -318,6 +318,8 @@ export const createPatent = (projectId: string, data: { patentNumber: string; ti
   fetchPortal<{ patent: MonitoredPatent }>(`/projects/${projectId}/patents`, { method: 'POST', body: JSON.stringify(data) });
 export const updatePatentMonitoring = (publicId: string, active: boolean) =>
   fetchPortal<{ patent: MonitoredPatent }>(`/patents/${publicId}/monitoring`, { method: 'PATCH', body: JSON.stringify({ active }) });
+export const updateClaimMonitoringSelection = (publicId: string, selectedClaimNumbers: string[]) =>
+  fetchPortal<{ patent: MonitoredPatent }>(`/patents/${publicId}/claims/monitoring-selection`, { method: 'PATCH', body: JSON.stringify({ selectedClaimNumbers }) });
 export const updatePatentArchive = (publicId: string, archived: boolean) =>
   fetchPortal<{ patent: MonitoredPatent }>(`/patents/${publicId}/archive`, { method: 'PATCH', body: JSON.stringify({ archived }) });
 export const createAnalysisReview = (runId: string, data: { status: AnalysisReviewStatus; note?: string }) =>

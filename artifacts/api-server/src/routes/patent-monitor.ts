@@ -1048,6 +1048,47 @@ router.patch("/portal/patents/:id/monitoring", async (req, res) => {
   res.json({ patent: serializePatent(updated, project!.publicId, []) });
 });
 
+router.patch("/portal/patents/:id/claims/monitoring-selection", async (req, res) => {
+  const patentPublicId = publicIdOf(req.params.id);
+  const patent = patentPublicId ? await patentProject(req.portalUser!, patentPublicId) : null;
+  if (!patent) return void res.status(404).json({ error: "Patent not found." });
+  if (!limitationEditor(req.portalUser!)) return void res.status(403).json({ error: "Only attorneys and administrators may change monitored claims." });
+  if (!Array.isArray(req.body?.selectedClaimNumbers)) return void res.status(400).json({ error: "Selected claim numbers are required." });
+
+  const selectedClaimNumbers: Set<string> = new Set(
+    req.body.selectedClaimNumbers.filter((value: unknown): value is string => typeof value === "string" && value.trim().length > 0).map((value: string) => value.trim()),
+  );
+  const existingClaims = await db.select().from(patentClaimsTable).where(eq(patentClaimsTable.patentId, patent.id));
+  const latestByNumber = new Map<string, typeof patentClaimsTable.$inferSelect>();
+  for (const claim of existingClaims) {
+    const current = latestByNumber.get(claim.claimNumber);
+    if (!current || claim.version > current.version) latestByNumber.set(claim.claimNumber, claim);
+  }
+  const independentClaims = [...latestByNumber.values()].filter((claim) => claim.claimType === "INDEPENDENT");
+  if (independentClaims.length && !independentClaims.some((claim) => selectedClaimNumbers.has(claim.claimNumber))) {
+    return void res.status(400).json({ error: "Select at least one independent claim for monitoring." });
+  }
+  if ([...selectedClaimNumbers].some((claimNumber) => {
+    const claim = latestByNumber.get(claimNumber);
+    return !claim || claim.claimType !== "INDEPENDENT";
+  })) {
+    return void res.status(400).json({ error: "Only independent claims can be selected for monitoring." });
+  }
+
+  await db.transaction(async (tx) => {
+    for (const claim of latestByNumber.values()) {
+      await tx.update(patentClaimsTable)
+        .set({ selectedForMonitoring: selectedClaimNumbers.has(claim.claimNumber) })
+        .where(eq(patentClaimsTable.id, claim.id));
+    }
+  });
+  const [project] = await db.select().from(projectsTable).where(eq(projectsTable.id, patent.projectId)).limit(1);
+  const updatedClaims = await db.select().from(patentClaimsTable)
+    .where(eq(patentClaimsTable.patentId, patent.id))
+    .orderBy(asc(patentClaimsTable.claimNumber), desc(patentClaimsTable.version));
+  res.json({ patent: serializePatent(patent, project!.publicId, updatedClaims) });
+});
+
 router.patch("/portal/patents/:id/archive", async (req, res) => {
   const patentPublicId = publicIdOf(req.params.id);
   const patent = patentPublicId ? await patentProject(req.portalUser!, patentPublicId) : null;
