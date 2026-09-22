@@ -12,7 +12,7 @@ export const portalKeys = {
   tool: (slug: string) => [...portalKeys.tools(), slug] as const,
   projects: () => [...portalKeys.all, 'projects'] as const,
   project: (id: string) => [...portalKeys.projects(), id] as const,
-  projectWorkspace: (id: string) => [...portalKeys.project(id), 'workspace'] as const,
+  projectWorkspace: (id: string, includeArchived = false) => [...portalKeys.project(id), 'workspace', includeArchived ? 'archived' : 'active'] as const,
   patent: (id: string) => [...portalKeys.all, 'patent', id] as const,
   claimAnalysis: (patentId: string, claimId: string) => [...portalKeys.patent(patentId), 'claim-analysis', claimId] as const,
   adminUsers: () => [...portalKeys.all, 'adminUsers'] as const,
@@ -75,8 +75,8 @@ export function usePortalProject(id: string) {
   });
 }
 
-export function useProjectWorkspace(id: string) {
-  return useQuery({ queryKey: portalKeys.projectWorkspace(id), queryFn: () => api.getProjectWorkspace(id), enabled: !!id });
+export function useProjectWorkspace(id: string, includeArchived = false) {
+  return useQuery({ queryKey: portalKeys.projectWorkspace(id, includeArchived), queryFn: () => api.getProjectWorkspace(id, includeArchived), enabled: !!id });
 }
 
 export function usePatent(id: string) {
@@ -159,6 +159,16 @@ export const useUpdatePatentMonitoring = (patentId: string) => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (active: boolean) => api.updatePatentMonitoring(patentId, active),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: portalKeys.patent(patentId) });
+      queryClient.invalidateQueries({ queryKey: portalKeys.all });
+    },
+  });
+};
+export const useUpdatePatentArchive = (patentId: string) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (archived: boolean) => api.updatePatentArchive(patentId, archived),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: portalKeys.patent(patentId) });
       queryClient.invalidateQueries({ queryKey: portalKeys.all });

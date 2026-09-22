@@ -87,6 +87,7 @@ export interface MonitoredPatent {
   retrievedAt?: string | null;
   verificationStatus: 'PENDING' | 'VERIFIED' | 'MANUALLY_CORRECTED';
   monitoringActive: boolean;
+  archivedAt?: string | null;
   lastAnalyzedAt?: string | null;
   claims: PatentClaim[];
   createdAt: string;
@@ -284,7 +285,8 @@ export const getTools = () => fetchPortal<{ tools: Tool[] }>('/tools');
 export const getTool = (slug: string) => fetchPortal<{ tool: Tool, clients: Client[], projects: Project[] }>(`/tools/${slug}`);
 
 export const getProject = (publicId: string) => fetchPortal<{ project: Project, tool: Tool, client: Client }>(`/projects/${publicId}`);
-export const getProjectWorkspace = (publicId: string) => fetchPortal<ProjectWorkspace>(`/projects/${publicId}/workspace`);
+export const getProjectWorkspace = (publicId: string, includeArchived = false) =>
+  fetchPortal<ProjectWorkspace>(`/projects/${publicId}/workspace${includeArchived ? '?includeArchived=true' : ''}`);
 export const getPatent = (publicId: string) => fetchPortal<PatentDetail>(`/patents/${publicId}`);
 export const createWorkspaceItem = (projectId: string, data: Pick<WorkspaceItem, 'title' | 'itemType' | 'content' | 'classification'> & { sourceUrl?: string }) =>
   fetchPortal<{ item: WorkspaceItem }>(`/projects/${projectId}/workspace-items`, { method: 'POST', body: JSON.stringify(data) });
@@ -316,6 +318,8 @@ export const createPatent = (projectId: string, data: { patentNumber: string; ti
   fetchPortal<{ patent: MonitoredPatent }>(`/projects/${projectId}/patents`, { method: 'POST', body: JSON.stringify(data) });
 export const updatePatentMonitoring = (publicId: string, active: boolean) =>
   fetchPortal<{ patent: MonitoredPatent }>(`/patents/${publicId}/monitoring`, { method: 'PATCH', body: JSON.stringify({ active }) });
+export const updatePatentArchive = (publicId: string, archived: boolean) =>
+  fetchPortal<{ patent: MonitoredPatent }>(`/patents/${publicId}/archive`, { method: 'PATCH', body: JSON.stringify({ archived }) });
 export const createAnalysisReview = (runId: string, data: { status: AnalysisReviewStatus; note?: string }) =>
   fetchPortal<{ review: AnalysisReview }>(`/analysis-runs/${runId}/reviews`, { method: 'POST', body: JSON.stringify(data) });
 export const updateProjectAiConfig = (projectId: string, data: Pick<ProjectAiConfig, 'selectedProvider' | 'allowedProviders'>) =>

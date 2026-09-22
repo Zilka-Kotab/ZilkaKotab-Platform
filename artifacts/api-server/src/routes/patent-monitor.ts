@@ -326,6 +326,7 @@ function serializePatent(patent: typeof monitoredPatentsTable.$inferSelect, proj
     retrievedAt: patent.retrievedAt,
     verificationStatus: patent.verificationStatus,
     monitoringActive: patent.monitoringActive,
+    archivedAt: patent.archivedAt,
     lastAnalyzedAt: patent.lastAnalyzedAt,
     createdAt: patent.createdAt,
     claims: latestClaims(claims).map((claim) => serializeClaim(claim, patent.publicId)),
@@ -553,7 +554,11 @@ router.get("/portal/projects/:id/workspace", async (req, res) => {
   const projectId = project.id;
 
   const [aiConfig] = await db.select().from(projectAiConfigsTable).where(eq(projectAiConfigsTable.projectId, projectId)).limit(1);
-  const patents = await db.select().from(monitoredPatentsTable).where(eq(monitoredPatentsTable.projectId, projectId)).orderBy(asc(monitoredPatentsTable.patentNumber));
+  const includeArchived = req.query.includeArchived === "true" && limitationEditor(req.portalUser!);
+  const patents = await db.select().from(monitoredPatentsTable).where(and(
+    eq(monitoredPatentsTable.projectId, projectId),
+    ...(includeArchived ? [] : [isNull(monitoredPatentsTable.archivedAt)]),
+  )).orderBy(asc(monitoredPatentsTable.patentNumber));
   const claims = patents.length
     ? await db.select().from(patentClaimsTable).where(inArray(patentClaimsTable.patentId, patents.map((item) => item.id))).orderBy(asc(patentClaimsTable.claimNumber), desc(patentClaimsTable.version))
     : [];
@@ -1033,11 +1038,27 @@ router.patch("/portal/patents/:id/monitoring", async (req, res) => {
   const patentPublicId = publicIdOf(req.params.id);
   const patent = patentPublicId ? await patentProject(req.portalUser!, patentPublicId) : null;
   if (!patent) return void res.status(404).json({ error: "Patent not found." });
+  if (!limitationEditor(req.portalUser!)) return void res.status(403).json({ error: "Only attorneys and administrators may change monitoring state." });
   if (typeof req.body?.active !== "boolean") return void res.status(400).json({ error: "Monitoring active state is required." });
   const [updated] = await db.update(monitoredPatentsTable)
     .set({ monitoringActive: req.body.active })
     .where(eq(monitoredPatentsTable.id, patent.id))
     .returning();
+  const [project] = await db.select().from(projectsTable).where(eq(projectsTable.id, updated.projectId)).limit(1);
+  res.json({ patent: serializePatent(updated, project!.publicId, []) });
+});
+
+router.patch("/portal/patents/:id/archive", async (req, res) => {
+  const patentPublicId = publicIdOf(req.params.id);
+  const patent = patentPublicId ? await patentProject(req.portalUser!, patentPublicId) : null;
+  if (!patent) return void res.status(404).json({ error: "Patent not found." });
+  if (!limitationEditor(req.portalUser!)) return void res.status(403).json({ error: "Only attorneys and administrators may archive patents." });
+  if (typeof req.body?.archived !== "boolean") return void res.status(400).json({ error: "Archived state is required." });
+
+  const [updated] = await db.update(monitoredPatentsTable).set({
+    archivedAt: req.body.archived ? new Date() : null,
+    archivedById: req.body.archived ? req.portalUser!.id : null,
+  }).where(eq(monitoredPatentsTable.id, patent.id)).returning();
   const [project] = await db.select().from(projectsTable).where(eq(projectsTable.id, updated.projectId)).limit(1);
   res.json({ patent: serializePatent(updated, project!.publicId, []) });
 });
@@ -1190,6 +1211,11 @@ router.post("/portal/projects/:id/analysis-runs", async (req, res) => {
     providerProvenance: { mode: "manual", submittedByRole: req.portalUser!.role },
     createdById: req.portalUser!.id,
   }).returning();
+  if (patent) {
+    await db.update(monitoredPatentsTable)
+      .set({ lastAnalyzedAt: run.createdAt })
+      .where(eq(monitoredPatentsTable.id, patent.id));
+  }
   res.status(201).json({
     run: serializeRun(
       run,

@@ -83,6 +83,8 @@ export const monitoredPatentsTable = pgTable(
     retrievedAt: timestamp("retrieved_at", { withTimezone: true }),
     verificationStatus: patentVerificationStatusEnum("verification_status").notNull().default("PENDING"),
     monitoringActive: boolean("monitoring_active").notNull().default(true),
+    archivedAt: timestamp("archived_at", { withTimezone: true }),
+    archivedById: integer("archived_by_id").references(() => portalUsersTable.id, { onDelete: "set null" }),
     lastAnalyzedAt: timestamp("last_analyzed_at", { withTimezone: true }),
     createdById: integer("created_by_id").notNull().references(() => portalUsersTable.id),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
