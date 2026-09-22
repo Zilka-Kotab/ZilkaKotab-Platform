@@ -4,6 +4,8 @@ import {
   analysisReviewsTable,
   analysisRunsTable,
   attorneyClientsTable,
+  patentAttorneyNoteHistoryTable,
+  patentAttorneyNotesTable,
   claimLimitationHistoryTable,
   claimLimitationStructuresTable,
   claimLimitationsTable,
@@ -299,7 +301,12 @@ function latestClaims(claims: typeof patentClaimsTable.$inferSelect[]) {
   return [...current.values()].sort((a, b) => Number(a.claimNumber) - Number(b.claimNumber));
 }
 
-function serializePatent(patent: typeof monitoredPatentsTable.$inferSelect, projectPublicId: string, claims: typeof patentClaimsTable.$inferSelect[]) {
+function serializePatent(
+  patent: typeof monitoredPatentsTable.$inferSelect,
+  projectPublicId: string,
+  claims: typeof patentClaimsTable.$inferSelect[],
+  attorneyNote?: AttorneyNoteView,
+) {
   return {
     publicId: patent.publicId,
     projectId: projectPublicId,
@@ -328,6 +335,7 @@ function serializePatent(patent: typeof monitoredPatentsTable.$inferSelect, proj
     monitoringActive: patent.monitoringActive,
     archivedAt: patent.archivedAt,
     lastAnalyzedAt: patent.lastAnalyzedAt,
+    attorneyNotes: attorneyNote ? serializeAttorneyNote(attorneyNote) : undefined,
     createdAt: patent.createdAt,
     claims: latestClaims(claims).map((claim) => serializeClaim(claim, patent.publicId)),
   };
@@ -396,6 +404,60 @@ function serializeRun(
     evidence: run.evidence,
     createdAt: run.createdAt,
     reviews: reviews.map((review) => serializeReview(review, run.publicId)),
+  };
+}
+
+type AttorneyNoteView = {
+  note: typeof patentAttorneyNotesTable.$inferSelect;
+  history: typeof patentAttorneyNoteHistoryTable.$inferSelect[];
+  actors: Map<number, typeof portalUsersTable.$inferSelect>;
+};
+
+async function loadAttorneyNotes(patentIds: number[]) {
+  const notes = patentIds.length
+    ? await db.select().from(patentAttorneyNotesTable).where(inArray(patentAttorneyNotesTable.patentId, patentIds))
+    : [];
+  if (!notes.length) return new Map<number, AttorneyNoteView>();
+  const histories = await db.select().from(patentAttorneyNoteHistoryTable)
+    .where(inArray(patentAttorneyNoteHistoryTable.noteId, notes.map((note) => note.id)))
+    .orderBy(desc(patentAttorneyNoteHistoryTable.createdAt));
+  const actorIds = [...new Set([
+    ...notes.map((note) => note.createdById),
+    ...notes.map((note) => note.updatedById).filter((id): id is number => id !== null),
+    ...histories.map((entry) => entry.actorId),
+  ])];
+  const actors = actorIds.length
+    ? await db.select().from(portalUsersTable).where(inArray(portalUsersTable.id, actorIds))
+    : [];
+  const actorsById = new Map(actors.map((actor) => [actor.id, actor]));
+  return new Map(notes.map((note) => [
+    note.patentId,
+    {
+      note,
+      history: histories.filter((entry) => entry.noteId === note.id),
+      actors: actorsById,
+    },
+  ] as const));
+}
+
+function serializeAttorneyNote(view: AttorneyNoteView) {
+  const actor = (id: number | null) => {
+    const user = id === null ? null : view.actors.get(id);
+    return user ? { publicId: user.publicId, name: user.name } : null;
+  };
+  return {
+    publicId: view.note.publicId,
+    notes: view.note.notes,
+    createdBy: actor(view.note.createdById),
+    updatedBy: actor(view.note.updatedById),
+    createdAt: view.note.createdAt,
+    updatedAt: view.note.updatedAt,
+    history: view.history.map((entry) => ({
+      publicId: entry.publicId,
+      notes: entry.notes,
+      actor: actor(entry.actorId),
+      createdAt: entry.createdAt,
+    })),
   };
 }
 
@@ -575,6 +637,9 @@ router.get("/portal/projects/:id/workspace", async (req, res) => {
     : reviews;
   const patentsById = new Map(patents.map((patent) => [patent.id, patent.publicId]));
   const claimsById = new Map(claims.map((claim) => [claim.id, claim.publicId]));
+  const attorneyNotes = req.portalUser!.role === "CLIENT"
+    ? new Map<number, AttorneyNoteView>()
+    : await loadAttorneyNotes(patents.map((patent) => patent.id));
   const { client, tool } = await projectRelations(project);
   res.json({
     project: await serializeProject(project),
@@ -583,7 +648,7 @@ router.get("/portal/projects/:id/workspace", async (req, res) => {
     aiConfig: aiConfig
       ? { projectId: project.publicId, selectedProvider: aiConfig.selectedProvider, allowedProviders: aiConfig.allowedProviders }
       : { projectId: project.publicId, selectedProvider: "MANUAL", allowedProviders: ["MANUAL"] },
-    patents: patents.map((patent) => serializePatent(patent, project.publicId, claims.filter((claim) => claim.patentId === patent.id))),
+    patents: patents.map((patent) => serializePatent(patent, project.publicId, claims.filter((claim) => claim.patentId === patent.id), attorneyNotes.get(patent.id))),
     workspaceItems: workspaceItems.map((item) => serializeWorkspaceItem(item, project.publicId)),
     analysisRuns: analysisRuns.map((run) => serializeRun(run, project.publicId, patentsById, claimsById, visibleReviews.filter((review) => review.analysisRunId === run.id))),
   });
@@ -606,9 +671,12 @@ router.get("/portal/patents/:id", async (req, res) => {
     : [];
   const patentsById = new Map([[patent.id, patent.publicId]]);
   const claimsById = new Map(claims.map((claim) => [claim.id, claim.publicId]));
+  const attorneyNotes = req.portalUser!.role === "CLIENT"
+    ? new Map<number, AttorneyNoteView>()
+    : await loadAttorneyNotes([patent.id]);
   const { client, tool } = await projectRelations(project);
   res.json({
-    patent: serializePatent(patent, project.publicId, claims),
+    patent: serializePatent(patent, project.publicId, claims, attorneyNotes.get(patent.id)),
     project: await serializeProject(project),
     client: serializeClient(client),
     tool: serializeTool(tool),
@@ -1046,6 +1114,50 @@ router.patch("/portal/patents/:id/monitoring", async (req, res) => {
     .returning();
   const [project] = await db.select().from(projectsTable).where(eq(projectsTable.id, updated.projectId)).limit(1);
   res.json({ patent: serializePatent(updated, project!.publicId, []) });
+});
+
+router.patch("/portal/patents/:id/attorney-notes", async (req, res) => {
+  const patentPublicId = publicIdOf(req.params.id);
+  const patent = patentPublicId ? await patentProject(req.portalUser!, patentPublicId) : null;
+  if (!patent) return void res.status(404).json({ error: "Patent not found." });
+  if (!limitationEditor(req.portalUser!)) return void res.status(403).json({ error: "Only attorneys and administrators may edit attorney notes." });
+  if (typeof req.body?.notes !== "string") return void res.status(400).json({ error: "Attorney notes are required." });
+  const notes = req.body.notes.trim();
+  if (notes.length > 20000) return void res.status(400).json({ error: "Attorney notes must be 20,000 characters or fewer." });
+
+  await db.transaction(async (tx) => {
+    const [existing] = await tx.select().from(patentAttorneyNotesTable)
+      .where(eq(patentAttorneyNotesTable.patentId, patent.id))
+      .limit(1);
+    if (existing) {
+      const [updated] = await tx.update(patentAttorneyNotesTable).set({
+        notes,
+        updatedById: req.portalUser!.id,
+        updatedAt: new Date(),
+      }).where(eq(patentAttorneyNotesTable.id, existing.id)).returning();
+      await tx.insert(patentAttorneyNoteHistoryTable).values({
+        noteId: updated.id,
+        notes: updated.notes,
+        actorId: req.portalUser!.id,
+      });
+    } else if (notes) {
+      const [created] = await tx.insert(patentAttorneyNotesTable).values({
+        patentId: patent.id,
+        notes,
+        createdById: req.portalUser!.id,
+        updatedById: req.portalUser!.id,
+      }).returning();
+      await tx.insert(patentAttorneyNoteHistoryTable).values({
+        noteId: created.id,
+        notes: created.notes,
+        actorId: req.portalUser!.id,
+      });
+    }
+  });
+
+  const [project] = await db.select().from(projectsTable).where(eq(projectsTable.id, patent.projectId)).limit(1);
+  const note = (await loadAttorneyNotes([patent.id])).get(patent.id);
+  res.json({ patent: serializePatent(patent, project!.publicId, [], note) });
 });
 
 router.patch("/portal/patents/:id/claims/monitoring-selection", async (req, res) => {

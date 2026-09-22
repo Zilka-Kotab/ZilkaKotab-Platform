@@ -65,6 +65,23 @@ export interface PatentClaim {
   createdAt: string;
 }
 
+export interface AttorneyNoteHistoryEntry {
+  publicId: string;
+  notes: string;
+  actor: { publicId: string; name: string } | null;
+  createdAt: string;
+}
+
+export interface AttorneyNote {
+  publicId: string;
+  notes: string;
+  createdBy: { publicId: string; name: string } | null;
+  updatedBy: { publicId: string; name: string } | null;
+  createdAt: string;
+  updatedAt: string;
+  history: AttorneyNoteHistoryEntry[];
+}
+
 export interface MonitoredPatent {
   publicId: string;
   projectId: string;
@@ -89,6 +106,7 @@ export interface MonitoredPatent {
   monitoringActive: boolean;
   archivedAt?: string | null;
   lastAnalyzedAt?: string | null;
+  attorneyNotes?: AttorneyNote | null;
   claims: PatentClaim[];
   createdAt: string;
 }
@@ -318,6 +336,8 @@ export const createPatent = (projectId: string, data: { patentNumber: string; ti
   fetchPortal<{ patent: MonitoredPatent }>(`/projects/${projectId}/patents`, { method: 'POST', body: JSON.stringify(data) });
 export const updatePatentMonitoring = (publicId: string, active: boolean) =>
   fetchPortal<{ patent: MonitoredPatent }>(`/patents/${publicId}/monitoring`, { method: 'PATCH', body: JSON.stringify({ active }) });
+export const updatePatentAttorneyNotes = (publicId: string, notes: string) =>
+  fetchPortal<{ patent: MonitoredPatent }>(`/patents/${publicId}/attorney-notes`, { method: 'PATCH', body: JSON.stringify({ notes }) });
 export const updateClaimMonitoringSelection = (publicId: string, selectedClaimNumbers: string[]) =>
   fetchPortal<{ patent: MonitoredPatent }>(`/patents/${publicId}/claims/monitoring-selection`, { method: 'PATCH', body: JSON.stringify({ selectedClaimNumbers }) });
 export const updatePatentArchive = (publicId: string, archived: boolean) =>

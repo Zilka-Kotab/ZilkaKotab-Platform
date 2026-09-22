@@ -96,6 +96,41 @@ export const monitoredPatentsTable = pgTable(
   ],
 );
 
+export const patentAttorneyNotesTable = pgTable(
+  "patent_attorney_notes",
+  {
+    id: serial("id").primaryKey(),
+    publicId: uuid("public_id").defaultRandom().notNull(),
+    patentId: integer("patent_id").notNull().references(() => monitoredPatentsTable.id, { onDelete: "cascade" }),
+    notes: text("notes").notNull().default(""),
+    createdById: integer("created_by_id").notNull().references(() => portalUsersTable.id),
+    updatedById: integer("updated_by_id").references(() => portalUsersTable.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
+  },
+  (table) => [
+    uniqueIndex("patent_attorney_notes_public_id_unique").on(table.publicId),
+    uniqueIndex("patent_attorney_notes_patent_unique").on(table.patentId),
+    index("patent_attorney_notes_patent_idx").on(table.patentId),
+  ],
+);
+
+export const patentAttorneyNoteHistoryTable = pgTable(
+  "patent_attorney_note_history",
+  {
+    id: serial("id").primaryKey(),
+    publicId: uuid("public_id").defaultRandom().notNull(),
+    noteId: integer("note_id").notNull().references(() => patentAttorneyNotesTable.id, { onDelete: "cascade" }),
+    notes: text("notes").notNull(),
+    actorId: integer("actor_id").notNull().references(() => portalUsersTable.id),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("patent_attorney_note_history_public_id_unique").on(table.publicId),
+    index("patent_attorney_note_history_note_created_idx").on(table.noteId, table.createdAt),
+  ],
+);
+
 export const patentClaimsTable = pgTable(
   "patent_claims",
   {
@@ -283,6 +318,8 @@ export const analysisReviewsTable = pgTable(
 
 export const insertProjectAiConfigSchema = createInsertSchema(projectAiConfigsTable);
 export const insertMonitoredPatentSchema = createInsertSchema(monitoredPatentsTable);
+export const insertPatentAttorneyNoteSchema = createInsertSchema(patentAttorneyNotesTable);
+export const insertPatentAttorneyNoteHistorySchema = createInsertSchema(patentAttorneyNoteHistoryTable);
 export const insertPatentClaimSchema = createInsertSchema(patentClaimsTable);
 export const insertClaimLimitationStructureSchema = createInsertSchema(claimLimitationStructuresTable);
 export const insertClaimLimitationSchema = createInsertSchema(claimLimitationsTable);
@@ -294,6 +331,8 @@ export const insertAnalysisReviewSchema = createInsertSchema(analysisReviewsTabl
 export type AiProcessingProvider = typeof projectAiConfigsTable.$inferSelect.selectedProvider;
 export type DataClassification = typeof projectWorkspaceItemsTable.$inferSelect.classification;
 export type AnalysisRun = typeof analysisRunsTable.$inferSelect;
+export type PatentAttorneyNote = typeof patentAttorneyNotesTable.$inferSelect;
+export type PatentAttorneyNoteHistory = typeof patentAttorneyNoteHistoryTable.$inferSelect;
 export type ClaimLimitationStructure = typeof claimLimitationStructuresTable.$inferSelect;
 export type ClaimLimitation = typeof claimLimitationsTable.$inferSelect;
 export type ClaimLimitationHistory = typeof claimLimitationHistoryTable.$inferSelect;
