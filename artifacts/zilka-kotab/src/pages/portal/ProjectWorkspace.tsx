@@ -508,6 +508,13 @@ export default function ProjectWorkspace() {
                               <div><dt className="text-[10px] text-muted-foreground">USPTO status</dt><dd className="mt-0.5 font-medium">{patent.patentStatus || 'Not recorded'}</dd></div>
                             </dl>
                           </section>
+                        </div>
+                        <div className="space-y-3">
+                          <section className={`rounded-xl border p-3 ${recommendationPanelTone(emptyRecommendation)}`}>
+                            <h3 className="text-sm font-semibold">Recommendation</h3>
+                            <div className="mt-2"><RecommendationPill value={emptyRecommendation} /></div>
+                            <p className="mt-2 text-[11px] leading-4 text-muted-foreground">Rationale and attorney disposition will appear only when recorded.</p>
+                          </section>
                           <section className="rounded-xl border border-border bg-card p-3">
                             <h3 className="text-sm font-semibold">Maintenance fees</h3>
                             <div className="mt-3 space-y-3">
@@ -526,13 +533,6 @@ export default function ProjectWorkspace() {
                                 <p className="mt-1 text-[10px] leading-4 text-muted-foreground">Payment dates and amounts have not been retrieved for this patent.</p>
                               </div>
                             </div>
-                          </section>
-                        </div>
-                        <div className="space-y-3">
-                          <section className={`rounded-xl border p-3 ${recommendationPanelTone(emptyRecommendation)}`}>
-                            <h3 className="text-sm font-semibold">Recommendation</h3>
-                            <div className="mt-2"><RecommendationPill value={emptyRecommendation} /></div>
-                            <p className="mt-2 text-[11px] leading-4 text-muted-foreground">Rationale and attorney disposition will appear only when recorded.</p>
                           </section>
                         </div>
                      </div>
