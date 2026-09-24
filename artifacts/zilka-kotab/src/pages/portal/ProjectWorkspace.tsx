@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { ChangeEvent, FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation, useParams } from 'wouter';
 import {
   Archive,
@@ -66,6 +66,7 @@ type MetricFilter = 'ALL' | MetricLevel;
 
 const emptyRecommendation: Recommendation = 'NOT_ANALYZED';
 const emptyMetric: MetricLevel = 'NOT_ANALYZED';
+const patentImportBatchSize = 20;
 
 const metricLabel = (value: MetricLevel) => value === 'NOT_ANALYZED' ? '—' : value;
 const recommendationLabel = (value: Recommendation) => value === 'NOT_ANALYZED' ? 'Not analyzed' : value;
@@ -93,6 +94,22 @@ const metricTone = (value: MetricLevel) => value === 'NOT_ANALYZED'
 
 function dateLabel(value?: string | null) {
   return value ? new Date(value).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : 'Not recorded';
+}
+
+function extractPatentNumbers(value: string) {
+  const normalizedText = value.toUpperCase().replace(/,/g, '');
+  const pattern = /(?:US\s*)?(\d{6,9})(?:\s*[A-Z]\d)?/g;
+  const seen = new Set<string>();
+  const numbers: string[] = [];
+  let match: RegExpExecArray | null;
+  while ((match = pattern.exec(normalizedText)) !== null) {
+    const normalizedNumber = `US${match[1]}`;
+    if (!seen.has(normalizedNumber)) {
+      seen.add(normalizedNumber);
+      numbers.push(normalizedNumber);
+    }
+  }
+  return numbers;
 }
 
 function StatusPill({ active, archived }: { active: boolean; archived: boolean }) {
@@ -266,6 +283,14 @@ export default function ProjectWorkspace() {
   const [recordsOpen, setRecordsOpen] = useState(false);
   const [item, setItem] = useState({ title: '', itemType: 'PUBLIC_EVIDENCE', content: '', classification: 'PUBLIC_SOURCE' as DataClassification });
   const [analysis, setAnalysis] = useState({ summary: '', triage: 'MEDIUM' as AnalysisTriage });
+  const [patentImportProgress, setPatentImportProgress] = useState<{ completed: number; total: number } | null>(null);
+  const [patentInputError, setPatentInputError] = useState('');
+  const [loadedPatentFiles, setLoadedPatentFiles] = useState<string[]>([]);
+  const addPatentPanelRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    if (addOpen) addPatentPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, [addOpen]);
 
   const canCreateWorkProduct = access?.user?.role !== 'CLIENT';
   const canManageMonitoring = access?.user?.role === 'ADMIN' || access?.user?.role === 'ATTORNEY';
@@ -345,18 +370,77 @@ export default function ProjectWorkspace() {
     event.preventDefault();
     createRun.mutate(analysis, { onSuccess: () => setAnalysis({ ...analysis, summary: '' }) });
   };
-  const submitPatent = (event: FormEvent) => {
+  const handlePatentFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
+    const input = event.currentTarget;
+    const files = Array.from(input.files ?? []);
+    if (!files.length) return;
+    setPatentInputError('');
+    const unsupportedFiles = files.filter((file) => !/\.(csv|txt)$/i.test(file.name));
+    if (unsupportedFiles.length) {
+      setPatentInputError('Choose CSV or TXT files containing U.S. patent numbers.');
+      input.value = '';
+      return;
+    }
+    try {
+      const contents = (await Promise.all(files.map((file) => file.text()))).filter((content) => content.trim());
+      if (!contents.length) {
+        setPatentInputError('The selected file does not contain any text.');
+        setLoadedPatentFiles([]);
+        return;
+      }
+      setPatentNumbers((current) => [current.trim(), ...contents].filter(Boolean).join('\n'));
+      setLoadedPatentFiles(files.map((file) => file.name));
+    } catch {
+      setPatentInputError('The selected file could not be read. Try a CSV or TXT file.');
+      setLoadedPatentFiles([]);
+    } finally {
+      input.value = '';
+    }
+  };
+  const submitPatent = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    previewPatent.mutate(patentNumbers, {
-      onSuccess: ({ drafts: nextDrafts }) => {
-        setDrafts(nextDrafts);
-        setPatentNumbers('');
-        setSelectedClaims(Object.fromEntries(nextDrafts.map((draft) => [
-          draft.publicId,
-          draft.patent.claims.filter((claim) => claim.claimType === 'INDEPENDENT' && claim.selectedForMonitoring).map((claim) => claim.claimNumber),
-        ])));
-      },
-    });
+    if (patentImportProgress) return;
+    const numbers = extractPatentNumbers(patentNumbers);
+    if (!numbers.length) {
+      setPatentInputError('No valid U.S. patent numbers were found. Enter numbers or load a CSV/TXT list.');
+      return;
+    }
+
+    setPatentInputError('');
+    setLoadedPatentFiles([]);
+    setPatentImportProgress({ completed: 0, total: numbers.length });
+    let completed = 0;
+
+    for (let offset = 0; offset < numbers.length; offset += patentImportBatchSize) {
+      const batch = numbers.slice(offset, offset + patentImportBatchSize);
+      try {
+        const { drafts: nextDrafts } = await previewPatent.mutateAsync(batch.join('\n'));
+        setDrafts((current) => {
+          const draftsByNumber = new Map(current.map((draft) => [draft.normalizedPatentNumber, draft]));
+          nextDrafts.forEach((draft) => draftsByNumber.set(draft.normalizedPatentNumber, draft));
+          return [...draftsByNumber.values()];
+        });
+        setSelectedClaims((current) => ({
+          ...current,
+          ...Object.fromEntries(nextDrafts.map((draft) => [
+            draft.publicId,
+            draft.patent.claims.filter((claim) => claim.claimType === 'INDEPENDENT' && claim.selectedForMonitoring).map((claim) => claim.claimNumber),
+          ])),
+        }));
+        completed += batch.length;
+        setPatentNumbers(numbers.slice(completed).join('\n'));
+        setPatentImportProgress({ completed, total: numbers.length });
+      } catch {
+        const remaining = numbers.slice(completed);
+        setPatentNumbers(remaining.join('\n'));
+        setPatentInputError(`Stopped after ${completed} of ${numbers.length}. The remaining ${remaining.length} patent number${remaining.length === 1 ? '' : 's'} are still in the list and can be retried.`);
+        setPatentImportProgress(null);
+        return;
+      }
+    }
+
+    setPatentNumbers('');
+    setPatentImportProgress(null);
   };
   const commitDraft = (draft: PatentImportDraft) => {
     commitPatent.mutate(
@@ -398,7 +482,7 @@ export default function ProjectWorkspace() {
           </div>
            <div className="flex items-center gap-2">
              {canArchive && <button type="button" onClick={() => setIncludeArchived((value) => { if (value) setFilter('ALL'); return !value; })} className={`inline-flex items-center gap-2 rounded-lg border px-3.5 py-2.5 text-sm font-semibold transition ${includeArchived ? 'border-primary/30 bg-primary/5 text-primary' : 'border-border bg-card text-foreground hover:bg-muted/50'}`}><Archive className="h-4 w-4" /> {includeArchived ? 'Hide archived' : 'Show archived'}</button>}
-            <button type="button" onClick={() => setAddOpen((value) => !value)} className="inline-flex items-center gap-2 rounded-lg bg-primary px-3.5 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90"><Plus className="h-4 w-4" /> Add patent</button>
+             <button type="button" aria-expanded={addOpen} aria-controls="add-patent-panel" onClick={() => setAddOpen(true)} className="inline-flex items-center gap-2 rounded-lg bg-primary px-3.5 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90"><Plus className="h-4 w-4" /> Add patent</button>
           </div>
         </header>
 
@@ -572,10 +656,27 @@ export default function ProjectWorkspace() {
           </div>
         </section>
 
-        {addOpen && <section className="mt-6 overflow-hidden rounded-2xl border border-primary/20 bg-card shadow-sm">
-          <div className="flex flex-col gap-3 border-b border-border bg-primary/[0.035] px-5 py-4 sm:flex-row sm:items-center sm:justify-between"><div><h2 className="font-display text-lg font-semibold">Add a patent</h2><p className="mt-1 text-sm text-muted-foreground">Retrieve bibliographic data and claims for review before committing the record.</p></div><button type="button" onClick={() => setAddOpen(false)} className="self-start rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground sm:self-auto">Close</button></div>
-          <form onSubmit={submitPatent} className="flex flex-col gap-3 p-5 sm:flex-row sm:items-end"><label className="flex-1 text-xs font-bold uppercase tracking-[0.12em] text-muted-foreground">U.S. patent numbers<textarea required value={patentNumbers} onChange={(event) => setPatentNumbers(event.target.value)} placeholder={'US 12,345,678 B2\n12345679'} className="mt-2 min-h-20 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm font-normal normal-case tracking-normal outline-none ring-primary/20 transition focus:ring-4" /></label><button disabled={previewPatent.isPending} className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground disabled:opacity-50"><RefreshCw className={`h-4 w-4 ${previewPatent.isPending ? 'animate-spin' : ''}`} /> Retrieve for review</button></form>
-          {previewPatent.error && <p className="px-5 pb-4 text-sm text-red-700">{previewPatent.error instanceof Error ? previewPatent.error.message : 'Patent retrieval failed.'}</p>}
+        {addOpen && <section ref={addPatentPanelRef} id="add-patent-panel" aria-labelledby="add-patent-heading" className="mt-6 scroll-mt-6 overflow-hidden rounded-2xl border border-primary/20 bg-card shadow-sm">
+          <div className="flex flex-col gap-3 border-b border-border bg-primary/[0.035] px-5 py-4 sm:flex-row sm:items-center sm:justify-between"><div><h2 id="add-patent-heading" className="font-display text-lg font-semibold">Add patents</h2><p className="mt-1 text-sm text-muted-foreground">Paste patent numbers or load CSV/TXT files. Large lists are retrieved in batches, then reviewed before records are added.</p></div><button type="button" disabled={patentImportProgress !== null} onClick={() => setAddOpen(false)} className="self-start rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground disabled:opacity-50 sm:self-auto">Close</button></div>
+          <form onSubmit={submitPatent} className="space-y-3 p-5">
+            <label className="block text-xs font-bold uppercase tracking-[0.12em] text-muted-foreground">U.S. patent numbers
+              <textarea required disabled={patentImportProgress !== null} value={patentNumbers} onChange={(event) => { setPatentNumbers(event.target.value); setPatentInputError(''); }} placeholder={'US 12,345,678 B2\n12345679'} className="mt-2 min-h-28 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm font-normal normal-case tracking-normal outline-none ring-primary/20 transition focus:ring-4 disabled:opacity-60" />
+            </label>
+            <p className="text-[11px] leading-4 text-muted-foreground">Numbers are deduplicated automatically. There is no total list limit; retrieval runs in batches of {patentImportBatchSize}.</p>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+              <div className="min-w-0">
+                <label htmlFor="patent-import-files" className="block text-xs font-semibold text-foreground">Upload one or more CSV/TXT files</label>
+                <input id="patent-import-files" type="file" accept=".csv,.txt,text/csv,text/plain" multiple disabled={patentImportProgress !== null} onChange={handlePatentFileChange} className="mt-1 block max-w-full text-xs text-muted-foreground file:mr-3 file:rounded-lg file:border file:border-border file:bg-background file:px-3 file:py-2 file:text-xs file:font-semibold file:text-foreground hover:file:bg-muted disabled:opacity-60" />
+                {loadedPatentFiles.length > 0 && <p className="mt-1 text-[10px] text-muted-foreground">Loaded: {loadedPatentFiles.join(', ')}</p>}
+              </div>
+              <button type="submit" disabled={patentImportProgress !== null || previewPatent.isPending} className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground disabled:opacity-50">
+                <RefreshCw className={`h-4 w-4 ${previewPatent.isPending ? 'animate-spin' : ''}`} />
+                {patentImportProgress ? `Retrieving ${patentImportProgress.completed}/${patentImportProgress.total}…` : 'Retrieve for review'}
+              </button>
+            </div>
+            {patentImportProgress && <p role="status" aria-live="polite" className="text-xs text-muted-foreground">Retrieved {patentImportProgress.completed} of {patentImportProgress.total} patent numbers. Keep this panel open while retrieval finishes.</p>}
+          </form>
+          {(patentInputError || previewPatent.error) && <div aria-live="polite" className="space-y-1 px-5 pb-4 text-sm text-red-700">{patentInputError && <p>{patentInputError}</p>}{previewPatent.error && <p>{previewPatent.error instanceof Error ? previewPatent.error.message : 'Patent retrieval failed.'}</p>}</div>}
           {drafts.length > 0 && <div className="border-t border-border">
             <div className="px-5 py-4"><h3 className="font-semibold">Review retrieved records</h3><p className="mt-1 text-sm text-muted-foreground">Select the independent claims that should be included in monitoring.</p></div>
             {drafts.map((draft) => {
