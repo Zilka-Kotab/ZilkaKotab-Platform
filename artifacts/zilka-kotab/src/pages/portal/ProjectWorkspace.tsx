@@ -74,8 +74,15 @@ const recommendationTone = (value: Recommendation) => value === 'NOT_ANALYZED'
   : value === 'MAINTAIN'
     ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
     : value === 'REVIEW'
-      ? 'border-amber-200 bg-amber-50 text-amber-700'
+      ? 'border-[#dcc69c] bg-[#f6f0e4] text-[#80643c]'
       : 'border-red-200 bg-red-50 text-red-700';
+const recommendationPanelTone = (value: Recommendation) => value === 'NOT_ANALYZED'
+  ? 'border-border bg-card'
+  : value === 'MAINTAIN'
+    ? 'border-emerald-200 bg-emerald-50/60'
+    : value === 'REVIEW'
+      ? 'border-[#dcc69c] bg-[#f6f0e4]'
+      : 'border-red-200 bg-red-50/70';
 const metricTone = (value: MetricLevel) => value === 'NOT_ANALYZED'
   ? 'text-slate-400'
   : value === 'HIGH'
@@ -395,10 +402,26 @@ export default function ProjectWorkspace() {
           </div>
         </header>
 
-        <section className="mb-6 grid gap-px overflow-hidden rounded-2xl border border-border bg-border sm:grid-cols-3">
-          <div className="bg-card px-5 py-4"><p className="text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Portfolio</p><p className="mt-1 font-display text-2xl font-semibold">{counts.all}<span className="ml-1 text-sm font-medium text-muted-foreground">active records</span></p></div>
-          <div className="bg-card px-5 py-4"><p className="text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Monitoring</p><p className="mt-1 font-display text-2xl font-semibold text-emerald-700">{counts.active}<span className="ml-1 text-sm font-medium text-muted-foreground">running</span></p></div>
-          <div className="bg-card px-5 py-4"><p className="text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Claim records</p><p className="mt-1 font-display text-2xl font-semibold">{data.patents.reduce((total, patent) => total + patent.claims.length, 0)}<span className="ml-1 text-sm font-medium text-muted-foreground">stored</span></p></div>
+        <section className="mb-6" aria-labelledby="portfolio-analytics-heading">
+          <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
+            <h2 id="portfolio-analytics-heading" className="font-display text-sm font-semibold text-foreground">Portfolio analytics</h2>
+            <p className="text-[11px] text-muted-foreground">Portfolio and recommendation status at a glance</p>
+          </div>
+          <div className="grid gap-px overflow-hidden rounded-2xl border border-border bg-border sm:grid-cols-2 xl:grid-cols-5">
+            <div className="bg-card px-5 py-4"><p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Portfolio</p><p className="mt-1 font-display text-2xl font-semibold">{counts.all}<span className="ml-1 text-sm font-medium text-muted-foreground">active records</span></p></div>
+            <div className="bg-card px-5 py-4"><p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Monitoring</p><p className="mt-1 font-display text-2xl font-semibold text-emerald-700">{counts.active}<span className="ml-1 text-sm font-medium text-muted-foreground">running</span></p></div>
+            {([
+              ['Maintain', 'border-t-2 border-t-emerald-300 text-emerald-700', 'bg-emerald-50/45'],
+              ['Review', 'border-t-2 border-t-[#c4a56e] text-[#80643c]', 'bg-[#f6f0e4]'],
+              ['Prune', 'border-t-2 border-t-red-300 text-red-700', 'bg-red-50/60'],
+            ] as const).map(([label, tone, surface]) => (
+              <div key={label} data-testid={`stat-recommendation-${label.toLowerCase()}`} className={`bg-card px-5 py-4 ${tone} ${surface}`}>
+                <p className="text-[10px] font-bold uppercase tracking-[0.14em]">{label}</p>
+                <p className="mt-1 font-display text-2xl font-semibold text-muted-foreground">—</p>
+                <p className="mt-1 text-[10px] text-muted-foreground">{counts.all ? 'No recommendation data' : 'No patents in portfolio'}</p>
+              </div>
+            ))}
+          </div>
         </section>
 
         <section className="overflow-hidden rounded-2xl border border-border bg-card shadow-[0_12px_35px_-26px_rgba(24,45,72,0.45)]">
@@ -465,16 +488,53 @@ export default function ProjectWorkspace() {
                    {expanded && <div className="border-t border-primary/10 bg-primary/[0.025] px-4 pb-4 pt-3 sm:px-5">
                      <div className="mb-3 flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between"><div><p className="text-[10px] font-bold uppercase tracking-[0.16em] text-primary">Expanded patent dashboard</p><p className="mt-1 text-[11px] text-muted-foreground">Factual source data is separated from recorded analysis.</p></div><div className="flex flex-wrap items-center gap-2"><ExpandedMonitoringControl patent={patent} canEdit={canManageMonitoring} /><span className="rounded-full border border-border bg-card px-2 py-1 text-[10px] font-semibold text-muted-foreground">Recommendation not analyzed</span><span className="rounded-full border border-border bg-card px-2 py-1 text-[10px] font-semibold text-muted-foreground">AI metrics not analyzed</span></div></div>
                      <div className="grid gap-3 lg:grid-cols-3">
-                       <div className="space-y-3">
-                         <section className="rounded-xl border border-primary/15 bg-card p-3"><div className="flex items-start gap-2.5"><span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary"><Sparkles className="h-3.5 w-3.5" /></span><div><h3 className="text-sm font-semibold">AI overview</h3><p className="mt-1 text-xs leading-4 text-muted-foreground">No AI analysis has been performed yet.</p><p className="mt-2 text-[11px] leading-4 text-muted-foreground">Future overviews will reference an immutable analysis run and provenance. No conclusion is inferred here.</p></div></div></section>
-                         <section className="rounded-xl border border-border bg-card p-3"><h3 className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Recommendation</h3><div className="mt-2"><RecommendationPill value={emptyRecommendation} /></div><p className="mt-2 text-[11px] leading-4 text-muted-foreground">Rationale and attorney disposition will appear only when recorded.</p></section>
-                       </div>
-                       <div className="space-y-3">
-                         <section className="rounded-xl border border-border bg-card p-3"><h3 className="text-sm font-semibold">Patent details</h3><dl className="mt-2 grid grid-cols-2 gap-x-3 gap-y-2.5 text-xs"><div className="col-span-2"><dt className="text-[10px] text-muted-foreground">Current assignee</dt><dd className="mt-0.5 font-medium">{patent.assignee || 'Not provided'}</dd></div><div><dt className="text-[10px] text-muted-foreground">Filing date</dt><dd className="mt-0.5 font-medium">{dateLabel(patent.filingDate)}</dd></div><div><dt className="text-[10px] text-muted-foreground">Issue date</dt><dd className="mt-0.5 font-medium">{dateLabel(patent.issueDate)}</dd></div><div><dt className="text-[10px] text-muted-foreground">Earliest priority</dt><dd className="mt-0.5 font-medium">{dateLabel(patent.earliestPriorityDate)}</dd></div><div><dt className="text-[10px] text-muted-foreground">USPTO status</dt><dd className="mt-0.5 font-medium">{patent.patentStatus || 'Not recorded'}</dd></div><div className="col-span-2"><dt className="text-[10px] text-muted-foreground">Estimated legal expiration</dt><dd className="mt-0.5 font-medium text-amber-700">Unable to determine</dd><details className="mt-1 text-[10px] text-muted-foreground"><summary className="cursor-pointer font-semibold">Calculation inputs</summary><dl className="mt-1.5 grid grid-cols-2 gap-x-2 gap-y-1"><dt>Filing/continuity date</dt><dd>{dateLabel(patent.filingDate)}</dd><dt>Issue date</dt><dd>{dateLabel(patent.issueDate)}</dd><dt>PTA / PTE</dt><dd>Not retrieved</dd><dt>Terminal disclaimer</dt><dd>Unable to determine</dd></dl><p className="mt-1.5 leading-4">Retrieved USPTO data does not include enough term-adjustment information for a reliable estimate.</p></details></div><div className="col-span-2"><dt className="text-[10px] text-muted-foreground">Maintenance fees</dt><dd className="mt-0.5 font-medium">—</dd></div></dl></section>
-                       </div>
-                       <div className="space-y-3">
-                         <section className="rounded-xl border border-border bg-card p-3"><div className="flex items-center gap-2"><Sparkles className="h-3.5 w-3.5 text-primary" /><h3 className="text-sm font-semibold">AI metrics</h3></div><div className="mt-2 grid grid-cols-2 gap-2"><div className="rounded-lg bg-muted/35 p-2"><p className="text-[10px] font-bold uppercase tracking-[0.08em] text-muted-foreground">Claim scope</p><p className="mt-1 text-xs font-semibold text-muted-foreground">Not analyzed</p></div><div className="rounded-lg bg-muted/35 p-2"><p className="text-[10px] font-bold uppercase tracking-[0.08em] text-muted-foreground">Detectability</p><p className="mt-1 text-xs font-semibold text-muted-foreground">Not analyzed</p></div><div className="rounded-lg bg-muted/35 p-2"><p className="text-[10px] font-bold uppercase tracking-[0.08em] text-muted-foreground">Hits</p><p className="mt-1 text-xs font-semibold text-muted-foreground">Not analyzed</p></div><div className="rounded-lg bg-muted/35 p-2"><p className="text-[10px] font-bold uppercase tracking-[0.08em] text-muted-foreground">Citations</p><p className="mt-1 text-xs font-semibold text-muted-foreground">—</p></div></div></section>
-                       </div>
+                        <div className="space-y-3">
+                          <section className="rounded-xl border border-primary/15 bg-card p-3"><div className="flex items-start gap-2.5"><span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary"><Sparkles className="h-3.5 w-3.5" /></span><div><h3 className="text-sm font-semibold">AI overview</h3><p className="mt-1 text-xs leading-4 text-muted-foreground">No AI analysis has been performed yet.</p><p className="mt-2 text-[11px] leading-4 text-muted-foreground">Future overviews will reference an immutable analysis run and provenance. No conclusion is inferred here.</p></div></div></section>
+                          <section className="rounded-xl border border-border bg-card p-3"><div className="flex items-center gap-2"><Sparkles className="h-3.5 w-3.5 text-primary" /><h3 className="text-sm font-semibold">AI metrics</h3></div><div className="mt-2 grid grid-cols-2 gap-2"><div className="rounded-lg bg-muted/35 p-2"><p className="text-[10px] font-bold uppercase tracking-[0.08em] text-muted-foreground">Claim scope</p><p className="mt-1 text-xs font-semibold text-muted-foreground">Not analyzed</p></div><div className="rounded-lg bg-muted/35 p-2"><p className="text-[10px] font-bold uppercase tracking-[0.08em] text-muted-foreground">Detectability</p><p className="mt-1 text-xs font-semibold text-muted-foreground">Not analyzed</p></div><div className="rounded-lg bg-muted/35 p-2"><p className="text-[10px] font-bold uppercase tracking-[0.08em] text-muted-foreground">Hits</p><p className="mt-1 text-xs font-semibold text-muted-foreground">Not analyzed</p></div><div className="rounded-lg bg-muted/35 p-2"><p className="text-[10px] font-bold uppercase tracking-[0.08em] text-muted-foreground">Citations</p><p className="mt-1 text-xs font-semibold text-muted-foreground">—</p></div></div></section>
+                        </div>
+                        <div className="space-y-3">
+                          <section className="rounded-xl border border-border bg-card p-3">
+                            <h3 className="text-sm font-semibold">Bibliographic information</h3>
+                            <dl className="mt-2 grid grid-cols-2 gap-x-3 gap-y-2.5 text-xs">
+                              <div className="col-span-2"><dt className="text-[10px] text-muted-foreground">Patent title</dt><dd className="mt-0.5 font-medium">{patent.title || 'Not recorded'}</dd></div>
+                              <div><dt className="text-[10px] text-muted-foreground">Patent number</dt><dd className="mt-0.5 font-medium">{patent.patentNumber}</dd></div>
+                              <div><dt className="text-[10px] text-muted-foreground">Application number</dt><dd className="mt-0.5 font-medium">{patent.applicationNumber || 'Not recorded'}</dd></div>
+                              <div><dt className="text-[10px] text-muted-foreground">Jurisdiction</dt><dd className="mt-0.5 font-medium">{patent.jurisdiction || 'Not recorded'}</dd></div>
+                              <div><dt className="text-[10px] text-muted-foreground">Current assignee</dt><dd className="mt-0.5 font-medium">{patent.assignee || 'Not recorded'}</dd></div>
+                              <div className="col-span-2"><dt className="text-[10px] text-muted-foreground">Inventors</dt><dd className="mt-0.5 font-medium">{patent.inventors.length ? patent.inventors.join(', ') : 'Not recorded'}</dd></div>
+                              <div><dt className="text-[10px] text-muted-foreground">Filing date</dt><dd className="mt-0.5 font-medium">{dateLabel(patent.filingDate)}</dd></div>
+                              <div><dt className="text-[10px] text-muted-foreground">Issue date</dt><dd className="mt-0.5 font-medium">{dateLabel(patent.issueDate)}</dd></div>
+                              <div><dt className="text-[10px] text-muted-foreground">Earliest priority</dt><dd className="mt-0.5 font-medium">{dateLabel(patent.earliestPriorityDate)}</dd></div>
+                              <div><dt className="text-[10px] text-muted-foreground">USPTO status</dt><dd className="mt-0.5 font-medium">{patent.patentStatus || 'Not recorded'}</dd></div>
+                            </dl>
+                          </section>
+                          <section className="rounded-xl border border-border bg-card p-3">
+                            <h3 className="text-sm font-semibold">Maintenance fees</h3>
+                            <div className="mt-3 space-y-3">
+                              <div className="rounded-lg bg-muted/35 p-3">
+                                <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-muted-foreground">Estimated legal expiration</p>
+                                <p className="mt-1 text-xs font-semibold text-amber-700">Unable to determine</p>
+                                <details className="mt-2 text-[10px] text-muted-foreground">
+                                  <summary className="cursor-pointer font-semibold">Calculation inputs</summary>
+                                  <dl className="mt-1.5 grid grid-cols-2 gap-x-2 gap-y-1"><dt>Filing/continuity date</dt><dd>{dateLabel(patent.filingDate)}</dd><dt>Issue date</dt><dd>{dateLabel(patent.issueDate)}</dd><dt>PTA / PTE</dt><dd>Not retrieved</dd><dt>Terminal disclaimer</dt><dd>Unable to determine</dd></dl>
+                                  <p className="mt-1.5 leading-4">Retrieved USPTO data does not include enough term-adjustment information for a reliable estimate.</p>
+                                </details>
+                              </div>
+                              <div className="rounded-lg bg-muted/35 p-3">
+                                <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-muted-foreground">Upcoming maintenance fee payments</p>
+                                <p className="mt-1 text-xs font-semibold text-muted-foreground">No fee schedule available</p>
+                                <p className="mt-1 text-[10px] leading-4 text-muted-foreground">Payment dates and amounts have not been retrieved for this patent.</p>
+                              </div>
+                            </div>
+                          </section>
+                        </div>
+                        <div className="space-y-3">
+                          <section className={`rounded-xl border p-3 ${recommendationPanelTone(emptyRecommendation)}`}>
+                            <h3 className="text-sm font-semibold">Recommendation</h3>
+                            <div className="mt-2"><RecommendationPill value={emptyRecommendation} /></div>
+                            <p className="mt-2 text-[11px] leading-4 text-muted-foreground">Rationale and attorney disposition will appear only when recorded.</p>
+                          </section>
+                        </div>
                      </div>
                      <div className="mt-3 grid gap-3 lg:grid-cols-2">
                        <section className="rounded-xl border border-border bg-card p-3"><div className="flex flex-wrap items-center justify-between gap-2"><div><h3 className="text-sm font-semibold">Monitored claims</h3><p className="mt-1 text-[11px] text-muted-foreground">Selected independent claims in the compact review view.</p></div><button type="button" onClick={(event) => { event.stopPropagation(); setClaimSelectionId(patent.publicId); }} className="portal-action inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs font-semibold hover:bg-muted/50"><FileSearch className="h-3.5 w-3.5" /> View Full Claim Set</button></div><div className="mt-2 grid gap-2">{selectedClaimsForMonitoring.map((claim) => <article key={claim.publicId} className="rounded-lg bg-muted/35 p-2.5"><p className="text-xs font-semibold">Claim {claim.claimNumber} <span className="font-normal text-muted-foreground">· Selected for monitoring</span></p><p className="mt-1 line-clamp-3 whitespace-pre-wrap text-xs leading-4 text-muted-foreground">{compactClaimText(claim.claimText)}</p><Link href={`/portal/patents/${patent.publicId}/claims/${claim.publicId}/analysis`} onClick={(event) => event.stopPropagation()} className="mt-1.5 inline-flex text-[11px] font-semibold text-primary hover:underline">Open limitation analysis</Link></article>)}{!selectedClaimsForMonitoring.length && <p className="rounded-lg border border-dashed border-border p-3 text-center text-xs text-muted-foreground">No independent claims are selected for monitoring.</p>}</div></section>
