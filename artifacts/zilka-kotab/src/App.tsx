@@ -44,12 +44,6 @@ function stripBase(path: string): string {
 }
 
 function HomeRoute() {
-  const { isLoading, isAuthenticated } = useAuth();
-
-  if (!isLoading && isAuthenticated) {
-    return <Redirect to="/portal" />;
-  }
-
   return <Home />;
 }
 
