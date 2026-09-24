@@ -7,8 +7,8 @@ const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
  * Creates the configured first-admin authorization record once.
  *
  * This does not authenticate anyone and is not an access bypass. The normal
- * Microsoft callback still has to validate the user's identity, then bind it
- * to this Pending record by email before portal access is granted.
+ * Microsoft callback still has to validate the user's identity, then bind its
+ * verified email to this authorization record before portal access is granted.
  */
 export async function ensureInitialAdminAuthorization() {
   const configuredEmail = process.env.INITIAL_ADMIN_EMAIL?.trim().toLowerCase();
@@ -25,15 +25,15 @@ export async function ensureInitialAdminAuthorization() {
   const [{ adminCount }] = await db
     .select({ adminCount: count() })
     .from(portalUsersTable)
-    .where(and(eq(portalUsersTable.role, "ADMIN"), eq(portalUsersTable.status, "ACTIVE")));
+    .where(and(eq(portalUsersTable.role, "ADMIN"), eq(portalUsersTable.status, "ACTIVE"), eq(portalUsersTable.active, true)));
   if (adminCount > 0) return;
 
   await db.insert(portalUsersTable).values({
     email: configuredEmail,
     name: "Initial Administrator",
     role: "ADMIN",
-    status: "PENDING",
-    active: false,
+    status: "ACTIVE",
+    active: true,
   }).onConflictDoNothing({ target: portalUsersTable.email });
 }
 

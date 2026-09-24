@@ -25,7 +25,10 @@ timeoutMs = 20000
 CONTACT_EMAIL = "britten@zilkakotab.com"
 
 [userenv.production]
-INITIAL_ADMIN_EMAIL = "britten@zilkakotab.com"
+INITIAL_ADMIN_EMAIL = "managezk@zilkakotab.com"
+
+[userenv.development]
+INITIAL_ADMIN_EMAIL = "managezk@zilkakotab.com"
 
 [nix]
 channel = "stable-25_05"

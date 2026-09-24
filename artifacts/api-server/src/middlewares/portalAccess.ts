@@ -28,15 +28,14 @@ export async function resolvePortalUser(req: Request): Promise<PortalUser | null
       .set({
         microsoftTenantId: req.user.tenantId,
         microsoftObjectId: req.user.objectId,
-        status: "ACTIVE",
-        active: true,
         boundAt: new Date(),
         lastLoginAt: new Date(),
         updatedAt: new Date(),
       })
       .where(and(
         eq(portalUsersTable.email, email),
-        eq(portalUsersTable.status, "PENDING"),
+        eq(portalUsersTable.status, "ACTIVE"),
+        eq(portalUsersTable.active, true),
         isNull(portalUsersTable.microsoftTenantId),
         isNull(portalUsersTable.microsoftObjectId),
       ))

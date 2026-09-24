@@ -5,6 +5,9 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import { Route, Switch, Redirect, useLocation, Router as WouterRouter } from 'wouter';
 import { HelmetProvider } from 'react-helmet-async';
 import { useAuth } from '@workspace/entra-auth-web';
+import { Loader2, ShieldAlert } from 'lucide-react';
+import { usePortalAccess } from '@/lib/hooks-portal';
+import type { Role } from '@/lib/api-portal';
 
 // Layout Components
 import { Navbar } from '@/components/Navbar';
@@ -47,12 +50,32 @@ function HomeRoute() {
   return <Home />;
 }
 
-function ProtectedPortalRoute({ component: Component }: { component: React.ComponentType }) {
+function ProtectedPortalRoute({ component: Component, requiredRole }: { component: React.ComponentType; requiredRole?: Role }) {
   const { isLoading, isAuthenticated } = useAuth();
-  
-  if (isLoading) return null;
+  const { data: accessData, isLoading: isAccessLoading, error: accessError } = usePortalAccess(isAuthenticated);
+
+  if (isLoading || (isAuthenticated && isAccessLoading)) {
+    return (
+      <div className="flex min-h-[100dvh] items-center justify-center bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
   if (!isAuthenticated) return <Redirect to="/sign-in" />;
-  
+
+  const portalUser = accessData?.user;
+  if (accessError || !portalUser || !portalUser.active || (requiredRole && portalUser.role !== requiredRole)) {
+    return (
+      <div className="flex min-h-[100dvh] items-center justify-center bg-background p-4">
+        <div className="w-full max-w-md rounded-2xl border border-red-200 bg-red-50 p-8 text-center shadow-xl">
+          <ShieldAlert className="mx-auto mb-4 h-12 w-12 text-red-600" />
+          <h1 className="mb-2 text-2xl font-bold text-red-900">Access Not Authorized</h1>
+          <p className="text-red-800">Your account is not approved for this private area.</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <PortalLayout>
       <Component />
@@ -107,7 +130,7 @@ function Router() {
         <ProtectedPortalRoute component={PortalToolDetail} />
       </Route>
       <Route path="/portal/admin">
-        <ProtectedPortalRoute component={PortalAdmin} />
+        <ProtectedPortalRoute component={PortalAdmin} requiredRole="ADMIN" />
       </Route>
       <Route path="/portal/projects/:projectId">
         <ProtectedPortalRoute component={ProjectWorkspace} />

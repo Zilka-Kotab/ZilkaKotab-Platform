@@ -22,10 +22,11 @@ export const portalKeys = {
   adminClientTools: () => [...portalKeys.all, 'adminClientTools'] as const,
 };
 
-export function usePortalAccess() {
+export function usePortalAccess(enabled = true) {
   return useQuery({
     queryKey: portalKeys.access(),
     queryFn: api.getPortalUser,
+    enabled,
     retry: false, // Don't retry on 401/403
   });
 }
