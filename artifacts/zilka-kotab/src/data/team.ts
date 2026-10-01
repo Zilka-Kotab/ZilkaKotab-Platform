@@ -94,7 +94,7 @@ export const team: TeamMember[] = [
     name: 'Kevin J. Zilka',
     role: 'Co-Founder & Principal',
     category: 'principal',
-    photo: '/images/team/zilka.jpg',
+    photo: '/images/team/kevin-zilka.jpg',
     email: 'kevin@zilkakotab.com',
     linkedin: 'https://www.linkedin.com/in/kevinzilka',
     shortBio: 'Kevin is a registered patent attorney and co-founder of Zilka-Kotab PC with more than 30 years of experience, repeatedly named to the IAM Strategy 300 as one of the world\'s leading IP strategists.',
