@@ -137,6 +137,7 @@ const routes = [
   { path: '/services',                            out: 'services/index.html' },
   { path: '/team',                                out: 'team/index.html' },
   { path: '/contact',                             out: 'contact/index.html' },
+  { path: '/team/adnan-fazlic',                   out: 'team/adnan-fazlic/index.html' },
   { path: '/team/kevin-zilka',                    out: 'team/kevin-zilka/index.html' },
   { path: '/team/dominic-kotab',                  out: 'team/dominic-kotab/index.html' },
   { path: '/team/jamie-rossi',                    out: 'team/jamie-rossi/index.html' },
@@ -222,6 +223,7 @@ Options -Indexes
   RewriteRule ^services/?$                               services/index.html [L]
   RewriteRule ^team/?$                                   team/index.html    [L]
   RewriteRule ^contact/?$                                contact/index.html [L]
+  RewriteRule ^team/adnan-fazlic/?$                      team/adnan-fazlic/index.html [L]
   RewriteRule ^team/kevin-zilka/?$                       team/kevin-zilka/index.html [L]
   RewriteRule ^team/dominic-kotab/?$                     team/dominic-kotab/index.html [L]
   RewriteRule ^team/jamie-rossi/?$                       team/jamie-rossi/index.html [L]

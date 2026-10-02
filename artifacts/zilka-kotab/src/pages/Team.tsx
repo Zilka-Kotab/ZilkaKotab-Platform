@@ -12,7 +12,7 @@ export default function Team() {
     <>
       <SEO
         title="Team"
-        description="Meet the principals and patent agents at Zilka-Kotab PC — registered patent attorneys with deep technical expertise in Silicon Valley IP law."
+        description="Meet the principals, patent attorneys, agents, paralegals, and intellectual property professionals at Zilka-Kotab PC."
         url="/team"
       />
 
