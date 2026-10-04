@@ -1,4 +1,5 @@
 import app from "./app";
+import { pool } from "@workspace/db";
 import { logger } from "./lib/logger";
 import { ensureInitialAdminAuthorization, ensurePatentMonitorTool } from "./lib/bootstrap";
 
@@ -15,6 +16,10 @@ const port = Number(rawPort);
 if (Number.isNaN(port) || port <= 0) {
   throw new Error(`Invalid PORT value: "${rawPort}"`);
 }
+
+pool.on("error", (err) => {
+  logger.warn({ err }, "Idle PostgreSQL client disconnected");
+});
 
 async function start() {
   await ensureInitialAdminAuthorization();
