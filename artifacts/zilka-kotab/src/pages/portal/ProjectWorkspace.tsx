@@ -28,7 +28,7 @@ import {
   X,
 } from 'lucide-react';
 import { SEO } from '@/components/SEO';
-import { googlePatentsSearchUrl } from '@/lib/patent-links';
+import { espacenetUrl, googlePatentsUrl } from '@/lib/patent-links';
 import {
   useCommitPatentImport,
   useBulkDeletePatents,
@@ -281,28 +281,13 @@ function maintenanceFeeWindows(issueDate?: string | null) {
   const todayValues = Object.fromEntries(todayParts.map((part) => [part.type, part.value]));
   const today = `${todayValues.year}-${todayValues.month}-${todayValues.day}`;
   return [
-    { label: '3.5-year fee', openMonths: 36, dueMonths: 42, graceMonths: 48 },
-    { label: '7.5-year fee', openMonths: 84, dueMonths: 90, graceMonths: 96 },
-    { label: '11.5-year fee', openMonths: 132, dueMonths: 138, graceMonths: 144 },
+    { label: '3.5-year fee', graceMonths: 48 },
+    { label: '7.5-year fee', graceMonths: 96 },
+    { label: '11.5-year fee', graceMonths: 144 },
   ].map((window) => {
-    const opens = addMonthsToDate(issueDate, window.openMonths);
-    const due = addMonthsToDate(issueDate, window.dueMonths);
     const graceEnds = addMonthsToDate(issueDate, window.graceMonths);
-    if (!opens || !due || !graceEnds) return null;
-    const status = today < opens
-      ? `Opens ${new Date(`${opens}T12:00:00Z`).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' })}`
-      : today <= due
-        ? 'Standard window open — payment unverified'
-        : today <= graceEnds
-          ? 'Grace period — payment unverified'
-          : 'Window elapsed — verify payment status';
-    return {
-      label: window.label,
-      due: new Date(`${due}T12:00:00Z`).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' }),
-      graceEnds: new Date(`${graceEnds}T12:00:00Z`).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' }),
-      status,
-      active: today >= opens && today <= graceEnds,
-    };
+    if (!graceEnds) return null;
+    return { label: window.label, remaining: today <= graceEnds };
   }).filter((window): window is NonNullable<typeof window> => window !== null);
 }
 
@@ -1012,76 +997,59 @@ export default function ProjectWorkspace() {
                     <div className="ml-auto"><PatentRowActions patent={patent} canManageMonitoring={canManageMonitoring} /></div>
                   </div>
                   </div>
-                   {expanded && <div className="border-t border-primary/10 bg-primary/[0.025] px-4 pb-4 pt-3 sm:px-5">
-                       <div className="mb-3 flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between"><div><p className="text-[10px] font-bold uppercase tracking-[0.16em] text-primary">Expanded patent dashboard</p><p className="mt-1 text-[11px] text-muted-foreground">Patent facts and analysis are shown separately.</p></div><ExpandedMonitoringControl patent={patent} canEdit={canManageMonitoring} /></div>
-                      <div className="grid gap-3 lg:grid-cols-2">
-                         <div className="order-2 space-y-3">
+                       {expanded && <div className="border-t border-primary/10 bg-primary/[0.025] px-4 pb-3 pt-2 sm:px-5">
+                        <div className="mb-2 flex items-center justify-between gap-2"><p className="text-[10px] font-bold uppercase tracking-[0.16em] text-primary">Expanded patent dashboard</p><ExpandedMonitoringControl patent={patent} canEdit={canManageMonitoring} /></div>
+                       <div className="grid gap-2.5 lg:grid-cols-2">
+                          <div className="order-2 space-y-2.5">
                           <section className={`rounded-xl border p-3 ${recommendationPanelTone(patent.recommendation)}`}>
                             <h3 className="text-sm font-semibold">Recommendation</h3>
-                            <div className="mt-2"><RecommendationPill value={patent.recommendation} /></div>
-                            <p className="mt-2 text-[11px] leading-4 text-muted-foreground">Rationale and attorney disposition will appear when recorded.</p>
+                             <div className="mt-1.5"><RecommendationPill value={patent.recommendation} /></div>
+                             <p className="mt-1 text-[10px] leading-4 text-muted-foreground">Rationale and attorney disposition will appear when recorded.</p>
                           </section>
-                          <section className="rounded-xl border border-primary/15 bg-card p-3">
+                           <section className="rounded-xl border border-primary/15 bg-card p-2.5">
                             <div className="flex items-center gap-2"><Sparkles className="h-3.5 w-3.5 text-primary" /><h3 className="text-sm font-semibold">AI overview</h3></div>
                             {latestFinding?.summary
-                              ? <><p className="mt-2 whitespace-pre-wrap text-xs leading-5 text-foreground">{latestFinding.summary}</p><p className="mt-2 text-[10px] text-muted-foreground">Recorded {dateLabel(latestFinding.createdAt)} · {latestFinding.provider}</p></>
-                              : <p className="mt-2 text-xs leading-4 text-muted-foreground">No AI analysis has been recorded for this patent.</p>}
+                               ? <><p className="mt-1.5 whitespace-pre-wrap text-xs leading-4 text-foreground">{latestFinding.summary}</p><p className="mt-1.5 text-[10px] text-muted-foreground">Recorded {dateLabel(latestFinding.createdAt)} · {latestFinding.provider}</p></>
+                               : <p className="mt-1.5 text-xs leading-4 text-muted-foreground">No AI analysis has been recorded for this patent.</p>}
                           </section>
-                         <section className="order-1 rounded-xl border border-border bg-card p-3">
-                            <div className="flex flex-wrap items-start justify-between gap-2"><div><h3 className="text-sm font-semibold">AI metrics</h3><p className="mt-1 text-[10px] text-muted-foreground">Select a metric to view details and available rationale.</p></div><Sparkles className="h-3.5 w-3.5 text-primary" /></div>
-                            <div className="mt-3 grid grid-cols-2 gap-2">
+                          <section className="order-1 rounded-xl border border-border bg-card p-2.5">
+                             <div className="flex items-center justify-between gap-2"><div><h3 className="text-sm font-semibold">AI metrics</h3><p className="mt-0.5 text-[10px] text-muted-foreground">Select a score for details.</p></div><Sparkles className="h-3.5 w-3.5 text-primary" /></div>
+                             <div className="mt-2 grid grid-cols-2 gap-1.5 sm:grid-cols-3">
                               {([
                                 ['claimScope', 'Claim scope', 'Not analyzed'],
                                 ['detectability', 'Detectability', 'Not analyzed'],
                                 ['validity', 'Validity', 'Not analyzed'],
                                 ['infringement', 'Infringement', 'Not analyzed'],
                                 ['citations', 'Forward Citations', '—'],
-                              ] as const).map(([key, label, value]) => <button key={key} type="button" onClick={(event) => { event.stopPropagation(); setSelectedMetric(key); }} className="rounded-lg border border-border bg-muted/25 p-2.5 text-left transition hover:border-primary/30 hover:bg-primary/[0.035] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
-                                <span className="block text-[10px] font-bold uppercase tracking-[0.08em] text-muted-foreground">{label}</span>
-                                <span className="mt-1 block text-xs font-semibold text-muted-foreground">{value}</span>
-                                <span className="mt-1 block text-[10px] font-medium text-primary">View details</span>
+                               ] as const).map(([key, label, value]) => <button key={key} type="button" onClick={(event) => { event.stopPropagation(); setSelectedMetric(key); }} className="flex min-h-11 min-w-0 flex-col justify-center rounded-lg border border-border bg-muted/25 px-2 py-1.5 text-left transition hover:border-primary/30 hover:bg-primary/[0.035] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
+                                 <span className="truncate text-[9px] font-bold uppercase tracking-[0.06em] text-muted-foreground">{label}</span>
+                                 <span className="mt-0.5 truncate text-[11px] font-semibold text-muted-foreground">{value}</span>
                               </button>)}
                             </div>
                           </section>
                         </div>
-                        <section className="rounded-xl border border-border bg-card p-3">
+                        <section className="rounded-xl border border-border bg-card p-2.5">
                           <h3 className="text-sm font-semibold">Bibliographic information</h3>
-                          <dl className="mt-2 grid grid-cols-2 gap-x-3 gap-y-2.5 text-xs">
-                            <div className="col-span-2"><dt className="text-[10px] text-muted-foreground">Patent title</dt><dd className="mt-0.5 font-medium">{patent.title || 'Not recorded'}</dd></div>
+                          <dl className="mt-1.5 grid grid-cols-2 gap-x-3 gap-y-1.5 text-xs sm:grid-cols-3">
+                            <div className="col-span-2 sm:col-span-3"><dt className="text-[9px] text-muted-foreground">Patent title</dt><dd className="mt-0.5 font-medium">{patent.title || 'Not recorded'}</dd></div>
                             <div><dt className="text-[10px] text-muted-foreground">Patent number</dt><dd className="mt-0.5 font-medium">{patent.patentNumber}</dd></div>
                             <div><dt className="text-[10px] text-muted-foreground">Application number</dt><dd className="mt-0.5 font-medium">{patent.applicationNumber || 'Not recorded'}</dd></div>
                             <div><dt className="text-[10px] text-muted-foreground">Jurisdiction</dt><dd className="mt-0.5 font-medium">{patent.jurisdiction || 'Not recorded'}</dd></div>
-                            <div><dt className="text-[10px] text-muted-foreground">Current assignee</dt><dd className="mt-0.5 font-medium">{patent.assignee || 'Not recorded'}</dd></div>
-                            <div className="col-span-2"><dt className="text-[10px] text-muted-foreground">Inventors</dt><dd className="mt-0.5 font-medium">{patent.inventors.length ? patent.inventors.join(', ') : 'Not recorded'}</dd></div>
+                            <div className="col-span-2 sm:col-span-3"><dt className="text-[10px] text-muted-foreground">Current assignee</dt><dd className="mt-0.5 font-medium">{patent.assignee || 'Not recorded'}</dd></div>
+                            <div className="col-span-2 sm:col-span-3"><dt className="text-[10px] text-muted-foreground">Inventors</dt><dd className="mt-0.5 font-medium">{patent.inventors.length ? patent.inventors.join(', ') : 'Not recorded'}</dd></div>
                             <div><dt className="text-[10px] text-muted-foreground">Filing date</dt><dd className="mt-0.5 font-medium">{dateLabel(patent.filingDate)}</dd></div>
                             <div><dt className="text-[10px] text-muted-foreground">Issue date</dt><dd className="mt-0.5 font-medium">{dateLabel(patent.issueDate)}</dd></div>
                             <div><dt className="text-[10px] text-muted-foreground">Earliest priority</dt><dd className="mt-0.5 font-medium">{dateLabel(patent.earliestPriorityDate)}</dd></div>
-                            <div><dt className="text-[10px] text-muted-foreground">USPTO status</dt><dd className="mt-0.5 font-medium">{patent.patentStatus || 'Not recorded'}</dd></div>
+                            <div><dt className="text-[10px] text-muted-foreground">USPTO status</dt><dd className="mt-0.5">{patent.patentStatus && /expired/i.test(patent.patentStatus) ? <span className="inline-flex rounded bg-red-50 px-1.5 py-0.5 font-semibold text-red-700">{patent.patentStatus}</span> : <span className="font-medium">{patent.patentStatus || 'Not recorded'}</span>}</dd></div>
+                            <div title="Estimated from the issue date; payment history is not verified."><dt className="text-[10px] text-muted-foreground">Next Maintenance Fee</dt><dd aria-label="Estimated next maintenance fee; payment history is not verified" className="mt-0.5 font-semibold">{/expired/i.test(patent.patentStatus || '') ? 'No upcoming fee' : (feeWindows.find((window) => window.remaining)?.label || (patent.issueDate ? 'No upcoming fee' : 'Not available'))}</dd></div>
                           </dl>
-                          <div className="mt-4 border-t border-border pt-3">
-                            <h4 className="text-xs font-semibold">Maintenance fees</h4>
-                            <p className="mt-1 text-[10px] leading-4 text-muted-foreground">Payment windows calculated from issue date; payment status is not confirmed here.</p>
-                            <div className="mt-2 space-y-2">
-                              {feeWindows.map((window) => <div key={window.label} className={`rounded-lg border p-2.5 ${window.active ? 'border-amber-200 bg-amber-50/60' : 'border-border bg-muted/25'}`}>
-                                <div className="flex flex-wrap items-center justify-between gap-2"><p className="text-[11px] font-semibold">{window.label}</p><p className={`text-[10px] font-semibold ${window.active ? 'text-amber-800' : 'text-muted-foreground'}`}>{window.status}</p></div>
-                                <p className="mt-1 text-[10px] text-muted-foreground">Standard deadline {window.due} · Grace period ends {window.graceEnds}</p>
-                              </div>)}
-                              {!feeWindows.length && <p className="rounded-lg bg-muted/35 p-2.5 text-[11px] text-muted-foreground">An issue date is needed to estimate maintenance-fee windows.</p>}
-                            </div>
-                            <div className="mt-2 rounded-lg bg-muted/35 p-2.5">
-                              <p className="text-[10px] leading-4 text-muted-foreground">For payment history, amounts, and official window status, use the USPTO storefront. Patent and application numbers:</p>
-                              <p className="mt-1 text-[10px] font-medium text-foreground">{patent.patentNumber} · {patent.applicationNumber || 'Application number not recorded'}</p>
-                              <a href="https://fees.uspto.gov/MaintenanceFees" target="_blank" rel="noopener noreferrer" onClick={(event) => event.stopPropagation()} className="mt-2 inline-flex items-center gap-1.5 text-[11px] font-semibold text-primary hover:underline">Check official USPTO fee status <ExternalLink className="h-3 w-3" /></a>
-                            </div>
-                            <p className="mt-2 text-[10px] leading-4 text-muted-foreground">Legal expiration is not estimated; term adjustments and terminal disclaimers can change it.</p>
-                          </div>
                         </section>
                       </div>
-                     <div className="mt-3 grid gap-3 lg:grid-cols-2">
-                       <section className="rounded-xl border border-border bg-card p-3"><div className="flex flex-wrap items-center justify-between gap-2"><div><h3 className="text-sm font-semibold">Monitored claims</h3><p className="mt-1 text-[11px] text-muted-foreground">Selected claims included in monitoring.</p></div><button type="button" onClick={(event) => { event.stopPropagation(); setClaimSelectionId(patent.publicId); }} className="portal-action inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs font-semibold hover:bg-muted/50"><FileSearch className="h-3.5 w-3.5" /> View Full Claim Set</button></div><div className="mt-2 grid gap-2">{selectedClaimsForMonitoring.map((claim) => <article key={claim.publicId} className="rounded-lg bg-muted/35 p-2.5"><p className="text-xs font-semibold">Claim {claim.claimNumber} <span className="font-normal text-muted-foreground">· Selected for monitoring</span></p><p className="mt-1 line-clamp-3 whitespace-pre-wrap text-xs leading-4 text-muted-foreground">{compactClaimText(claim.claimText)}</p></article>)}{!selectedClaimsForMonitoring.length && <p className="rounded-lg border border-dashed border-border p-3 text-center text-xs text-muted-foreground">No claims are selected for monitoring.</p>}</div></section>
+                      <div className="mt-2.5 grid gap-2.5 lg:grid-cols-2">
+                        <section className="rounded-xl border border-border bg-card p-2.5"><div className="flex flex-wrap items-center justify-between gap-2"><div><h3 className="text-sm font-semibold">Monitored claims</h3><p className="mt-1 text-[10px] text-muted-foreground">Selected claims included in monitoring.</p></div><button type="button" onClick={(event) => { event.stopPropagation(); setClaimSelectionId(patent.publicId); }} className="portal-action inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs font-semibold hover:bg-muted/50"><FileSearch className="h-3.5 w-3.5" /> View Full Claim Set</button></div><div className="mt-2 grid gap-2">{selectedClaimsForMonitoring.map((claim) => <article key={claim.publicId} className="rounded-lg bg-muted/35 p-2"><p className="text-xs font-semibold">Claim {claim.claimNumber} <span className="font-normal text-muted-foreground">· Selected for monitoring</span></p><p className="mt-1 line-clamp-3 whitespace-pre-wrap text-xs leading-4 text-muted-foreground">{compactClaimText(claim.claimText)}</p></article>)}{!selectedClaimsForMonitoring.length && <p className="rounded-lg border border-dashed border-border p-3 text-center text-xs text-muted-foreground">No claims are selected for monitoring.</p>}</div></section>
                        {canManageMonitoring && <AttorneyNotesPanel patent={patent} canEdit={canManageMonitoring} />}
                      </div>
-                       <div className="mt-3 flex flex-wrap items-center gap-2"><a href={googlePatentsSearchUrl(patent.patentNumber)} target="_blank" rel="noopener noreferrer" onClick={(event) => event.stopPropagation()} className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-muted/50">Open in Google Patents <ExternalLink className="h-3.5 w-3.5" /></a><span className="ml-auto text-[11px] text-muted-foreground">Last analyzed {dateLabel(patent.lastAnalyzedAt || latestFinding?.createdAt)}</span></div>
+                       <div className="mt-3 flex flex-wrap items-center gap-2"><a href={googlePatentsUrl(patent.patentNumber)} target="_blank" rel="noopener noreferrer" onClick={(event) => event.stopPropagation()} className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-muted/50">Open in Google Patents <ExternalLink className="h-3.5 w-3.5" /></a><a href={espacenetUrl(patent.patentNumber)} target="_blank" rel="noopener noreferrer" onClick={(event) => event.stopPropagation()} className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-muted/50">Open in Espacenet <ExternalLink className="h-3.5 w-3.5" /></a><span className="ml-auto text-[11px] text-muted-foreground">Last analyzed {dateLabel(patent.lastAnalyzedAt || latestFinding?.createdAt)}</span></div>
                       {selectedMetric && <MetricDetailsDialog metric={metricDetails[selectedMetric]} latestSummary={latestFinding?.summary} analyzedAt={latestFinding?.createdAt} onClose={() => setSelectedMetric(null)} />}
                    </div>}
                    {claimSelectionId === patent.publicId && <ClaimViewerModal key={patent.publicId} patent={patent} canEdit={canManageMonitoring} onClose={() => setClaimSelectionId(null)} />}
