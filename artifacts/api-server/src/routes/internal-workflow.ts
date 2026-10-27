@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { and, asc, desc, eq, inArray, isNotNull, lte, notInArray, or } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNotNull, isNull, lte, notInArray, or } from "drizzle-orm";
 import { Router } from "express";
 import {
   db,
@@ -800,6 +800,7 @@ router.patch("/portal/internal-workflow/time-entries/:entryId/review", async (re
   try {
     const [entry] = await db.select().from(internalWorkflowTimeEntriesTable).where(eq(internalWorkflowTimeEntriesTable.publicId, String(req.params.entryId))).limit(1);
     if (!entry) return void res.status(404).json({ error: "Time entry not found." });
+    if (entry.exportedAt || entry.approvalStatus === "EXPORTED") return void res.status(409).json({ error: "Exported time entries cannot be changed." });
     const [task] = await db.select().from(internalWorkflowTasksTable).where(eq(internalWorkflowTasksTable.id, entry.taskId)).limit(1);
     const user = req.portalUser!;
     if (!task || (user.role !== "ADMIN" && task.responsibleAttorneyId !== user.id)) return void res.status(403).json({ error: "Billing review is limited to the responsible attorney or an administrator." });
@@ -867,28 +868,34 @@ router.post("/portal/internal-workflow/billing/export", async (req, res, next) =
   try {
     const user = req.portalUser!;
     if (user.role !== "ADMIN") return void res.status(403).json({ error: "Billing export is restricted to administrators." });
-    const entries = await db.select().from(internalWorkflowTimeEntriesTable).where(eq(internalWorkflowTimeEntriesTable.approvalStatus, "APPROVED"));
-    if (!entries.length) return void res.status(409).json({ error: "There are no approved, unexported time entries." });
-    const tasks = await db.select().from(internalWorkflowTasksTable).where(inArray(internalWorkflowTasksTable.id, [...new Set(entries.map((entry) => entry.taskId))]));
-    const matterIds = [...new Set(tasks.map((task) => task.matterId).filter((id): id is number => id !== null))];
-    const matters = matterIds.length ? await db.select().from(internalWorkflowMattersTable).where(inArray(internalWorkflowMattersTable.id, matterIds)) : [];
-    const users = await db.select().from(portalUsersTable).where(inArray(portalUsersTable.id, [...new Set(entries.map((entry) => entry.userId))]));
-    const taskMap = new Map(tasks.map((task) => [task.id, task]));
-    const matterMap = new Map(matters.map((matter) => [matter.id, matter]));
-    const userMap = new Map(users.map((person) => [person.id, person]));
-    const q = (value: unknown) => {
-      let text = String(value ?? "");
-      if (/^\s*[=+\-@]/.test(text)) text = `'${text}`;
-      return `"${text.replaceAll('"', '""')}"`;
-    };
-    const csv = ["Client,MatterID,AttorneyRef,Responsible Attorney,Practitioner,Date,Billing Code,Narrative,Hours,Amount,Approval Status", ...entries.map((entry) => {
-      const task = taskMap.get(entry.taskId);
-      const practitioner = userMap.get(entry.userId);
-      const matter = task?.matterId ? matterMap.get(task.matterId) : undefined;
-      return [matter?.client ?? "", matter?.appCollMatterId ?? "", matter?.docketId ?? "", task?.responsibleAttorneyId ? userMap.get(task.responsibleAttorneyId)?.name : "", practitioner?.name, entry.workDate, entry.billingCode, entry.narrative, (entry.minutes / 60).toFixed(2), (entry.amountCents / 100).toFixed(2), entry.approvalStatus].map(q).join(",");
-    })].join("\r\n");
-    await db.update(internalWorkflowTimeEntriesTable).set({ approvalStatus: "EXPORTED", exportedAt: new Date() }).where(inArray(internalWorkflowTimeEntriesTable.id, entries.map((entry) => entry.id)));
-    res.json({ csv, exported: entries.length });
+    const result = await db.transaction(async (tx) => {
+      const entries = await tx.select().from(internalWorkflowTimeEntriesTable)
+        .where(and(eq(internalWorkflowTimeEntriesTable.approvalStatus, "APPROVED"), eq(internalWorkflowTimeEntriesTable.billable, true), isNull(internalWorkflowTimeEntriesTable.exportedAt)))
+        .for("update");
+      if (!entries.length) return null;
+      const tasks = await tx.select().from(internalWorkflowTasksTable).where(inArray(internalWorkflowTasksTable.id, [...new Set(entries.map((entry) => entry.taskId))]));
+      const matterIds = [...new Set(tasks.map((task) => task.matterId).filter((id): id is number => id !== null))];
+      const matters = matterIds.length ? await tx.select().from(internalWorkflowMattersTable).where(inArray(internalWorkflowMattersTable.id, matterIds)) : [];
+      const users = await tx.select().from(portalUsersTable).where(inArray(portalUsersTable.id, [...new Set(entries.flatMap((entry) => [entry.userId, ...tasks.filter((task) => task.id === entry.taskId && task.responsibleAttorneyId).map((task) => task.responsibleAttorneyId!)]))]));
+      const taskMap = new Map(tasks.map((task) => [task.id, task]));
+      const matterMap = new Map(matters.map((matter) => [matter.id, matter]));
+      const userMap = new Map(users.map((person) => [person.id, person]));
+      const q = (value: unknown) => {
+        let text = String(value ?? "");
+        if (/^\s*[=+\-@]/.test(text)) text = `'${text}`;
+        return `"${text.replaceAll('"', '""')}"`;
+      };
+      const csv = ["Client,MatterID,AttorneyRef,Responsible Attorney,Practitioner,Date,Billing Code,Narrative,Hours,Amount,Approval Status", ...entries.map((entry) => {
+        const task = taskMap.get(entry.taskId);
+        const practitioner = userMap.get(entry.userId);
+        const matter = task?.matterId ? matterMap.get(task.matterId) : undefined;
+        return [matter?.client ?? "", matter?.appCollMatterId ?? "", matter?.docketId ?? "", task?.responsibleAttorneyId ? userMap.get(task.responsibleAttorneyId)?.name : "", practitioner?.name, entry.workDate, entry.billingCode, entry.narrative, (entry.minutes / 60).toFixed(2), (entry.amountCents / 100).toFixed(2), entry.approvalStatus].map(q).join(",");
+      })].join("\r\n");
+      await tx.update(internalWorkflowTimeEntriesTable).set({ approvalStatus: "EXPORTED", exportedAt: new Date() }).where(inArray(internalWorkflowTimeEntriesTable.id, entries.map((entry) => entry.id)));
+      return { csv, exported: entries.length };
+    });
+    if (!result) return void res.status(409).json({ error: "There are no approved, unexported billable time entries." });
+    res.json(result);
   } catch (error) { next(error); }
 });
 
