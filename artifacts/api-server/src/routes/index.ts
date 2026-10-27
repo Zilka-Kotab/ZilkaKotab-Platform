@@ -4,6 +4,7 @@ import contactRouter from "./contact";
 import authRouter from "./auth";
 import portalRouter from "./portal";
 import patentMonitorRouter from "./patent-monitor";
+import internalWorkflowRouter from "./internal-workflow";
 
 const router: IRouter = Router();
 
@@ -12,5 +13,6 @@ router.use(contactRouter);
 router.use(authRouter);
 router.use(portalRouter);
 router.use(patentMonitorRouter);
+router.use(internalWorkflowRouter);
 
 export default router;

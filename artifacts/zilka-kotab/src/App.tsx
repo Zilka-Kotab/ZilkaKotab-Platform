@@ -34,6 +34,7 @@ import PortalTools from '@/pages/portal/Tools';
 import PortalToolDetail from '@/pages/portal/ToolDetail';
 import PortalAdmin from '@/pages/portal/Admin';
 import ProjectWorkspace from '@/pages/portal/ProjectWorkspace';
+import InternalWorkflow from '@/pages/portal/InternalWorkflow';
 
 const queryClient = new QueryClient();
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, '');
@@ -48,7 +49,7 @@ function HomeRoute() {
   return <Home />;
 }
 
-function ProtectedPortalRoute({ component: Component, requiredRole }: { component: React.ComponentType; requiredRole?: Role }) {
+function ProtectedPortalRoute({ component: Component, requiredRole, requiredRoles }: { component: React.ComponentType; requiredRole?: Role; requiredRoles?: Role[] }) {
   const { isLoading, isAuthenticated } = useAuth();
   const { data: accessData, isLoading: isAccessLoading, error: accessError } = usePortalAccess(isAuthenticated);
 
@@ -62,7 +63,7 @@ function ProtectedPortalRoute({ component: Component, requiredRole }: { componen
   if (!isAuthenticated) return <Redirect to="/sign-in" />;
 
   const portalUser = accessData?.user;
-  if (accessError || !portalUser || !portalUser.active || (requiredRole && portalUser.role !== requiredRole)) {
+  if (accessError || !portalUser || !portalUser.active || (requiredRole && portalUser.role !== requiredRole) || (requiredRoles && !requiredRoles.includes(portalUser.role))) {
     return (
       <div className="flex min-h-[100dvh] items-center justify-center bg-background p-4">
         <div className="w-full max-w-md rounded-2xl border border-red-200 bg-red-50 p-8 text-center shadow-xl">
@@ -132,6 +133,9 @@ function Router() {
       </Route>
       <Route path="/portal/projects/:projectId">
         <ProtectedPortalRoute component={ProjectWorkspace} />
+      </Route>
+      <Route path="/portal/internal-workflow">
+        <ProtectedPortalRoute component={InternalWorkflow} requiredRole="ADMIN" />
       </Route>
       {/* Public Routes */}
       <Route>

@@ -19,6 +19,7 @@ export const portalKeys = {
   adminProjects: () => [...portalKeys.all, 'adminProjects'] as const,
   adminToolAccess: () => [...portalKeys.all, 'adminToolAccess'] as const,
   adminClientTools: () => [...portalKeys.all, 'adminClientTools'] as const,
+  internalWorkflow: () => [...portalKeys.all, 'internalWorkflow'] as const,
 };
 
 export function usePortalAccess(enabled = true) {
@@ -56,6 +57,28 @@ export function usePortalTools() {
   return useQuery({
     queryKey: portalKeys.tools(),
     queryFn: api.getTools,
+  });
+}
+
+export function useInternalWorkflow() {
+  return useQuery({
+    queryKey: portalKeys.internalWorkflow(),
+    queryFn: async () => {
+      const [matters, imports] = await Promise.all([api.getInternalWorkflowMatters(), api.getInternalWorkflowImports()]);
+      return { matters: matters.matters, imports: imports.imports };
+    },
+  });
+}
+
+export function usePreviewInternalWorkflowImport() {
+  return useMutation({ mutationFn: api.previewInternalWorkflowImport });
+}
+
+export function useApplyInternalWorkflowImport() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: api.applyInternalWorkflowImport,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: portalKeys.internalWorkflow() }),
   });
 }
 

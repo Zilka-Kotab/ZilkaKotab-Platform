@@ -35,6 +35,23 @@ export interface Project {
   active: boolean;
 }
 
+export interface InternalWorkflowMatter {
+  publicId: string; appCollMatterId: string; docketId: string; title: string; matterType: string;
+  status: string; responsibleAttorney: string; paralegal: string; client: string; clientReference: string;
+  applicationNumber: string; patentNumber: string; ptoStatus: string; nextExternalTask: string;
+  nextExternalDueDate: string | null; nextInternalTask: string; nextInternalDueDate: string | null;
+  openExternalTaskCount: number; openInternalTaskCount: number; lastImportedAt: string;
+}
+export interface InternalWorkflowImport {
+  publicId: string; fileName: string; status: string; summary: Record<string, number>;
+  exceptions: { row: number; field: string; message: string }[]; createdAt: string; appliedAt: string | null;
+}
+export interface InternalWorkflowPreview {
+  preview: { publicId: string; fileName: string; summary: Record<string, number>; exceptions: { row: number; field: string; message: string }[] };
+  rows: { id: string; matterNumber: string; title: string; clientName: string; disposition: string; detail: string }[];
+  notice: string;
+}
+
 export type AiProcessingProvider = 'CLIENT_MICROSOFT' | 'ZK_MANAGED_AI' | 'MANUAL';
 export type DataClassification = 'PUBLIC_SOURCE' | 'CLIENT_CONFIDENTIAL' | 'ATTORNEY_WORK_PRODUCT';
 export type PatentRecommendation = 'NOT_ANALYZED' | 'MAINTAIN' | 'REVIEW' | 'PRUNE';
@@ -241,6 +258,12 @@ export async function fetchPortal<T>(endpoint: string, options?: RequestInit): P
 
 // Queries
 export const getPortalUser = () => fetchPortal<{ user: PortalUser | null }>('/access');
+export const getInternalWorkflowMatters = () => fetchPortal<{ matters: InternalWorkflowMatter[] }>('/internal-workflow/matters');
+export const getInternalWorkflowImports = () => fetchPortal<{ imports: InternalWorkflowImport[] }>('/internal-workflow/imports');
+export const previewInternalWorkflowImport = (data: { fileName: string; csvText: string }) =>
+  fetchPortal<InternalWorkflowPreview>('/internal-workflow/imports/preview', { method: 'POST', body: JSON.stringify(data) });
+export const applyInternalWorkflowImport = (importId: string) =>
+  fetchPortal<{ applied: number; summary: Record<string, number> }>(`/internal-workflow/imports/${importId}/apply`, { method: 'POST', body: JSON.stringify({}) });
 export const getDashboard = () => fetchPortal<{ tools: Tool[], projects: Project[], clients?: Client[] }>('/dashboard');
 
 export const getClients = () => fetchPortal<{ clients: Client[] }>('/clients');
