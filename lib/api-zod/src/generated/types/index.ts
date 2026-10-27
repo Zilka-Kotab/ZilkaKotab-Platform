@@ -15,6 +15,7 @@ export * from './publicExaminerBreakdown';
 export * from './publicExaminerInput';
 export * from './publicFilingTrend';
 export * from './publicPatentApplication';
+export * from './publicPatentGrant';
 export * from './publicPortfolioAnalysis';
 export * from './publicPortfolioInput';
 export * from './publicTechnologyArea';

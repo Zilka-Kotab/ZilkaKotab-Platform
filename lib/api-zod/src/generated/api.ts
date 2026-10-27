@@ -41,6 +41,10 @@ export const analyzePublicPortfolioResponseIdentifiedGrantedPatentsMin = 0;
 
 export const analyzePublicPortfolioResponseIdentifiedPendingApplicationsMin = 0;
 
+export const analyzePublicPortfolioResponseExpiredInactivePatentsMin = 0;
+
+export const analyzePublicPortfolioResponseRecentGrantCountMin = 0;
+
 export const analyzePublicPortfolioResponseActivePatentCountMin = 0;
 
 export const analyzePublicPortfolioResponseFilingTrendsItemCountMin = 0;
@@ -64,6 +68,8 @@ export const AnalyzePublicPortfolioResponse = zod.object({
 })),
   "identifiedGrantedPatents": zod.number().min(analyzePublicPortfolioResponseIdentifiedGrantedPatentsMin),
   "identifiedPendingApplications": zod.number().min(analyzePublicPortfolioResponseIdentifiedPendingApplicationsMin),
+  "expiredInactivePatents": zod.number().min(analyzePublicPortfolioResponseExpiredInactivePatentsMin).nullable(),
+  "recentGrantCount": zod.number().min(analyzePublicPortfolioResponseRecentGrantCountMin),
   "activePatentCount": zod.number().min(analyzePublicPortfolioResponseActivePatentCountMin).nullable(),
   "activePatentCountNote": zod.string(),
   "filingTrends": zod.array(zod.object({
@@ -82,6 +88,14 @@ export const AnalyzePublicPortfolioResponse = zod.object({
   "publicationNumber": zod.string().nullable(),
   "publicationDate": zod.string().nullable(),
   "status": zod.string(),
+  "url": zod.string()
+})),
+  "recentGrants": zod.array(zod.object({
+  "patentNumber": zod.string(),
+  "title": zod.string(),
+  "grantDate": zod.string().nullable(),
+  "technologyArea": zod.string(),
+  "applicationNumber": zod.string(),
   "url": zod.string()
 })),
   "coverage": zod.object({

@@ -9,6 +9,7 @@ import type { PublicApplicantCandidate } from './publicApplicantCandidate';
 import type { PublicDataCoverage } from './publicDataCoverage';
 import type { PublicFilingTrend } from './publicFilingTrend';
 import type { PublicPatentApplication } from './publicPatentApplication';
+import type { PublicPatentGrant } from './publicPatentGrant';
 import type { PublicTechnologyArea } from './publicTechnologyArea';
 
 export interface PublicPortfolioAnalysis {
@@ -24,10 +25,18 @@ export interface PublicPortfolioAnalysis {
      * @minimum 0
      * @nullable
      */
+  expiredInactivePatents: number | null;
+  /** @minimum 0 */
+  recentGrantCount: number;
+  /**
+     * @minimum 0
+     * @nullable
+     */
   activePatentCount: number | null;
   activePatentCountNote: string;
   filingTrends: PublicFilingTrend[];
   topTechnologyAreas: PublicTechnologyArea[];
   recentApplications: PublicPatentApplication[];
+  recentGrants: PublicPatentGrant[];
   coverage: PublicDataCoverage;
 }

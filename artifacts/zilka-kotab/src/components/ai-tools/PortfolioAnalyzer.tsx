@@ -78,6 +78,7 @@ function ApplicantDialog({ candidates, selected, onChange, onCancel, onContinue 
 }
 
 function PortfolioResult({ data }: { data: PublicPortfolioAnalysis }) {
+  const [showMoreGrants, setShowMoreGrants] = useState(false);
   const total = data.identifiedGrantedPatents + data.identifiedPendingApplications;
   if (total === 0 && data.recentApplications.length === 0) {
     return <div className="space-y-6">
@@ -102,10 +103,13 @@ function PortfolioResult({ data }: { data: PublicPortfolioAnalysis }) {
         )}
       </header>
 
-      <div className="grid grid-cols-1 gap-px overflow-hidden rounded-sm border bg-border sm:grid-cols-2">
-        <Metric emphasis label="Identified granted" value={data.identifiedGrantedPatents} testId="metric-granted" />
+      <div className="grid grid-cols-1 gap-px overflow-hidden rounded-sm border bg-border sm:grid-cols-2 xl:grid-cols-4">
+        <Metric emphasis label="Granted — status unverified" value={data.identifiedGrantedPatents} note="The USPTO application status does not confirm current in-force status." testId="metric-granted" />
         <Metric label="Identified pending" value={data.identifiedPendingApplications} testId="metric-pending" />
+        <Metric label="Expired / inactive identified" value={data.expiredInactivePatents} note="Only explicit inactive status labels are counted." testId="metric-expired" />
+        <Metric label="Grants in last 12 months" value={data.recentGrantCount} testId="metric-recent-grants" />
       </div>
+      <p className="-mt-5 text-xs text-muted-foreground">Data as of {fmtDate(data.coverage.retrievedAt)}. “Granted” is not an active-patent count.</p>
 
       <div className="grid gap-8 lg:grid-cols-2">
         <section>
@@ -115,7 +119,7 @@ function PortfolioResult({ data }: { data: PublicPortfolioAnalysis }) {
               {data.filingTrends.map((t, i) => (
                 <div key={t.year} className="flex flex-1 flex-col items-center gap-2">
                   <span className="text-xs tabular-nums font-medium">{fmtNum(t.count)}</span>
-                  <motion.div className="zk-bar w-full origin-bottom" style={{ height: `${Math.max(3, (t.count / maxTrend) * 100)}%` }}
+                  <motion.div title={`${t.year}: ${fmtNum(t.count)} applications`} aria-label={`${t.year}: ${fmtNum(t.count)} applications`} className="zk-bar w-full origin-bottom" style={{ height: `${Math.max(3, (t.count / maxTrend) * 100)}%` }}
                     initial={{ scaleY: 0 }} animate={{ scaleY: 1 }} transition={{ delay: 0.1 + i * 0.07, duration: 0.6, ease: [0.22, 1, 0.36, 1] }} />
                   <span className="text-xs text-muted-foreground tabular-nums">{t.year}</span>
                 </div>
@@ -126,6 +130,7 @@ function PortfolioResult({ data }: { data: PublicPortfolioAnalysis }) {
         </section>
         <section>
           <h4 className="zk-h4">Leading technology areas</h4>
+          <p className="mt-1 text-xs text-muted-foreground">Counts are CPC classification occurrences, not unique patents; one application may appear in multiple categories.</p>
           {data.topTechnologyAreas.length === 0 ? <p className="mt-3 text-sm text-muted-foreground">Classification data unavailable for these records.</p> : (
             <ul className="mt-4 space-y-3">
               {data.topTechnologyAreas.map((t, i) => (
@@ -136,6 +141,27 @@ function PortfolioResult({ data }: { data: PublicPortfolioAnalysis }) {
               ))}
             </ul>
           )}
+        </section>
+      </div>
+
+      <section className="space-y-3">
+        <h4 className="zk-h4">Patent Expiration Outlook</h4>
+        <div className="grid gap-px overflow-hidden rounded-sm border bg-border sm:grid-cols-3">
+          <Metric label="Next 12 months" value={null} testId="metric-expiring-12m" />
+          <Metric label="Next 3 years" value={null} testId="metric-expiring-3y" />
+          <Metric label="Next 5 years" value={null} testId="metric-expiring-5y" />
+        </div>
+        <p className="text-xs text-muted-foreground">Unavailable: this source does not provide complete term-adjustment, extension, disclaimer, and maintenance-fee data. Expiration estimates may also be affected by those factors.</p>
+      </section>
+
+      <div className="grid gap-8 lg:grid-cols-2">
+        <section>
+          <h4 className="zk-h4">Top Inventors</h4>
+          <p className="mt-2 text-sm text-muted-foreground">Unavailable from the applicant-and-classification aggregates used for this search. No inventor rankings are inferred.</p>
+        </section>
+        <section>
+          <h4 className="zk-h4">Patent Families &amp; Geographic Coverage</h4>
+          <p className="mt-2 text-sm text-muted-foreground">Reliable family identifiers and foreign-office records are not available from this U.S. application search. A foreign-priority claim is not treated as proof of a foreign filing.</p>
         </section>
       </div>
 
@@ -160,6 +186,37 @@ function PortfolioResult({ data }: { data: PublicPortfolioAnalysis }) {
                   </tr>
                 ))}
               </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+
+      <section>
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h4 className="zk-h4">Recent Patent Grants</h4>
+            <p className="mt-1 text-xs text-muted-foreground">Most recent grants in the last 12 months. Links open the corresponding USPTO application record.</p>
+          </div>
+          {data.recentGrants.length > 5 && (
+            <button type="button" className="text-sm text-primary underline underline-offset-4" onClick={() => setShowMoreGrants((value) => !value)}>
+              {showMoreGrants ? 'Show fewer' : 'View more'}
+            </button>
+          )}
+        </div>
+        {data.recentGrants.length === 0 ? <p className="mt-3 text-sm text-muted-foreground">No recent grants found in this period.</p> : (
+          <div className="mt-3 overflow-x-auto rounded-sm border">
+            <table className="w-full min-w-[620px] text-sm">
+              <thead className="bg-muted/60 text-left text-[11px] uppercase tracking-[0.12em] text-muted-foreground">
+                <tr><th className="px-4 py-2.5 font-medium">Patent number</th><th className="px-4 py-2.5 font-medium">Title</th><th className="px-4 py-2.5 font-medium">Grant date</th><th className="px-4 py-2.5 font-medium">Technology category</th></tr>
+              </thead>
+              <tbody>{data.recentGrants.slice(0, showMoreGrants ? 20 : 5).map((grant) => (
+                <tr key={grant.patentNumber} className="border-t">
+                  <td className="px-4 py-3 font-mono text-xs"><a href={grant.url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{grant.patentNumber}<ExternalLink className="ml-1 inline h-3 w-3" /></a></td>
+                  <td className="px-4 py-3">{grant.title}</td>
+                  <td className="px-4 py-3 whitespace-nowrap tabular-nums">{fmtDate(grant.grantDate)}</td>
+                  <td className="px-4 py-3">{grant.technologyArea}</td>
+                </tr>
+              ))}</tbody>
             </table>
           </div>
         )}

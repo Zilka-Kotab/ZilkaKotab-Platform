@@ -55,6 +55,16 @@ export interface PublicPatentApplication {
   url: string;
 }
 
+export interface PublicPatentGrant {
+  patentNumber: string;
+  title: string;
+  /** @nullable */
+  grantDate: string | null;
+  technologyArea: string;
+  applicationNumber: string;
+  url: string;
+}
+
 export interface PublicDataCoverage {
   source: string;
   retrievedAt: string;
@@ -81,11 +91,19 @@ export interface PublicPortfolioAnalysis {
      * @minimum 0
      * @nullable
      */
+  expiredInactivePatents: number | null;
+  /** @minimum 0 */
+  recentGrantCount: number;
+  /**
+     * @minimum 0
+     * @nullable
+     */
   activePatentCount: number | null;
   activePatentCountNote: string;
   filingTrends: PublicFilingTrend[];
   topTechnologyAreas: PublicTechnologyArea[];
   recentApplications: PublicPatentApplication[];
+  recentGrants: PublicPatentGrant[];
   coverage: PublicDataCoverage;
 }
 

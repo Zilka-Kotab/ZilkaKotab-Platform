@@ -96,6 +96,10 @@ function numberValue(value: unknown) {
   return typeof value === "number" && Number.isFinite(value) ? value : 0;
 }
 
+function stringArray(value: unknown) {
+  return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
+}
+
 function metadata(record: JsonRecord) {
   return asRecord(record.applicationMetaData) ?? {};
 }
@@ -271,11 +275,14 @@ export async function analyzePortfolio(companyNameInput: string, selectedApplica
         applicantCandidates: [],
         identifiedGrantedPatents: 0,
         identifiedPendingApplications: 0,
+        expiredInactivePatents: null,
+        recentGrantCount: 0,
         activePatentCount: null,
         activePatentCountNote: "",
         filingTrends: [],
         topTechnologyAreas: [],
         recentApplications: [],
+        recentGrants: [],
         coverage: {
           source: "USPTO Open Data Portal — Patent File Wrapper",
           retrievedAt: new Date().toISOString(),
@@ -296,11 +303,14 @@ export async function analyzePortfolio(companyNameInput: string, selectedApplica
         applicantCandidates,
         identifiedGrantedPatents: 0,
         identifiedPendingApplications: 0,
+        expiredInactivePatents: null,
+        recentGrantCount: 0,
         activePatentCount: null,
         activePatentCountNote: "",
         filingTrends: [],
         topTechnologyAreas: [],
         recentApplications: [],
+        recentGrants: [],
         coverage: {
           source: "USPTO Open Data Portal — Patent File Wrapper",
           retrievedAt: new Date().toISOString(),
@@ -324,15 +334,22 @@ export async function analyzePortfolio(companyNameInput: string, selectedApplica
     const query = `(${applicantQuery}) AND applicationMetaData.applicationTypeCategory:REGULAR`;
     const nowYear = new Date().getUTCFullYear();
     const firstTrendYear = nowYear - 4;
-    const [summary, granted, recent, ...yearResults] = await Promise.all([
+    const asOf = new Date();
+    const recentGrantStart = new Date(asOf);
+    recentGrantStart.setUTCFullYear(recentGrantStart.getUTCFullYear() - 1);
+    const recentGrantQuery = `(${query}) AND applicationMetaData.patentNumber:* AND applicationMetaData.grantDate:[${recentGrantStart.toISOString().slice(0, 10)} TO *]`;
+    const [summary, granted, recent, recentGrants, ...yearResults] = await Promise.all([
       requestAggregate(query, {
         facets: [
           "applicationMetaData.applicationStatusDescriptionText",
           "applicationMetaData.cpcClassificationBag",
         ],
       }),
-      requestAggregate(`(${query}) AND applicationMetaData.patentNumber:*`),
+      requestAggregate(`(${query}) AND applicationMetaData.patentNumber:*`, {
+        facets: ["applicationMetaData.applicationStatusDescriptionText"],
+      }),
       requestAggregate(`(${query}) AND applicationMetaData.earliestPublicationNumber:*`, { limit: 10 }),
+      requestAggregate(recentGrantQuery, { limit: 20 }),
       ...Array.from({ length: 5 }, (_, index) => {
         const year = firstTrendYear + index;
         return requestAggregate(`(${query}) AND applicationMetaData.filingDate:[${year}-01-01 TO ${year}-12-31]`);
@@ -356,6 +373,13 @@ export async function analyzePortfolio(companyNameInput: string, selectedApplica
         return !terminalMarkers.some((marker) => status.includes(marker));
       })
       .reduce((sum, entry) => sum + entry.count, 0);
+    const inactiveMarkers = ["expired", "lapsed", "revoked", "terminated"];
+    const grantStatusFacets = granted.facets["applicationMetaData.applicationStatusDescriptionText"] ?? [];
+    const expiredInactivePatents = grantStatusFacets.length
+      ? grantStatusFacets
+          .filter((entry) => inactiveMarkers.some((marker) => entry.value.toLocaleLowerCase().includes(marker)))
+          .reduce((sum, entry) => sum + entry.count, 0)
+      : null;
     const sections = new Map<string, number>();
     for (const entry of summary.facets["applicationMetaData.cpcClassificationBag"] ?? []) {
       const section = entry.value.trim().charAt(0);
@@ -380,6 +404,24 @@ export async function analyzePortfolio(companyNameInput: string, selectedApplica
         };
       });
 
+    const recentGrantRecords = recentGrants.records
+      .filter((record) => text(metadata(record).patentNumber))
+      .sort((left, right) => (text(metadata(right).grantDate) ?? "").localeCompare(text(metadata(left).grantDate) ?? ""))
+      .slice(0, 20)
+      .map((record) => {
+        const meta = metadata(record);
+        const applicationNumber = text(record.applicationNumberText) ?? "";
+        const firstCpc = stringArray(meta.cpcClassificationBag)[0]?.trim().charAt(0) ?? "";
+        return {
+          patentNumber: text(meta.patentNumber) ?? "",
+          title: text(meta.inventionTitle) ?? "Title unavailable",
+          grantDate: text(meta.grantDate),
+          technologyArea: CPC_SECTIONS[firstCpc] ?? "Unclassified",
+          applicationNumber,
+          url: `https://patentcenter.uspto.gov/applications/${applicationNumber}`,
+        };
+      });
+
     return {
       companyName,
       matchedApplicantNames: selectedCandidates.map((candidate) => candidate.representative),
@@ -387,6 +429,8 @@ export async function analyzePortfolio(companyNameInput: string, selectedApplica
       applicantCandidates,
       identifiedGrantedPatents: granted.count,
       identifiedPendingApplications: pendingCount,
+      expiredInactivePatents,
+      recentGrantCount: recentGrants.count,
       activePatentCount: null,
       activePatentCountNote: "",
       filingTrends: yearResults.map((result, index) => ({ year: firstTrendYear + index, count: result.count })),
@@ -395,6 +439,7 @@ export async function analyzePortfolio(companyNameInput: string, selectedApplica
         .sort((left, right) => right.count - left.count || left.code.localeCompare(right.code))
         .slice(0, 5),
       recentApplications,
+      recentGrants: recentGrantRecords,
       coverage: {
         source: "USPTO Open Data Portal — Patent File Wrapper",
         retrievedAt: new Date().toISOString(),
