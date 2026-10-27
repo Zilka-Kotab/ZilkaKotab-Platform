@@ -14,7 +14,7 @@ export default function InternalWorkflow() {
   const [preview, setPreview] = useState<InternalWorkflowPreview | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [section, setSection] = useState<"assignments" | "finance" | "management" | "notifications" | "docket" | "docketTasks">("assignments");
+  const [section, setSection] = useState<"assignments" | "finance" | "management" | "notifications" | "docket" | "docketTasks">("docketTasks");
 
   const onCsvFileSelected = async (file: File) => {
     setFileName(file.name);
@@ -52,7 +52,7 @@ export default function InternalWorkflow() {
   } : null;
 
   const navigation = <nav aria-label="Internal workflow sections" className="mx-auto flex max-w-[1440px] flex-wrap gap-2 px-4 py-5 sm:px-6 lg:px-9">
-    {([["assignments", "Work queue"], ["finance", "Time & billing"], ["management", "Management"], ["notifications", "Notifications"], ["docket", "Matter imports"], ["docketTasks", "AppColl tasks"]] as const).map(([key, label]) =>
+    {([["docketTasks", "AppColl task queue"], ["assignments", "Internal work queue"], ["docket", "Matter imports"], ["finance", "Time & billing"], ["management", "Management"], ["notifications", "Notifications"]] as const).map(([key, label]) =>
       <button key={key} data-testid={`tab-internal-${key}`} onClick={() => setSection(key)} className={`rounded-lg px-3 py-2 text-sm font-semibold ${section === key ? "bg-primary text-primary-foreground" : "border border-border bg-card text-muted-foreground hover:bg-muted"}`}>{label}</button>)}
   </nav>;
   return <>

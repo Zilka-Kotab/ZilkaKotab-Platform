@@ -263,8 +263,15 @@ router.post("/portal/internal-workflow/docket-task-imports/preview", requireAdmi
     const headers = rows.shift()?.map((value) => value.replace(/^\uFEFF/, "").trim()) ?? [];
     if (required.some((field) => !headers.includes(mapping[field]))) return void res.status(400).json({ error: "One or more mapped columns are not in this file." });
     const index = new Map(headers.map((header, position) => [header, position]));
-    const matters = await db.select({ id: internalWorkflowMattersTable.id, appCollMatterId: internalWorkflowMattersTable.appCollMatterId }).from(internalWorkflowMattersTable);
-    const matterIds = new Map(matters.map((matter) => [matter.appCollMatterId, matter.id]));
+    const matters = await db.select({ id: internalWorkflowMattersTable.id, appCollMatterId: internalWorkflowMattersTable.appCollMatterId, docketId: internalWorkflowMattersTable.docketId }).from(internalWorkflowMattersTable);
+    const matterIds = new Map<string, number[]>();
+    for (const matter of matters) {
+      for (const key of [matter.appCollMatterId, matter.docketId].filter(Boolean)) {
+        const matches = matterIds.get(key) ?? [];
+        if (!matches.includes(matter.id)) matches.push(matter.id);
+        matterIds.set(key, matches);
+      }
+    }
     const existing = await db.select({
       externalTaskId: internalWorkflowDocketTasksTable.externalTaskId,
       title: internalWorkflowDocketTasksTable.title,
@@ -286,9 +293,11 @@ router.post("/portal/internal-workflow/docket-task-imports/preview", requireAdmi
       const externalTaskId = get("externalTaskId");
       const matterId = get("matterId");
       const title = get("title");
+      const matterMatches = matterIds.get(matterId) ?? [];
       let disposition = "ready"; let detail = "";
       if (!externalTaskId || !matterId || !title) { disposition = "invalid"; detail = "Stable task ID, matter ID, and title are required."; }
-      else if (!matterIds.has(matterId)) { disposition = "invalid"; detail = "MatterID is not in the imported AppColl matter list."; }
+      else if (matterMatches.length === 0) { disposition = "invalid"; detail = "Matter reference does not match an imported AppColl MatterID or AttorneyRef. Import the matter export first."; }
+      else if (matterMatches.length > 1) { disposition = "invalid"; detail = "Matter reference matches multiple imported matters; resolve the duplicate reference before importing."; }
       else if (seen.has(externalTaskId)) { disposition = "duplicate"; detail = "Duplicate external task ID in this file."; }
       const dueDate = get("officialDueDate");
       const completedDate = get("completedDate");
@@ -296,10 +305,10 @@ router.post("/portal/internal-workflow/docket-task-imports/preview", requireAdmi
       if (disposition === "ready" && completedDate && !toDate(completedDate)) { disposition = "invalid"; detail = "Completion date is not recognized."; }
       if (externalTaskId) seen.add(externalTaskId);
       const prior = existingMap.get(externalTaskId);
-      const mapped = { ...raw, __externalTaskId: externalTaskId, __matterId: matterId, __title: title, __description: get("description"), __officialDueDate: dueDate, __status: get("status"), __assignedPractitioner: get("assignedPractitioner"), __completedDate: completedDate };
+      const mapped = { ...raw, __externalTaskId: externalTaskId, __matterId: matterId, __matterDbId: matterMatches.length === 1 ? String(matterMatches[0]) : "", __title: title, __description: get("description"), __officialDueDate: dueDate, __status: get("status"), __assignedPractitioner: get("assignedPractitioner"), __completedDate: completedDate };
       if (disposition === "ready") {
         records.push(mapped);
-        if (prior && prior.title === title && prior.description === get("description") && prior.officialDueDate === (dueDate ? toDate(dueDate) : null) && prior.status === get("status") && prior.assignedPractitioner === get("assignedPractitioner") && prior.completedDate === (completedDate ? toDate(completedDate) : null) && prior.matterId === matterIds.get(matterId)) { disposition = "unchanged"; detail = "No mapped docket fields changed."; }
+        if (prior && prior.title === title && prior.description === get("description") && prior.officialDueDate === (dueDate ? toDate(dueDate) : null) && prior.status === get("status") && prior.assignedPractitioner === get("assignedPractitioner") && prior.completedDate === (completedDate ? toDate(completedDate) : null) && prior.matterId === matterMatches[0]) { disposition = "unchanged"; detail = "No mapped docket fields changed."; }
         else if (prior) disposition = "changed";
       }
       if (disposition === "invalid") exceptions.push({ row: rowNumber + 2, field: "task", message: detail });
@@ -324,8 +333,8 @@ router.post("/portal/internal-workflow/docket-task-imports/:importId/apply", req
     ));
     await db.transaction(async (tx) => {
       for (const record of batch.previewData ?? []) {
-        const [matter] = await tx.select({ id: internalWorkflowMattersTable.id }).from(internalWorkflowMattersTable).where(eq(internalWorkflowMattersTable.appCollMatterId, record.__matterId)).limit(1);
-        if (!matter) throw new Error(`AppColl matter ${record.__matterId} disappeared before apply.`);
+        const [matter] = await tx.select({ id: internalWorkflowMattersTable.id }).from(internalWorkflowMattersTable).where(eq(internalWorkflowMattersTable.id, Number(record.__matterDbId))).limit(1);
+        if (!matter) throw new Error(`AppColl matter reference ${record.__matterId} disappeared before apply.`);
         const [priorTask] = await tx.select({ id: internalWorkflowDocketTasksTable.id, officialDueDate: internalWorkflowDocketTasksTable.officialDueDate }).from(internalWorkflowDocketTasksTable).where(eq(internalWorkflowDocketTasksTable.externalTaskId, record.__externalTaskId)).limit(1);
         const values = {
           externalTaskId: record.__externalTaskId, matterId: matter.id, title: record.__title, description: record.__description ?? "",
@@ -491,7 +500,8 @@ router.get("/portal/internal-workflow/docket-tasks", async (req, res, next) => {
     for (const record of records) if (await userCanReadMatter(user, record.matter)) visible.push({
       publicId: record.task.publicId, externalTaskId: record.task.externalTaskId, title: record.task.title, description: record.task.description,
       officialDueDate: record.task.officialDueDate, status: record.task.status, assignedPractitioner: record.task.assignedPractitioner,
-      completedDate: record.task.completedDate, matter: { docketId: record.matter.docketId, appCollMatterId: record.matter.appCollMatterId, client: record.matter.client },
+      completedDate: record.task.completedDate, rawRecord: record.task.rawRecord,
+      matter: { docketId: record.matter.docketId, appCollMatterId: record.matter.appCollMatterId, title: record.matter.title, client: record.matter.client },
       latestDeadlineChange: latestChange.get(record.task.id) ? {
         previousDueDate: latestChange.get(record.task.id)!.previousDueDate,
         nextDueDate: latestChange.get(record.task.id)!.nextDueDate,

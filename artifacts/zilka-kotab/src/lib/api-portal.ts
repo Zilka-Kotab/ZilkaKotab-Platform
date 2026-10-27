@@ -88,7 +88,8 @@ export interface InternalWorkflowTaskDetails {
 }
 export interface ImportedDocketTask {
   publicId: string; externalTaskId: string; title: string; description: string; officialDueDate: string | null; status: string; assignedPractitioner: string; completedDate: string | null;
-  matter: { docketId: string; appCollMatterId: string; client: string };
+  rawRecord: Record<string, string>;
+  matter: { docketId: string; appCollMatterId: string; title: string; client: string };
   latestDeadlineChange: { previousDueDate: string | null; nextDueDate: string | null; changedAt: string } | null;
 }
 
