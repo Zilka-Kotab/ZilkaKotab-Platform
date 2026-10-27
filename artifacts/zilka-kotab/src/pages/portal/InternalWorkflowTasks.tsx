@@ -2,8 +2,9 @@ import { FormEvent, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertCircle, BriefcaseBusiness, CalendarDays, CheckCircle2, Loader2, Plus, RefreshCw } from "lucide-react";
 import * as api from "@/lib/api-portal";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { usePortalAccess, useInternalWorkflowTeam, useInternalWorkflowTasks, useCreateInternalWorkflowTask, useUpdateInternalWorkflowTask } from "@/lib/hooks-portal";
-import type { InternalWorkflowMatter } from "@/lib/api-portal";
+import type { InternalWorkflowMatter, InternalWorkflowStaff, InternalWorkflowTask } from "@/lib/api-portal";
 
 type QueueTab = "active" | "assigned" | "delegated" | "completed";
 const statuses = ["PENDING_WITH_ME", "ASSIGNED_WITH_ANOTHER", "READY_FOR_PROOF", "CLIENT_REVIEW", "READY_FOR_FILING", "FINALIZED"] as const;
@@ -29,6 +30,52 @@ function TaskComments({ taskId }: { taskId: string }) {
   </div>;
 }
 
+function TaskDetailDrawer({ task, team, onClose }: { task: InternalWorkflowTask | null; team: InternalWorkflowStaff[]; onClose: () => void }) {
+  const client = useQueryClient();
+  const [childTitle, setChildTitle] = useState("");
+  const [childAssignee, setChildAssignee] = useState("");
+  const [childDate, setChildDate] = useState("");
+  const [contributorId, setContributorId] = useState("");
+  const [allocation, setAllocation] = useState("0");
+  const [contributorNotes, setContributorNotes] = useState("");
+  const details = useQuery({ queryKey: ["portal", "task-details", task?.publicId], queryFn: () => api.getInternalWorkflowTaskDetails(task!.publicId), enabled: !!task });
+  const refresh = async () => {
+    await Promise.all([
+      client.invalidateQueries({ queryKey: ["portal", "task-details", task?.publicId] }),
+      client.invalidateQueries({ queryKey: ["portal", "internalWorkflowTasks"] }),
+    ]);
+  };
+  const createChild = useMutation({ mutationFn: api.createInternalWorkflowChild, onSuccess: async () => { setChildTitle(""); setChildDate(""); await refresh(); } });
+  const addContributor = useMutation({ mutationFn: api.addInternalWorkflowContributor, onSuccess: async () => { setContributorNotes(""); await refresh(); } });
+  return <Dialog open={!!task} onOpenChange={(open) => { if (!open) onClose(); }}>
+    <DialogContent className="left-auto right-0 top-0 h-[100dvh] max-h-full w-full max-w-xl translate-x-0 translate-y-0 overflow-y-auto rounded-none p-6 sm:rounded-none">
+      {task && <><DialogHeader><DialogTitle>{task.title}</DialogTitle><DialogDescription>{task.matter ? `${task.matter.docketId} · ${task.matter.client}` : "Independent internal assignment"} · {task.assignedTo.name}</DialogDescription></DialogHeader>
+        <div className="mt-4 space-y-6">
+          <section className="rounded-lg border p-3 text-sm"><p className="font-semibold">Instructions</p><p className="mt-1 whitespace-pre-wrap text-muted-foreground">{task.instructions || "No instructions."}</p><p className="mt-3 text-xs text-muted-foreground">Official deadline: {task.officialDueDate || "—"} · Internal target: {task.internalTargetDate || "—"}</p><p className="mt-1 text-xs text-muted-foreground">Workflow: {statusLabels[task.workflowStatus] ?? task.workflowStatus} · Strategy: {strategyLabels[task.strategyStatus] ?? task.strategyStatus}</p></section>
+          <section><h3 className="mb-2 text-sm font-semibold">Subtasks</h3>{details.isLoading ? <p className="text-xs text-muted-foreground">Loading…</p> : <div className="space-y-2">{details.data?.children.map((child) => <article key={child.publicId} className="rounded-lg border p-3 text-sm"><p className="font-medium">{child.title}</p><p className="text-xs text-muted-foreground">{child.assignedTo} · {child.status.replaceAll("_", " ")} · {child.internalTargetDate || "No target date"}</p></article>)}{details.data?.children.length === 0 && <p className="text-xs text-muted-foreground">No subtasks yet.</p>}</div>}
+            <form onSubmit={(event) => { event.preventDefault(); if (task && childTitle.trim() && childAssignee) createChild.mutate({ taskId: task.publicId, title: childTitle.trim(), assignedToId: Number(childAssignee), internalTargetDate: childDate || undefined }); }} className="mt-3 grid gap-2 rounded-lg bg-muted/30 p-3">
+              <input aria-label="Subtask title" data-testid="input-subtask-title" required minLength={3} value={childTitle} onChange={(event) => setChildTitle(event.target.value)} placeholder="New subtask" className="h-9 rounded-md border bg-background px-3 text-sm" />
+              <div className="grid grid-cols-2 gap-2"><select aria-label="Subtask assignee" data-testid="select-subtask-assignee" required value={childAssignee} onChange={(event) => setChildAssignee(event.target.value)} className="h-9 rounded-md border bg-background px-2 text-xs"><option value="">Assign to</option>{team.map((person) => <option key={person.id} value={person.id}>{person.name}</option>)}</select><input aria-label="Subtask target date" type="date" value={childDate} onChange={(event) => setChildDate(event.target.value)} className="h-9 rounded-md border bg-background px-2 text-xs" /></div>
+              <button data-testid="button-create-subtask" disabled={createChild.isPending} className="h-9 rounded-md bg-primary text-xs font-semibold text-primary-foreground">Add subtask</button>
+              {createChild.isError && <p role="alert" className="text-xs text-rose-700">Could not create subtask.</p>}
+            </form>
+          </section>
+          <section><h3 className="mb-2 text-sm font-semibold">Contributors and allocations</h3><div className="space-y-2">{details.data?.contributors.map((person) => <div key={person.userId} className="flex justify-between rounded-lg border p-3 text-sm"><span>{person.name}{person.notes ? <small className="block text-muted-foreground">{person.notes}</small> : null}</span><strong>${(person.allocationCents / 100).toFixed(2)}</strong></div>)}{details.data?.contributors.length === 0 && <p className="text-xs text-muted-foreground">No contributor allocations yet.</p>}</div>
+            <form onSubmit={(event) => { event.preventDefault(); if (task && contributorId) addContributor.mutate({ taskId: task.publicId, userId: Number(contributorId), allocationCents: Math.round(Number(allocation) * 100), notes: contributorNotes }); }} className="mt-3 grid gap-2 rounded-lg bg-muted/30 p-3">
+              <div className="grid grid-cols-2 gap-2"><select aria-label="Contributor" data-testid="select-task-contributor" required value={contributorId} onChange={(event) => setContributorId(event.target.value)} className="h-9 rounded-md border bg-background px-2 text-xs"><option value="">Choose colleague</option>{team.filter((person) => person.role !== "ADMIN").map((person) => <option key={person.id} value={person.id}>{person.name}</option>)}</select><input aria-label="Contributor allocation dollars" data-testid="input-contributor-allocation" type="number" min="0" step=".01" value={allocation} onChange={(event) => setAllocation(event.target.value)} className="h-9 rounded-md border bg-background px-2 text-xs" /></div>
+              <input aria-label="Allocation notes" value={contributorNotes} onChange={(event) => setContributorNotes(event.target.value)} placeholder="Allocation note" className="h-9 rounded-md border bg-background px-3 text-xs" />
+              <button data-testid="button-add-contributor" disabled={addContributor.isPending} className="h-9 rounded-md bg-primary text-xs font-semibold text-primary-foreground">Save contributor</button>
+              {addContributor.isError && <p role="alert" className="text-xs text-rose-700">Could not save contributor allocation.</p>}
+            </form>
+          </section>
+          <section><h3 className="mb-2 text-sm font-semibold">Comments</h3><TaskComments taskId={task.publicId} /></section>
+          <section><h3 className="mb-2 text-sm font-semibold">Activity history</h3><div className="space-y-2">{details.data?.activity.map((item, index) => <p key={`${item.createdAt}-${index}`} className="rounded-lg bg-muted/40 p-2 text-xs"><strong>{item.actor}</strong> · {item.action.replaceAll("_", " ").toLowerCase()} · {new Date(item.createdAt).toLocaleString()}</p>)}{details.data?.activity.length === 0 && <p className="text-xs text-muted-foreground">No recorded activity.</p>}</div></section>
+        </div>
+      </>}
+    </DialogContent>
+  </Dialog>;
+}
+
 export default function InternalWorkflowTasks({ matters }: { matters: InternalWorkflowMatter[] }) {
   const access = usePortalAccess();
   const taskQuery = useInternalWorkflowTasks();
@@ -46,6 +93,7 @@ export default function InternalWorkflowTasks({ matters }: { matters: InternalWo
   const [priority, setPriority] = useState("NORMAL");
   const [formError, setFormError] = useState("");
   const [searchText, setSearchText] = useState("");
+  const [detailTask, setDetailTask] = useState<InternalWorkflowTask | null>(null);
   const currentPublicId = access.data?.user?.publicId;
   const tasks = taskQuery.data?.tasks ?? [];
   const team = teamQuery.data?.users ?? [];
@@ -181,12 +229,13 @@ export default function InternalWorkflowTasks({ matters }: { matters: InternalWo
                     </div>
                   </div>
                   {task.workflowStatus === "FINALIZED" && <p className="mt-2 inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-700"><CheckCircle2 className="h-3.5 w-3.5" /> Finalized</p>}
-                  <details className="mt-3"><summary className="cursor-pointer text-xs font-semibold text-primary">Open task details</summary><TaskComments taskId={task.publicId} /></details>
+                  <button type="button" data-testid={`button-task-details-${task.publicId}`} onClick={() => setDetailTask(task)} className="mt-3 text-xs font-semibold text-primary hover:underline">Open task details</button>
                 </li>
               ))}
             </ul>}
         </div>
       </div>
+      <TaskDetailDrawer task={detailTask} team={team} onClose={() => setDetailTask(null)} />
     </section>
   );
 }

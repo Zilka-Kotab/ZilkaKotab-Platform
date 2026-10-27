@@ -81,6 +81,7 @@ export const internalWorkflowTasksTable = pgTable(
     id: serial("id").primaryKey(),
     publicId: uuid("public_id").defaultRandom().notNull(),
     matterId: integer("matter_id").references(() => internalWorkflowMattersTable.id, { onDelete: "set null" }),
+    parentTaskId: integer("parent_task_id"),
     title: text("title").notNull(),
     instructions: text("instructions").notNull().default(""),
     responsibleAttorneyId: integer("responsible_attorney_id").references(() => portalUsersTable.id, { onDelete: "set null" }),
@@ -101,6 +102,7 @@ export const internalWorkflowTasksTable = pgTable(
     index("internal_workflow_tasks_assigned_to_idx").on(table.assignedToId, table.workflowStatus),
     index("internal_workflow_tasks_created_by_idx").on(table.createdById, table.workflowStatus),
     index("internal_workflow_tasks_matter_idx").on(table.matterId),
+    index("internal_workflow_tasks_parent_idx").on(table.parentTaskId),
   ],
 );
 
@@ -115,6 +117,19 @@ export const internalWorkflowCommentsTable = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [uniqueIndex("internal_workflow_comments_public_id_unique").on(table.publicId), index("internal_workflow_comments_task_idx").on(table.taskId, table.createdAt)],
+);
+
+export const internalWorkflowContributorsTable = pgTable(
+  "internal_workflow_contributors",
+  {
+    id: serial("id").primaryKey(),
+    taskId: integer("task_id").notNull().references(() => internalWorkflowTasksTable.id, { onDelete: "cascade" }),
+    userId: integer("user_id").notNull().references(() => portalUsersTable.id),
+    allocationCents: integer("allocation_cents").notNull().default(0),
+    notes: text("notes").notNull().default(""),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [uniqueIndex("internal_workflow_contributors_task_user_unique").on(table.taskId, table.userId)],
 );
 
 export const internalWorkflowTimeEntriesTable = pgTable(

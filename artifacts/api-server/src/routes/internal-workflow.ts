@@ -13,6 +13,7 @@ import {
   internalWorkflowTimeEntriesTable,
   internalWorkflowTimerSessionsTable,
   internalWorkflowNotificationsTable,
+  internalWorkflowContributorsTable,
   portalUsersTable,
   type AppCollMatterRecord,
 } from "@workspace/db";
@@ -472,6 +473,73 @@ router.patch("/portal/internal-workflow/tasks/:taskId", async (req, res, next) =
   } catch (error) {
     next(error);
   }
+});
+
+router.get("/portal/internal-workflow/tasks/:taskId/details", async (req, res, next) => {
+  try {
+    const [task] = await db.select().from(internalWorkflowTasksTable).where(eq(internalWorkflowTasksTable.publicId, String(req.params.taskId))).limit(1);
+    if (!task || !(await canReadTask(req.portalUser!.id, req.portalUser!.role, task))) return void res.status(404).json({ error: "Task not found." });
+    const [children, comments, audit, contributors] = await Promise.all([
+      db.select().from(internalWorkflowTasksTable).where(eq(internalWorkflowTasksTable.parentTaskId, task.id)).orderBy(asc(internalWorkflowTasksTable.createdAt)),
+      db.select().from(internalWorkflowCommentsTable).where(eq(internalWorkflowCommentsTable.taskId, task.id)).orderBy(asc(internalWorkflowCommentsTable.createdAt)),
+      db.select().from(internalWorkflowTaskAuditTable).where(eq(internalWorkflowTaskAuditTable.taskId, task.id)).orderBy(asc(internalWorkflowTaskAuditTable.createdAt)),
+      db.select().from(internalWorkflowContributorsTable).where(eq(internalWorkflowContributorsTable.taskId, task.id)),
+    ]);
+    const userIds = [...new Set([...comments.map((item) => item.authorId), ...audit.map((item) => item.actorId), ...contributors.map((item) => item.userId), ...children.flatMap((item) => [item.assignedToId, item.createdById])])];
+    const users = userIds.length ? await db.select().from(portalUsersTable).where(inArray(portalUsersTable.id, userIds)) : [];
+    const names = new Map(users.map((person) => [person.id, person.name]));
+    res.json({
+      comments: comments.map((item) => ({ publicId: item.publicId, body: item.body, author: names.get(item.authorId) ?? "Staff", createdAt: item.createdAt })),
+      activity: audit.map((item) => ({ action: item.action, actor: names.get(item.actorId) ?? "Staff", details: item.details, createdAt: item.createdAt })),
+      children: children.map((item) => ({ publicId: item.publicId, title: item.title, assignedTo: names.get(item.assignedToId) ?? "Staff", status: item.workflowStatus, internalTargetDate: item.internalTargetDate })),
+      contributors: contributors.map((item) => ({ userId: item.userId, name: names.get(item.userId) ?? "Staff", allocationCents: item.allocationCents, notes: item.notes })),
+    });
+  } catch (error) { next(error); }
+});
+
+router.post("/portal/internal-workflow/tasks/:taskId/children", async (req, res, next) => {
+  try {
+    const user = req.portalUser!;
+    const [parent] = await db.select().from(internalWorkflowTasksTable).where(eq(internalWorkflowTasksTable.publicId, String(req.params.taskId))).limit(1);
+    if (!parent || !(await canReadTask(user.id, user.role, parent))) return void res.status(404).json({ error: "Parent task not found." });
+    const title = typeof req.body?.title === "string" ? req.body.title.trim().slice(0, 240) : "";
+    const assignedToId = Number(req.body?.assignedToId);
+    if (title.length < 3) return void res.status(400).json({ error: "Enter a subtask title." });
+    const [assignee] = await db.select({ id: portalUsersTable.id }).from(portalUsersTable).where(and(eq(portalUsersTable.id, assignedToId), eq(portalUsersTable.active, true), eq(portalUsersTable.status, "ACTIVE"), inArray(portalUsersTable.role, ["ATTORNEY", "PARALEGAL", "ADMIN"]))).limit(1);
+    if (!assignee) return void res.status(400).json({ error: "Choose an active colleague." });
+    const [child] = await db.transaction(async (tx) => {
+      const [created] = await tx.insert(internalWorkflowTasksTable).values({
+        parentTaskId: parent.id, matterId: parent.matterId, title, instructions: typeof req.body?.instructions === "string" ? req.body.instructions.trim().slice(0, 12000) : "",
+        responsibleAttorneyId: parent.responsibleAttorneyId, createdById: user.id, assignedById: user.id, assignedToId,
+        officialDueDate: parent.officialDueDate, internalTargetDate: typeof req.body?.internalTargetDate === "string" ? toDate(req.body.internalTargetDate) : parent.internalTargetDate,
+        workflowStatus: assignedToId === user.id ? "PENDING_WITH_ME" : "ASSIGNED_WITH_ANOTHER",
+      }).returning();
+      await tx.insert(internalWorkflowTaskAuditTable).values({ taskId: created!.id, actorId: user.id, action: "CREATED", details: { parentTaskId: parent.publicId } });
+      if (assignedToId !== user.id) await notifyUser(tx, assignedToId, created!.id, "New subtask", title);
+      return [created];
+    });
+    res.status(201).json({ publicId: child!.publicId });
+  } catch (error) { next(error); }
+});
+
+router.post("/portal/internal-workflow/tasks/:taskId/contributors", async (req, res, next) => {
+  try {
+    const user = req.portalUser!;
+    const [task] = await db.select().from(internalWorkflowTasksTable).where(eq(internalWorkflowTasksTable.publicId, String(req.params.taskId))).limit(1);
+    if (!task || !(await canReadTask(user.id, user.role, task))) return void res.status(404).json({ error: "Task not found." });
+    const mayManage = user.role === "ADMIN" || task.createdById === user.id || task.assignedById === user.id || task.responsibleAttorneyId === user.id;
+    if (!mayManage) return void res.status(403).json({ error: "Only the task lead, responsible attorney, or administrator can add contributors." });
+    const userId = Number(req.body?.userId);
+    const allocationCents = Number(req.body?.allocationCents ?? 0);
+    const [contributor] = await db.select({ id: portalUsersTable.id }).from(portalUsersTable).where(and(eq(portalUsersTable.id, userId), eq(portalUsersTable.active, true), eq(portalUsersTable.status, "ACTIVE"), inArray(portalUsersTable.role, ["ATTORNEY", "PARALEGAL"]))).limit(1);
+    if (!contributor || !Number.isInteger(allocationCents) || allocationCents < 0 || allocationCents > 100000000) return void res.status(400).json({ error: "Choose an active practitioner and valid allocation." });
+    await db.insert(internalWorkflowContributorsTable).values({ taskId: task.id, userId, allocationCents, notes: typeof req.body?.notes === "string" ? req.body.notes.trim().slice(0, 1000) : "" }).onConflictDoUpdate({
+      target: [internalWorkflowContributorsTable.taskId, internalWorkflowContributorsTable.userId],
+      set: { allocationCents, notes: typeof req.body?.notes === "string" ? req.body.notes.trim().slice(0, 1000) : "" },
+    });
+    await db.insert(internalWorkflowTaskAuditTable).values({ taskId: task.id, actorId: user.id, action: "CONTRIBUTOR_UPDATED", details: { userId, allocationCents } });
+    res.status(201).json({ updated: true });
+  } catch (error) { next(error); }
 });
 
 router.get("/portal/internal-workflow/tasks/:taskId/comments", async (req, res, next) => {
