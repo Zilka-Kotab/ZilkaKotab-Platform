@@ -87,7 +87,6 @@ function PortfolioResult({ data }: { data: PublicPortfolioAnalysis }) {
       <CoverageLedger coverage={data.coverage} testId="coverage-portfolio" />
     </div>;
   }
-  const maxTrend = Math.max(1, ...data.filingTrends.map((t) => t.count));
   const maxTech = Math.max(1, ...data.topTechnologyAreas.map((t) => t.count));
 
   return (
@@ -115,16 +114,7 @@ function PortfolioResult({ data }: { data: PublicPortfolioAnalysis }) {
         <section>
           <h4 className="zk-h4">Filing trend, last five years</h4>
           {data.filingTrends.length === 0 ? <p className="mt-3 text-sm text-muted-foreground">No filing dates available in the analyzed records.</p> : (
-            <div className="mt-4 flex h-44 items-end gap-3" data-testid="chart-filing-trends">
-              {data.filingTrends.map((t, i) => (
-                <div key={t.year} className="flex flex-1 flex-col items-center gap-2">
-                  <span className="text-xs tabular-nums font-medium">{fmtNum(t.count)}</span>
-                  <motion.div title={`${t.year}: ${fmtNum(t.count)} applications`} aria-label={`${t.year}: ${fmtNum(t.count)} applications`} className="zk-bar w-full origin-bottom" style={{ height: `${Math.max(3, (t.count / maxTrend) * 100)}%` }}
-                    initial={{ scaleY: 0 }} animate={{ scaleY: 1 }} transition={{ delay: 0.1 + i * 0.07, duration: 0.6, ease: [0.22, 1, 0.36, 1] }} />
-                  <span className="text-xs text-muted-foreground tabular-nums">{t.year}</span>
-                </div>
-              ))}
-            </div>
+            <FilingTrendChart trends={data.filingTrends} />
           )}
           <p className="mt-3 text-xs text-muted-foreground">Recent years undercount: most applications publish about 18 months after filing.</p>
         </section>
@@ -141,27 +131,6 @@ function PortfolioResult({ data }: { data: PublicPortfolioAnalysis }) {
               ))}
             </ul>
           )}
-        </section>
-      </div>
-
-      <section className="space-y-3">
-        <h4 className="zk-h4">Patent Expiration Outlook</h4>
-        <div className="grid gap-px overflow-hidden rounded-sm border bg-border sm:grid-cols-3">
-          <Metric label="Next 12 months" value={null} testId="metric-expiring-12m" />
-          <Metric label="Next 3 years" value={null} testId="metric-expiring-3y" />
-          <Metric label="Next 5 years" value={null} testId="metric-expiring-5y" />
-        </div>
-        <p className="text-xs text-muted-foreground">Unavailable: this source does not provide complete term-adjustment, extension, disclaimer, and maintenance-fee data. Expiration estimates may also be affected by those factors.</p>
-      </section>
-
-      <div className="grid gap-8 lg:grid-cols-2">
-        <section>
-          <h4 className="zk-h4">Top Inventors</h4>
-          <p className="mt-2 text-sm text-muted-foreground">Unavailable from the applicant-and-classification aggregates used for this search. No inventor rankings are inferred.</p>
-        </section>
-        <section>
-          <h4 className="zk-h4">Patent Families &amp; Geographic Coverage</h4>
-          <p className="mt-2 text-sm text-muted-foreground">Reliable family identifiers and foreign-office records are not available from this U.S. application search. A foreign-priority claim is not treated as proof of a foreign filing.</p>
         </section>
       </div>
 
@@ -225,5 +194,37 @@ function PortfolioResult({ data }: { data: PublicPortfolioAnalysis }) {
       <CoverageLedger coverage={data.coverage} testId="coverage-portfolio"
         extra={<p className="mt-3 text-xs leading-relaxed text-muted-foreground"><strong className="font-semibold text-foreground">Legal status limitation.</strong> USPTO status text reflects prosecution records only. It does not confirm maintenance-fee payment, ownership after assignment, expiration, or enforceability. This is not a legal opinion.</p>} />
     </motion.div>
+  );
+}
+
+function FilingTrendChart({ trends }: { trends: { year: number; count: number }[] }) {
+  const axisMax = Math.max(1, ...trends.map((trend) => trend.count));
+
+  return (
+    <div className="mt-4 rounded-sm border bg-card/50 px-3 py-4 sm:px-5" data-testid="chart-filing-trends"
+      role="img" aria-label={`Applications filed by year: ${trends.map((trend) => `${trend.year}, ${fmtNum(trend.count)}`).join('; ')}`}>
+      <div className="grid grid-cols-[3rem_minmax(0,1fr)] gap-x-2">
+        <div className="relative h-48 text-right text-[10px] tabular-nums text-muted-foreground">
+          {[0, 0.25, 0.5, 0.75, 1].map((tick) => <span key={tick} className="absolute right-0 -translate-y-1/2" style={{ bottom: `calc(${tick * 100}% - 0.4rem)` }}>{fmtNum(Math.round(axisMax * tick))}</span>)}
+        </div>
+        <div>
+          <div className="relative h-48">
+            {[0, 0.25, 0.5, 0.75, 1].map((tick) => <div key={tick} className="absolute inset-x-0 border-t border-dashed border-border/70" style={{ bottom: `${tick * 100}%` }} />)}
+            <div className="absolute inset-0 flex items-end justify-around gap-2">
+              {trends.map((trend) => {
+                const barHeight = (trend.count / axisMax) * 100;
+                return <div key={trend.year} className="relative h-full min-w-0 flex-1">
+                  <div title={`${trend.year}: ${fmtNum(trend.count)} applications filed`} className="absolute bottom-0 left-1/2 w-[56%] max-w-16 -translate-x-1/2 rounded-t-sm bg-primary/90 transition-colors hover:bg-[hsl(var(--zk-brass))]" style={{ height: `${barHeight}%` }} />
+                  <span className="absolute left-1/2 -translate-x-1/2 whitespace-nowrap text-[10px] font-semibold tabular-nums text-foreground" style={{ bottom: `calc(${barHeight}% + 0.35rem)` }}>{fmtNum(trend.count)}</span>
+                </div>;
+              })}
+            </div>
+          </div>
+          <div className="mt-2 grid text-center text-xs tabular-nums text-muted-foreground" style={{ gridTemplateColumns: `repeat(${trends.length}, minmax(0, 1fr))` }}>
+            {trends.map((trend) => <span key={trend.year}>{trend.year}</span>)}
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
