@@ -32,6 +32,8 @@ import { projectRelations, serializeClient, serializeProject, serializeTool } fr
 import { logger } from "../lib/logger";
 import { normalizePatentNumbers, normalizePatentStatus, retrievePatent, searchPatentsByAssignee, UsptoImportError, type PatentImportPayload } from "../lib/uspto";
 
+import { planClaimRefresh } from "../lib/patent-claim-refresh";
+
 const router = Router();
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const publicIdOf = (value: unknown) => typeof value === "string" && UUID.test(value) ? value : "";
@@ -1072,11 +1074,13 @@ router.post("/portal/patents/:id/refresh", async (req, res) => {
   }
 
   const existingClaims = await db.select().from(patentClaimsTable).where(eq(patentClaimsTable.patentId, patent.id));
-  const currentByNumber = new Map<string, typeof patentClaimsTable.$inferSelect>();
-  for (const claim of existingClaims) {
-    const current = currentByNumber.get(claim.claimNumber);
-    if (!current || claim.version > current.version) currentByNumber.set(claim.claimNumber, claim);
-  }
+  const refreshPlan = planClaimRefresh(existingClaims, payload.claims, {
+    patentId: patent.id,
+    source: payload.source,
+    sourceIdentifier: payload.sourceIdentifier,
+    retrievedAt: payload.retrievedAt ? new Date(payload.retrievedAt) : new Date(),
+    createdById: req.portalUser!.id,
+  });
   const [project] = await db.select().from(projectsTable).where(eq(projectsTable.id, patent.projectId)).limit(1);
   if (!project) return void res.status(404).json({ error: "Patent project not found." });
 
@@ -1099,27 +1103,11 @@ router.post("/portal/patents/:id/refresh", async (req, res) => {
       retrievedAt: payload.retrievedAt ? new Date(payload.retrievedAt) : new Date(),
       verificationStatus: patent.verificationStatus === "MANUALLY_CORRECTED" ? "MANUALLY_CORRECTED" : "PENDING",
     }).where(eq(monitoredPatentsTable.id, patent.id)).returning();
-    const inserted = await tx.insert(patentClaimsTable).values(payload.claims.map((claim) => {
-      const existing = currentByNumber.get(claim.claimNumber);
-      return {
-        patentId: patent.id,
-        claimNumber: claim.claimNumber,
-        version: (existing?.version ?? 0) + 1,
-        claimText: claim.claimText,
-        claimType: claim.claimType,
-        dependsOnClaimNumber: claim.dependsOnClaimNumber,
-        source: payload.source,
-        sourceIdentifier: payload.sourceIdentifier,
-        retrievedAt: payload.retrievedAt ? new Date(payload.retrievedAt) : new Date(),
-        verificationStatus: "PENDING" as const,
-        selectedForMonitoring: existing?.selectedForMonitoring ?? false,
-        createdById: req.portalUser!.id,
-      };
-    })).returning();
+    const inserted = await tx.insert(patentClaimsTable).values(refreshPlan.newVersions).returning();
     return [updated, inserted] as const;
   });
 
-  res.json({ patent: serializePatent(updatedPatent, project.publicId, [...existingClaims, ...refreshedClaims]) });
+  res.json({ patent: serializePatent(updatedPatent, project.publicId, [...refreshPlan.priorVersions, ...refreshedClaims]) });
 });
 
 router.patch("/portal/patents/:id/monitoring", async (req, res) => {

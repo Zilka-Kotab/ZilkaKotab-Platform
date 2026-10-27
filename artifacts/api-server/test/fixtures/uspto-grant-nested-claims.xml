@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<patent-document>
+  <claims>
+    <claim id="CLM-00001" num="00001">
+      <claim-text>1. A wireless sensor comprising:</claim-text>
+      <claim-text>a housing; and</claim-text>
+      <claim-text>a processor configured to:
+        <claim-text>receive a signal from a remote device;</claim-text>
+        <claim-text>calculate a temperature estimate from the signal.</claim-text>
+      </claim-text>
+    </claim>
+    <claim id="CLM-00002" num="00002">
+      <claim-text>2. The wireless sensor of claim 1, wherein</claim-text>
+      <claim-text>the processor stores the estimate in memory; and</claim-text>
+      <claim-text>the processor transmits the estimate upon request.</claim-text>
+    </claim>
+  </claims>
+</patent-document>
