@@ -1,4 +1,5 @@
 import {
+  boolean,
   date,
   index,
   integer,
@@ -88,7 +89,8 @@ export const internalWorkflowTasksTable = pgTable(
     assignedToId: integer("assigned_to_id").notNull().references(() => portalUsersTable.id),
     officialDueDate: date("official_due_date", { mode: "string" }),
     internalTargetDate: date("internal_target_date", { mode: "string" }),
-    workflowStatus: varchar("workflow_status", { length: 32 }).notNull().default("OPEN"),
+    workflowStatus: varchar("workflow_status", { length: 32 }).notNull().default("PENDING_WITH_ME"),
+    strategyStatus: varchar("strategy_status", { length: 32 }).notNull().default("NOT_APPLICABLE"),
     priority: varchar("priority", { length: 16 }).notNull().default("NORMAL"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
@@ -100,6 +102,71 @@ export const internalWorkflowTasksTable = pgTable(
     index("internal_workflow_tasks_created_by_idx").on(table.createdById, table.workflowStatus),
     index("internal_workflow_tasks_matter_idx").on(table.matterId),
   ],
+);
+
+export const internalWorkflowCommentsTable = pgTable(
+  "internal_workflow_comments",
+  {
+    id: serial("id").primaryKey(),
+    publicId: uuid("public_id").defaultRandom().notNull(),
+    taskId: integer("task_id").notNull().references(() => internalWorkflowTasksTable.id, { onDelete: "cascade" }),
+    authorId: integer("author_id").notNull().references(() => portalUsersTable.id),
+    body: text("body").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [uniqueIndex("internal_workflow_comments_public_id_unique").on(table.publicId), index("internal_workflow_comments_task_idx").on(table.taskId, table.createdAt)],
+);
+
+export const internalWorkflowTimeEntriesTable = pgTable(
+  "internal_workflow_time_entries",
+  {
+    id: serial("id").primaryKey(),
+    publicId: uuid("public_id").defaultRandom().notNull(),
+    taskId: integer("task_id").notNull().references(() => internalWorkflowTasksTable.id, { onDelete: "cascade" }),
+    userId: integer("user_id").notNull().references(() => portalUsersTable.id),
+    workDate: date("work_date", { mode: "string" }).notNull(),
+    minutes: integer("minutes").notNull(),
+    narrative: text("narrative").notNull().default(""),
+    billable: boolean("billable").notNull().default(true),
+    billingCode: varchar("billing_code", { length: 40 }).notNull().default("PROSECUTION"),
+    rateCents: integer("rate_cents").notNull().default(0),
+    amountCents: integer("amount_cents").notNull().default(0),
+    approvalStatus: varchar("approval_status", { length: 20 }).notNull().default("PENDING"),
+    reviewedById: integer("reviewed_by_id").references(() => portalUsersTable.id),
+    reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
+    exportedAt: timestamp("exported_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [uniqueIndex("internal_workflow_time_entries_public_id_unique").on(table.publicId), index("internal_workflow_time_user_idx").on(table.userId, table.workDate), index("internal_workflow_time_review_idx").on(table.approvalStatus, table.workDate)],
+);
+
+export const internalWorkflowTimerSessionsTable = pgTable(
+  "internal_workflow_timer_sessions",
+  {
+    id: serial("id").primaryKey(),
+    userId: integer("user_id").notNull().references(() => portalUsersTable.id),
+    taskId: integer("task_id").notNull().references(() => internalWorkflowTasksTable.id, { onDelete: "cascade" }),
+    state: varchar("state", { length: 12 }).notNull().default("RUNNING"),
+    startedAt: timestamp("started_at", { withTimezone: true }).notNull().defaultNow(),
+    resumedAt: timestamp("resumed_at", { withTimezone: true }).notNull().defaultNow(),
+    accumulatedSeconds: integer("accumulated_seconds").notNull().default(0),
+  },
+  (table) => [index("internal_workflow_timer_user_idx").on(table.userId, table.state)],
+);
+
+export const internalWorkflowNotificationsTable = pgTable(
+  "internal_workflow_notifications",
+  {
+    id: serial("id").primaryKey(),
+    publicId: uuid("public_id").defaultRandom().notNull(),
+    userId: integer("user_id").notNull().references(() => portalUsersTable.id, { onDelete: "cascade" }),
+    taskId: integer("task_id").references(() => internalWorkflowTasksTable.id, { onDelete: "cascade" }),
+    title: varchar("title", { length: 180 }).notNull(),
+    message: text("message").notNull().default(""),
+    readAt: timestamp("read_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [uniqueIndex("internal_workflow_notifications_public_id_unique").on(table.publicId), index("internal_workflow_notifications_user_idx").on(table.userId, table.createdAt)],
 );
 
 export const internalWorkflowTaskAuditTable = pgTable(

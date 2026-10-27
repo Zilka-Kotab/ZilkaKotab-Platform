@@ -1,16 +1,33 @@
 import { FormEvent, useMemo, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertCircle, BriefcaseBusiness, CalendarDays, CheckCircle2, Loader2, Plus, RefreshCw } from "lucide-react";
+import * as api from "@/lib/api-portal";
 import { usePortalAccess, useInternalWorkflowTeam, useInternalWorkflowTasks, useCreateInternalWorkflowTask, useUpdateInternalWorkflowTask } from "@/lib/hooks-portal";
 import type { InternalWorkflowMatter } from "@/lib/api-portal";
 
 type QueueTab = "active" | "assigned" | "delegated" | "completed";
-const statuses = ["OPEN", "IN_PROGRESS", "RETURNED_FOR_PROOF", "COMPLETED"] as const;
+const statuses = ["PENDING_WITH_ME", "ASSIGNED_WITH_ANOTHER", "READY_FOR_PROOF", "CLIENT_REVIEW", "READY_FOR_FILING", "FINALIZED"] as const;
 const statusLabels: Record<string, string> = {
-  OPEN: "Open",
-  IN_PROGRESS: "In progress",
-  RETURNED_FOR_PROOF: "Returned for proof",
-  COMPLETED: "Completed",
+  PENDING_WITH_ME: "Pending with me", ASSIGNED_WITH_ANOTHER: "Assigned with another",
+  READY_FOR_PROOF: "Ready for proof", CLIENT_REVIEW: "Client review", READY_FOR_FILING: "Ready for filing", FINALIZED: "Finalized",
 };
+const strategyOptions = ["STRATEGY_NEEDED", "STRATEGY_IN_REVIEW", "STRATEGY_APPROVED", "NOT_APPLICABLE"] as const;
+const strategyLabels: Record<string, string> = { STRATEGY_NEEDED: "Strategy needed", STRATEGY_IN_REVIEW: "Strategy in review", STRATEGY_APPROVED: "Strategy approved", NOT_APPLICABLE: "Not applicable" };
+
+function TaskComments({ taskId }: { taskId: string }) {
+  const client = useQueryClient();
+  const [body, setBody] = useState("");
+  const query = useQuery({ queryKey: ["portal", "task-comments", taskId], queryFn: () => api.getInternalWorkflowComments(taskId) });
+  const add = useMutation({ mutationFn: api.createInternalWorkflowComment, onSuccess: () => { setBody(""); void client.invalidateQueries({ queryKey: ["portal", "task-comments", taskId] }); } });
+  return <div className="mt-4 border-t pt-3">
+    <h4 className="text-xs font-semibold">Comments and activity</h4>
+    <div className="mt-2 space-y-2">{query.data?.comments.map((comment) => <p key={comment.publicId} className="rounded-lg bg-muted/50 p-2 text-xs"><strong>{comment.author}</strong> · {new Date(comment.createdAt).toLocaleString()}<br />{comment.body}</p>)}</div>
+    <form onSubmit={(event) => { event.preventDefault(); if (body.trim()) add.mutate({ taskId, body: body.trim() }); }} className="mt-3 flex gap-2">
+      <input data-testid={`input-comment-${taskId}`} value={body} onChange={(event) => setBody(event.target.value)} maxLength={5000} placeholder="Add a comment" className="h-9 min-w-0 flex-1 rounded-lg border bg-background px-3 text-xs" />
+      <button data-testid={`button-comment-${taskId}`} disabled={!body.trim() || add.isPending} className="rounded-lg bg-primary px-3 text-xs font-semibold text-primary-foreground">Add</button>
+    </form>
+  </div>;
+}
 
 export default function InternalWorkflowTasks({ matters }: { matters: InternalWorkflowMatter[] }) {
   const access = usePortalAccess();
@@ -28,16 +45,18 @@ export default function InternalWorkflowTasks({ matters }: { matters: InternalWo
   const [internalTargetDate, setInternalTargetDate] = useState("");
   const [priority, setPriority] = useState("NORMAL");
   const [formError, setFormError] = useState("");
+  const [searchText, setSearchText] = useState("");
   const currentPublicId = access.data?.user?.publicId;
   const tasks = taskQuery.data?.tasks ?? [];
   const team = teamQuery.data?.users ?? [];
   const visibleTasks = useMemo(() => tasks.filter((task) => {
-    if (tab === "completed") return task.workflowStatus === "COMPLETED";
-    if (task.workflowStatus === "COMPLETED") return false;
-    if (tab === "assigned") return task.assignedToPublicId === currentPublicId;
-    if (tab === "delegated") return (task.assignedByPublicId === currentPublicId || task.createdByPublicId === currentPublicId) && task.assignedToPublicId !== currentPublicId;
-    return true;
-  }), [tasks, tab, currentPublicId]);
+    const isCompleted = task.workflowStatus === "FINALIZED";
+    if (tab === "completed" ? !isCompleted : isCompleted) return false;
+    if (tab === "assigned" && task.assignedToPublicId !== currentPublicId) return false;
+    if (tab === "delegated" && !((task.assignedByPublicId === currentPublicId || task.createdByPublicId === currentPublicId) && task.assignedToPublicId !== currentPublicId)) return false;
+    const haystack = `${task.title} ${task.matter?.docketId ?? ""} ${task.matter?.title ?? ""} ${task.matter?.client ?? ""}`.toLowerCase();
+    return haystack.includes(searchText.trim().toLowerCase());
+  }), [tasks, tab, currentPublicId, searchText]);
 
   const handleCreate = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -130,6 +149,7 @@ export default function InternalWorkflowTasks({ matters }: { matters: InternalWo
               <button key={value} type="button" data-testid={`tab-task-${value}`} onClick={() => setTab(value)} className={`rounded-lg px-3 py-2 text-xs font-semibold ${tab === value ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"}`}>{label}</button>
             ))}
           </div>
+          <div className="border-b p-3"><input data-testid="input-search-work" value={searchText} onChange={(event) => setSearchText(event.target.value)} placeholder="Search task, matter, or client" className="h-9 w-full rounded-lg border bg-background px-3 text-sm" /></div>
           {updateTask.isError && <p role="alert" data-testid="error-update-task" className="border-b border-rose-200 bg-rose-50 px-4 py-2.5 text-xs text-rose-800">Could not update the assignment. Your access or the task status may have changed.</p>}
           {taskQuery.isLoading ? <div className="flex items-center justify-center gap-2 p-10 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Loading assignments</div>
             : taskQuery.isError ? <div role="alert" className="p-8 text-sm text-rose-700">Could not load assignments. Try refreshing.</div>
@@ -152,12 +172,16 @@ export default function InternalWorkflowTasks({ matters }: { matters: InternalWo
                       <select aria-label={`Status for ${task.title}`} data-testid={`select-task-status-${task.publicId}`} value={task.workflowStatus} onChange={(event) => updateTask.mutate({ taskId: task.publicId, workflowStatus: event.target.value })} className="h-9 rounded-lg border border-border bg-background px-2 text-xs font-medium">
                         {statuses.map((status) => <option key={status} value={status}>{statusLabels[status]}</option>)}
                       </select>
+                      <select aria-label={`Strategy for ${task.title}`} data-testid={`select-task-strategy-${task.publicId}`} value={task.strategyStatus} onChange={(event) => updateTask.mutate({ taskId: task.publicId, strategyStatus: event.target.value })} className="h-9 max-w-[175px] rounded-lg border border-border bg-background px-2 text-xs">
+                        {strategyOptions.map((status) => <option key={status} value={status}>{strategyLabels[status]}</option>)}
+                      </select>
                       {task.canReassign && <select aria-label={`Reassign ${task.title}`} data-testid={`select-task-reassign-${task.publicId}`} value={task.assignedToId} onChange={(event) => updateTask.mutate({ taskId: task.publicId, assignedToId: Number(event.target.value) })} className="h-9 max-w-[175px] rounded-lg border border-border bg-background px-2 text-xs">
                         {team.map((person) => <option key={person.id} value={person.id}>{person.name}</option>)}
                       </select>}
                     </div>
                   </div>
-                  {task.workflowStatus === "COMPLETED" && <p className="mt-2 inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-700"><CheckCircle2 className="h-3.5 w-3.5" /> Finalized</p>}
+                  {task.workflowStatus === "FINALIZED" && <p className="mt-2 inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-700"><CheckCircle2 className="h-3.5 w-3.5" /> Finalized</p>}
+                  <details className="mt-3"><summary className="cursor-pointer text-xs font-semibold text-primary">Open task details</summary><TaskComments taskId={task.publicId} /></details>
                 </li>
               ))}
             </ul>}

@@ -9,6 +9,10 @@ import {
   internalWorkflowMattersTable,
   internalWorkflowTasksTable,
   internalWorkflowTaskAuditTable,
+  internalWorkflowCommentsTable,
+  internalWorkflowTimeEntriesTable,
+  internalWorkflowTimerSessionsTable,
+  internalWorkflowNotificationsTable,
   portalUsersTable,
   type AppCollMatterRecord,
 } from "@workspace/db";
@@ -124,6 +128,16 @@ function serializeMatter(matter: typeof internalWorkflowMattersTable.$inferSelec
     openInternalTaskCount: matter.openInternalTaskCount,
     lastImportedAt: matter.lastImportedAt,
   };
+}
+
+const workflowStatuses = ["PENDING_WITH_ME", "ASSIGNED_WITH_ANOTHER", "READY_FOR_PROOF", "CLIENT_REVIEW", "READY_FOR_FILING", "FINALIZED"] as const;
+const strategyStatuses = ["STRATEGY_NEEDED", "STRATEGY_IN_REVIEW", "STRATEGY_APPROVED", "NOT_APPLICABLE"] as const;
+const statusLabelsForNotification = (status: string) => status.replaceAll("_", " ").toLowerCase();
+async function canReadTask(userId: number, role: string, task: typeof internalWorkflowTasksTable.$inferSelect) {
+  return role === "ADMIN" || task.createdById === userId || task.assignedById === userId || task.assignedToId === userId || task.responsibleAttorneyId === userId;
+}
+async function notifyUser(tx: any, userId: number, taskId: number, title: string, message: string) {
+  await tx.insert(internalWorkflowNotificationsTable).values({ userId, taskId, title, message });
 }
 
 router.use(requirePortalAccess, (req, res, next) => {
@@ -345,7 +359,8 @@ router.get("/portal/internal-workflow/tasks", async (req, res, next) => {
         responsibleAttorneyPublicId: task.responsibleAttorneyId ? userMap.get(task.responsibleAttorneyId)?.publicId ?? null : null,
         officialDueDate: task.officialDueDate,
         internalTargetDate: task.internalTargetDate,
-        workflowStatus: task.workflowStatus,
+        workflowStatus: ({ OPEN: "PENDING_WITH_ME", IN_PROGRESS: "ASSIGNED_WITH_ANOTHER", RETURNED_FOR_PROOF: "READY_FOR_PROOF", COMPLETED: "FINALIZED" } as Record<string, string>)[task.workflowStatus] ?? task.workflowStatus,
+        strategyStatus: task.strategyStatus,
         priority: task.priority,
         createdAt: task.createdAt,
         finalizedAt: task.finalizedAt,
@@ -395,12 +410,14 @@ router.post("/portal/internal-workflow/tasks", async (req, res, next) => {
       const [created] = await tx.insert(internalWorkflowTasksTable).values({
         matterId: matter?.id ?? null, title, instructions, responsibleAttorneyId,
         createdById: user.id, assignedById: user.id, assignedToId,
+        workflowStatus: assignedToId === user.id ? "PENDING_WITH_ME" : "ASSIGNED_WITH_ANOTHER",
         officialDueDate, internalTargetDate, priority,
       }).returning();
       await tx.insert(internalWorkflowTaskAuditTable).values({
         taskId: created!.id, actorId: user.id, action: "CREATED",
         details: { title, matterId: matter?.publicId ?? null, assignedTo: assignee.publicId },
       });
+      if (assignedToId !== user.id) await notifyUser(tx, assignedToId, created!.id, "New assignment", title);
       return [created];
     });
     res.status(201).json({ task: { publicId: task!.publicId, title: task!.title, workflowStatus: task!.workflowStatus } });
@@ -420,7 +437,9 @@ router.patch("/portal/internal-workflow/tasks/:taskId", async (req, res, next) =
     const isParticipant = mayReassign || task.assignedToId === user.id || task.responsibleAttorneyId === user.id;
     if (!isParticipant) return void res.status(404).json({ error: "Task not found." });
     const status = typeof req.body?.workflowStatus === "string" ? req.body.workflowStatus : task.workflowStatus;
-    if (!["OPEN", "IN_PROGRESS", "RETURNED_FOR_PROOF", "COMPLETED"].includes(status)) return void res.status(400).json({ error: "Invalid workflow status." });
+    if (![...workflowStatuses, "OPEN", "IN_PROGRESS", "RETURNED_FOR_PROOF", "COMPLETED"].includes(status as never)) return void res.status(400).json({ error: "Invalid workflow status." });
+    const strategyStatus = typeof req.body?.strategyStatus === "string" ? req.body.strategyStatus : task.strategyStatus;
+    if (!strategyStatuses.includes(strategyStatus as typeof strategyStatuses[number])) return void res.status(400).json({ error: "Invalid strategy status." });
     let assignedToId = task.assignedToId;
     if (req.body?.assignedToId !== undefined) {
       if (!mayReassign) return void res.status(403).json({ error: "Only the task creator or delegator may reassign this task." });
@@ -432,10 +451,10 @@ router.patch("/portal/internal-workflow/tasks/:taskId", async (req, res, next) =
       if (!assignee) return void res.status(400).json({ error: "Select an active attorney or administrator." });
     }
     const nextDate = typeof req.body?.internalTargetDate === "string" ? toDate(req.body.internalTargetDate) : task.internalTargetDate;
-    const finalizedAt = status === "COMPLETED" ? task.finalizedAt ?? new Date() : null;
+    const finalizedAt = ["COMPLETED", "FINALIZED"].includes(status) ? task.finalizedAt ?? new Date() : null;
     await db.transaction(async (tx) => {
       await tx.update(internalWorkflowTasksTable).set({
-        workflowStatus: status, assignedToId,
+        workflowStatus: status, strategyStatus, assignedToId,
         assignedById: assignedToId !== task.assignedToId ? user.id : task.assignedById,
         internalTargetDate: nextDate, finalizedAt, updatedAt: new Date(),
       }).where(eq(internalWorkflowTasksTable.id, task.id));
@@ -444,11 +463,183 @@ router.patch("/portal/internal-workflow/tasks/:taskId", async (req, res, next) =
         action: assignedToId !== task.assignedToId ? "REASSIGNED" : "UPDATED",
         details: { fromStatus: task.workflowStatus, toStatus: status, internalTargetDate: nextDate, assignedToId },
       });
+      if (assignedToId !== task.assignedToId) await notifyUser(tx, assignedToId, task.id, "Assignment delegated", task.title);
+      if (status !== task.workflowStatus && task.responsibleAttorneyId && task.responsibleAttorneyId !== user.id) {
+        await notifyUser(tx, task.responsibleAttorneyId, task.id, "Task status changed", `${task.title}: ${statusLabelsForNotification(status)}`);
+      }
     });
     res.json({ updated: true });
   } catch (error) {
     next(error);
   }
+});
+
+router.get("/portal/internal-workflow/tasks/:taskId/comments", async (req, res, next) => {
+  try {
+    const [task] = await db.select().from(internalWorkflowTasksTable).where(eq(internalWorkflowTasksTable.publicId, String(req.params.taskId))).limit(1);
+    if (!task || !(await canReadTask(req.portalUser!.id, req.portalUser!.role, task))) return void res.status(404).json({ error: "Task not found." });
+    const comments = await db.select().from(internalWorkflowCommentsTable).where(eq(internalWorkflowCommentsTable.taskId, task.id)).orderBy(asc(internalWorkflowCommentsTable.createdAt));
+    const users = comments.length ? await db.select().from(portalUsersTable).where(inArray(portalUsersTable.id, [...new Set(comments.map((comment) => comment.authorId))])) : [];
+    const names = new Map(users.map((user) => [user.id, user.name]));
+    res.json({ comments: comments.map((comment) => ({ publicId: comment.publicId, body: comment.body, author: names.get(comment.authorId) ?? "Staff", createdAt: comment.createdAt })) });
+  } catch (error) { next(error); }
+});
+
+router.post("/portal/internal-workflow/tasks/:taskId/comments", async (req, res, next) => {
+  try {
+    const [task] = await db.select().from(internalWorkflowTasksTable).where(eq(internalWorkflowTasksTable.publicId, String(req.params.taskId))).limit(1);
+    if (!task || !(await canReadTask(req.portalUser!.id, req.portalUser!.role, task))) return void res.status(404).json({ error: "Task not found." });
+    const body = typeof req.body?.body === "string" ? req.body.body.trim().slice(0, 5000) : "";
+    if (!body) return void res.status(400).json({ error: "Comment cannot be empty." });
+    const [comment] = await db.insert(internalWorkflowCommentsTable).values({ taskId: task.id, authorId: req.portalUser!.id, body }).returning();
+    await db.insert(internalWorkflowTaskAuditTable).values({ taskId: task.id, actorId: req.portalUser!.id, action: "COMMENTED", details: {} });
+    res.status(201).json({ comment: { publicId: comment!.publicId, body, createdAt: comment!.createdAt } });
+  } catch (error) { next(error); }
+});
+
+router.get("/portal/internal-workflow/time-entries", async (req, res, next) => {
+  try {
+    const user = req.portalUser!;
+    const responsibleTasks = user.role === "ADMIN" ? [] : await db.select({ id: internalWorkflowTasksTable.id }).from(internalWorkflowTasksTable).where(eq(internalWorkflowTasksTable.responsibleAttorneyId, user.id));
+    const entries = await db.select().from(internalWorkflowTimeEntriesTable)
+      .where(user.role === "ADMIN" ? undefined : responsibleTasks.length
+        ? or(eq(internalWorkflowTimeEntriesTable.userId, user.id), inArray(internalWorkflowTimeEntriesTable.taskId, responsibleTasks.map((task) => task.id)))
+        : eq(internalWorkflowTimeEntriesTable.userId, user.id))
+      .orderBy(asc(internalWorkflowTimeEntriesTable.workDate));
+    const taskRows = entries.length ? await db.select().from(internalWorkflowTasksTable).where(inArray(internalWorkflowTasksTable.id, [...new Set(entries.map((entry) => entry.taskId))])) : [];
+    const taskMap = new Map(taskRows.map((task) => [task.id, task]));
+    res.json({ entries: entries.reverse().map((entry) => ({ publicId: entry.publicId, taskPublicId: taskMap.get(entry.taskId)?.publicId, taskTitle: taskMap.get(entry.taskId)?.title ?? "", workDate: entry.workDate, minutes: entry.minutes, narrative: entry.narrative, billable: entry.billable, billingCode: entry.billingCode, rateCents: entry.rateCents, amountCents: entry.amountCents, approvalStatus: entry.approvalStatus, exportedAt: entry.exportedAt, canReview: user.role === "ADMIN" || taskMap.get(entry.taskId)?.responsibleAttorneyId === user.id })) });
+  } catch (error) { next(error); }
+});
+
+router.post("/portal/internal-workflow/time-entries", async (req, res, next) => {
+  try {
+    const user = req.portalUser!;
+    const [task] = await db.select().from(internalWorkflowTasksTable).where(eq(internalWorkflowTasksTable.publicId, String(req.body?.taskPublicId ?? ""))).limit(1);
+    if (!task || !(await canReadTask(user.id, user.role, task))) return void res.status(404).json({ error: "Task not found." });
+    const minutes = Number(req.body?.minutes);
+    const rateCents = Number(req.body?.rateCents ?? 0);
+    const workDate = typeof req.body?.workDate === "string" ? toDate(req.body.workDate) : null;
+    const narrative = typeof req.body?.narrative === "string" ? req.body.narrative.trim().slice(0, 2000) : "";
+    if (!Number.isInteger(minutes) || minutes < 1 || minutes > 1440 || !Number.isInteger(rateCents) || rateCents < 0 || rateCents > 10000000 || !workDate) return void res.status(400).json({ error: "Enter a valid date, duration, and hourly rate." });
+    const billable = req.body?.billable !== false;
+    const [entry] = await db.insert(internalWorkflowTimeEntriesTable).values({
+      taskId: task.id, userId: user.id, workDate, minutes, narrative, billable,
+      billingCode: typeof req.body?.billingCode === "string" ? req.body.billingCode.trim().slice(0, 40) || "PROSECUTION" : "PROSECUTION",
+      rateCents: billable ? rateCents : 0, amountCents: billable ? Math.round(minutes * rateCents / 60) : 0,
+    }).returning();
+    res.status(201).json({ publicId: entry!.publicId });
+  } catch (error) { next(error); }
+});
+
+router.patch("/portal/internal-workflow/time-entries/:entryId/review", async (req, res, next) => {
+  try {
+    const [entry] = await db.select().from(internalWorkflowTimeEntriesTable).where(eq(internalWorkflowTimeEntriesTable.publicId, String(req.params.entryId))).limit(1);
+    if (!entry) return void res.status(404).json({ error: "Time entry not found." });
+    const [task] = await db.select().from(internalWorkflowTasksTable).where(eq(internalWorkflowTasksTable.id, entry.taskId)).limit(1);
+    const user = req.portalUser!;
+    if (!task || (user.role !== "ADMIN" && task.responsibleAttorneyId !== user.id)) return void res.status(403).json({ error: "Billing review is limited to the responsible attorney or an administrator." });
+    const status = req.body?.status;
+    if (status !== "APPROVED" && status !== "RETURNED") return void res.status(400).json({ error: "Choose approve or return." });
+    await db.update(internalWorkflowTimeEntriesTable).set({ approvalStatus: status, reviewedById: user.id, reviewedAt: new Date() }).where(eq(internalWorkflowTimeEntriesTable.id, entry.id));
+    res.json({ updated: true });
+  } catch (error) { next(error); }
+});
+
+router.get("/portal/internal-workflow/timer", async (req, res, next) => {
+  try {
+    const [session] = await db.select().from(internalWorkflowTimerSessionsTable).where(and(eq(internalWorkflowTimerSessionsTable.userId, req.portalUser!.id), inArray(internalWorkflowTimerSessionsTable.state, ["RUNNING", "PAUSED"]))).limit(1);
+    const [task] = session ? await db.select().from(internalWorkflowTasksTable).where(eq(internalWorkflowTasksTable.id, session.taskId)).limit(1) : [];
+    res.json({ timer: session && task ? { state: session.state, accumulatedSeconds: session.accumulatedSeconds, resumedAt: session.resumedAt, taskPublicId: task.publicId, taskTitle: task.title } : null });
+  } catch (error) { next(error); }
+});
+
+router.post("/portal/internal-workflow/timer", async (req, res, next) => {
+  try {
+    const user = req.portalUser!;
+    const action = req.body?.action;
+    const [session] = await db.select().from(internalWorkflowTimerSessionsTable).where(and(eq(internalWorkflowTimerSessionsTable.userId, user.id), inArray(internalWorkflowTimerSessionsTable.state, ["RUNNING", "PAUSED"]))).limit(1);
+    if (action === "start") {
+      const [task] = await db.select().from(internalWorkflowTasksTable).where(eq(internalWorkflowTasksTable.publicId, String(req.body?.taskPublicId ?? ""))).limit(1);
+      if (!task || !(await canReadTask(user.id, user.role, task))) return void res.status(404).json({ error: "Task not found." });
+      if (session) return void res.status(409).json({ error: "Stop or pause your current timer before starting another." });
+      const [created] = await db.insert(internalWorkflowTimerSessionsTable).values({ userId: user.id, taskId: task.id }).returning();
+      return void res.status(201).json({ timer: created });
+    }
+    if (!session) return void res.status(404).json({ error: "No running timer." });
+    if (action === "pause" && session.state === "RUNNING") {
+      const seconds = Math.max(0, Math.floor((Date.now() - session.resumedAt.getTime()) / 1000));
+      await db.update(internalWorkflowTimerSessionsTable).set({ state: "PAUSED", accumulatedSeconds: session.accumulatedSeconds + seconds }).where(eq(internalWorkflowTimerSessionsTable.id, session.id));
+    } else if (action === "resume" && session.state === "PAUSED") {
+      await db.update(internalWorkflowTimerSessionsTable).set({ state: "RUNNING", resumedAt: new Date() }).where(eq(internalWorkflowTimerSessionsTable.id, session.id));
+    } else if (action === "stop") {
+      const seconds = session.accumulatedSeconds + (session.state === "RUNNING" ? Math.max(0, Math.floor((Date.now() - session.resumedAt.getTime()) / 1000)) : 0);
+      const minutes = Math.max(1, Math.round(seconds / 60));
+      const workDate = new Date().toISOString().slice(0, 10);
+      await db.transaction(async (tx) => {
+        await tx.update(internalWorkflowTimerSessionsTable).set({ state: "STOPPED", accumulatedSeconds: seconds }).where(eq(internalWorkflowTimerSessionsTable.id, session.id));
+        const rateCents = Number.isInteger(req.body?.rateCents) && req.body.rateCents >= 0 ? Math.min(req.body.rateCents, 10000000) : 0;
+        await tx.insert(internalWorkflowTimeEntriesTable).values({ taskId: session.taskId, userId: user.id, workDate, minutes, narrative: "Timer entry", billable: true, billingCode: typeof req.body?.billingCode === "string" ? req.body.billingCode.slice(0, 40) : "PROSECUTION", rateCents, amountCents: Math.round(minutes * rateCents / 60) });
+      });
+    } else return void res.status(400).json({ error: "That timer action is not available." });
+    res.json({ updated: true });
+  } catch (error) { next(error); }
+});
+
+router.get("/portal/internal-workflow/reports", async (req, res, next) => {
+  try {
+    if (req.portalUser!.role !== "ADMIN") return void res.status(403).json({ error: "Management reports are restricted to administrators." });
+    const [tasks, entries, team] = await Promise.all([
+      db.select().from(internalWorkflowTasksTable),
+      db.select().from(internalWorkflowTimeEntriesTable),
+      db.select({ id: portalUsersTable.id, name: portalUsersTable.name, role: portalUsersTable.role }).from(portalUsersTable).where(and(eq(portalUsersTable.active, true), eq(portalUsersTable.status, "ACTIVE"))),
+    ]);
+    const byUser = team.map((person) => ({ name: person.name, role: person.role, assigned: tasks.filter((task) => task.assignedToId === person.id && task.workflowStatus !== "FINALIZED" && task.workflowStatus !== "COMPLETED").length, minutes: entries.filter((entry) => entry.userId === person.id).reduce((sum, entry) => sum + entry.minutes, 0) }));
+    res.json({ totals: { active: tasks.filter((task) => !["FINALIZED", "COMPLETED"].includes(task.workflowStatus)).length, overdue: tasks.filter((task) => task.internalTargetDate && task.internalTargetDate < new Date().toISOString().slice(0, 10) && !["FINALIZED", "COMPLETED"].includes(task.workflowStatus)).length, pendingBilling: entries.filter((entry) => entry.approvalStatus === "PENDING").length, approvedCents: entries.filter((entry) => entry.approvalStatus === "APPROVED").reduce((sum, entry) => sum + entry.amountCents, 0), exportedCents: entries.filter((entry) => entry.exportedAt).reduce((sum, entry) => sum + entry.amountCents, 0) }, byUser });
+  } catch (error) { next(error); }
+});
+
+router.post("/portal/internal-workflow/billing/export", async (req, res, next) => {
+  try {
+    const user = req.portalUser!;
+    if (user.role !== "ADMIN") return void res.status(403).json({ error: "Billing export is restricted to administrators." });
+    const entries = await db.select().from(internalWorkflowTimeEntriesTable).where(eq(internalWorkflowTimeEntriesTable.approvalStatus, "APPROVED"));
+    if (!entries.length) return void res.status(409).json({ error: "There are no approved, unexported time entries." });
+    const tasks = await db.select().from(internalWorkflowTasksTable).where(inArray(internalWorkflowTasksTable.id, [...new Set(entries.map((entry) => entry.taskId))]));
+    const matterIds = [...new Set(tasks.map((task) => task.matterId).filter((id): id is number => id !== null))];
+    const matters = matterIds.length ? await db.select().from(internalWorkflowMattersTable).where(inArray(internalWorkflowMattersTable.id, matterIds)) : [];
+    const users = await db.select().from(portalUsersTable).where(inArray(portalUsersTable.id, [...new Set(entries.map((entry) => entry.userId))]));
+    const taskMap = new Map(tasks.map((task) => [task.id, task]));
+    const matterMap = new Map(matters.map((matter) => [matter.id, matter]));
+    const userMap = new Map(users.map((person) => [person.id, person]));
+    const q = (value: unknown) => {
+      let text = String(value ?? "");
+      if (/^\s*[=+\-@]/.test(text)) text = `'${text}`;
+      return `"${text.replaceAll('"', '""')}"`;
+    };
+    const csv = ["Client,MatterID,AttorneyRef,Responsible Attorney,Practitioner,Date,Billing Code,Narrative,Hours,Amount,Approval Status", ...entries.map((entry) => {
+      const task = taskMap.get(entry.taskId);
+      const practitioner = userMap.get(entry.userId);
+      const matter = task?.matterId ? matterMap.get(task.matterId) : undefined;
+      return [matter?.client ?? "", matter?.appCollMatterId ?? "", matter?.docketId ?? "", task?.responsibleAttorneyId ? userMap.get(task.responsibleAttorneyId)?.name : "", practitioner?.name, entry.workDate, entry.billingCode, entry.narrative, (entry.minutes / 60).toFixed(2), (entry.amountCents / 100).toFixed(2), entry.approvalStatus].map(q).join(",");
+    })].join("\r\n");
+    await db.update(internalWorkflowTimeEntriesTable).set({ approvalStatus: "EXPORTED", exportedAt: new Date() }).where(inArray(internalWorkflowTimeEntriesTable.id, entries.map((entry) => entry.id)));
+    res.json({ csv, exported: entries.length });
+  } catch (error) { next(error); }
+});
+
+router.get("/portal/internal-workflow/notifications", async (req, res, next) => {
+  try {
+    const rows = await db.select().from(internalWorkflowNotificationsTable).where(eq(internalWorkflowNotificationsTable.userId, req.portalUser!.id)).orderBy(asc(internalWorkflowNotificationsTable.createdAt)).limit(100);
+    res.json({ notifications: rows.reverse() });
+  } catch (error) { next(error); }
+});
+
+router.patch("/portal/internal-workflow/notifications/:notificationId/read", async (req, res, next) => {
+  try {
+    await db.update(internalWorkflowNotificationsTable).set({ readAt: new Date() }).where(and(eq(internalWorkflowNotificationsTable.publicId, String(req.params.notificationId)), eq(internalWorkflowNotificationsTable.userId, req.portalUser!.id)));
+    res.json({ updated: true });
+  } catch (error) { next(error); }
 });
 
 export default router;

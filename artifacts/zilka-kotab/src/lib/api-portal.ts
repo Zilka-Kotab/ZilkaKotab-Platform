@@ -63,9 +63,21 @@ export interface InternalWorkflowTask {
   assignedToPublicId: string; assignedByPublicId: string; createdByPublicId: string;
   responsibleAttorneyPublicId: string | null;
   officialDueDate: string | null; internalTargetDate: string | null;
-  workflowStatus: 'OPEN' | 'IN_PROGRESS' | 'RETURNED_FOR_PROOF' | 'COMPLETED';
+  workflowStatus: string; strategyStatus: string;
   priority: 'LOW' | 'NORMAL' | 'HIGH' | 'URGENT'; createdAt: string; finalizedAt: string | null;
   canReassign: boolean;
+}
+export interface InternalWorkflowTimeEntry {
+  publicId: string; taskPublicId?: string; taskTitle: string; workDate: string; minutes: number; narrative: string;
+  billable: boolean; billingCode: string; rateCents: number; amountCents: number; approvalStatus: string; exportedAt: string | null;
+  canReview?: boolean;
+}
+export interface InternalWorkflowNotification {
+  publicId: string; title: string; message: string; taskId: number | null; readAt: string | null; createdAt: string;
+}
+export interface InternalWorkflowReport {
+  totals: { active: number; overdue: number; pendingBilling: number; approvedCents: number; exportedCents: number };
+  byUser: { name: string; role: Role; assigned: number; minutes: number }[];
 }
 
 export type AiProcessingProvider = 'CLIENT_MICROSOFT' | 'ZK_MANAGED_AI' | 'MANUAL';
@@ -284,8 +296,19 @@ export const getInternalWorkflowTasks = () => fetchPortal<{ tasks: InternalWorkf
 export const getInternalWorkflowTeam = () => fetchPortal<{ users: InternalWorkflowStaff[] }>('/internal-workflow/team');
 export const createInternalWorkflowTask = (data: { title: string; instructions: string; matterPublicId?: string; assignedToId: number; responsibleAttorneyId?: number; officialDueDate?: string; internalTargetDate?: string; priority: string }) =>
   fetchPortal<{ task: { publicId: string } }>('/internal-workflow/tasks', { method: 'POST', body: JSON.stringify(data) });
-export const updateInternalWorkflowTask = (data: { taskId: string; workflowStatus?: string; assignedToId?: number; internalTargetDate?: string }) =>
+export const updateInternalWorkflowTask = (data: { taskId: string; workflowStatus?: string; strategyStatus?: string; assignedToId?: number; internalTargetDate?: string }) =>
   fetchPortal<{ updated: boolean }>(`/internal-workflow/tasks/${data.taskId}`, { method: 'PATCH', body: JSON.stringify(data) });
+export const getInternalWorkflowComments = (taskId: string) => fetchPortal<{ comments: { publicId: string; body: string; author: string; createdAt: string }[] }>(`/internal-workflow/tasks/${taskId}/comments`);
+export const createInternalWorkflowComment = (data: { taskId: string; body: string }) => fetchPortal(`/internal-workflow/tasks/${data.taskId}/comments`, { method: 'POST', body: JSON.stringify({ body: data.body }) });
+export const getInternalWorkflowTimeEntries = () => fetchPortal<{ entries: InternalWorkflowTimeEntry[] }>('/internal-workflow/time-entries');
+export const createInternalWorkflowTimeEntry = (data: { taskPublicId: string; workDate: string; minutes: number; narrative: string; billable: boolean; billingCode: string; rateCents: number }) => fetchPortal('/internal-workflow/time-entries', { method: 'POST', body: JSON.stringify(data) });
+export const reviewInternalWorkflowTimeEntry = (data: { entryId: string; status: 'APPROVED' | 'RETURNED' }) => fetchPortal(`/internal-workflow/time-entries/${data.entryId}/review`, { method: 'PATCH', body: JSON.stringify({ status: data.status }) });
+export const getInternalWorkflowTimer = () => fetchPortal<{ timer: { taskPublicId: string; taskTitle: string; state: string; accumulatedSeconds: number; resumedAt: string } | null }>('/internal-workflow/timer');
+export const changeInternalWorkflowTimer = (data: { action: 'start' | 'pause' | 'resume' | 'stop'; taskPublicId?: string; rateCents?: number; billingCode?: string }) => fetchPortal('/internal-workflow/timer', { method: 'POST', body: JSON.stringify(data) });
+export const getInternalWorkflowReport = () => fetchPortal<InternalWorkflowReport>('/internal-workflow/reports');
+export const exportInternalWorkflowBilling = () => fetchPortal<{ csv: string; exported: number }>('/internal-workflow/billing/export', { method: 'POST', body: JSON.stringify({}) });
+export const getInternalWorkflowNotifications = () => fetchPortal<{ notifications: InternalWorkflowNotification[] }>('/internal-workflow/notifications');
+export const markInternalWorkflowNotificationRead = (publicId: string) => fetchPortal(`/internal-workflow/notifications/${publicId}/read`, { method: 'PATCH', body: JSON.stringify({}) });
 export const getDashboard = () => fetchPortal<{ tools: Tool[], projects: Project[], clients?: Client[] }>('/dashboard');
 
 export const getClients = () => fetchPortal<{ clients: Client[] }>('/clients');
