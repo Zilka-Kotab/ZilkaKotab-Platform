@@ -15,6 +15,12 @@ export interface PublicPortfolioInput {
      * @maxLength 120
      */
   companyName: string;
+  /**
+     * @maxItems 8
+     * @items.minLength 2
+     * @items.maxLength 200
+     */
+  selectedApplicantNames?: string[];
 }
 
 export interface PublicFilingTrend {
@@ -26,6 +32,12 @@ export interface PublicFilingTrend {
 export interface PublicTechnologyArea {
   code: string;
   label: string;
+  /** @minimum 0 */
+  count: number;
+}
+
+export interface PublicApplicantCandidate {
+  name: string;
   /** @minimum 0 */
   count: number;
 }
@@ -59,6 +71,8 @@ export interface PublicDataCoverage {
 export interface PublicPortfolioAnalysis {
   companyName: string;
   matchedApplicantNames: string[];
+  selectionRequired: boolean;
+  applicantCandidates: PublicApplicantCandidate[];
   /** @minimum 0 */
   identifiedGrantedPatents: number;
   /** @minimum 0 */
@@ -81,6 +95,11 @@ export interface PublicExaminerInput {
      * @maxLength 100
      */
   query: string;
+  /**
+     * @minLength 2
+     * @maxLength 120
+     */
+  selectedExaminerName?: string;
 }
 
 export interface PublicExaminerBreakdown {
@@ -122,12 +141,9 @@ export interface PublicExaminerAnalysis {
      * @minimum 0
      * @nullable
      */
-  averageOfficeActionsBeforeAllowance: number | null;
-  /**
-     * @minimum 0
-     * @nullable
-     */
   averageProsecutionDurationMonths: number | null;
+  selectionRequired: boolean;
+  examinerCandidates: PublicExaminerBreakdown[];
   topExaminers: PublicExaminerBreakdown[];
   calculationNote: string;
   coverage: PublicDataCoverage;

@@ -232,12 +232,13 @@ function isAbandoned(meta: JsonRecord) {
   return (text(meta.applicationStatusDescriptionText)?.toLocaleLowerCase() ?? "").includes("abandon");
 }
 
-export async function analyzePortfolio(companyNameInput: string) {
+export async function analyzePortfolio(companyNameInput: string, selectedApplicantNames?: string[]) {
   const companyName = companyNameInput.trim().replace(/\s+/g, " ");
   const normalizedCompany = normalizeOrganization(companyName);
   if (normalizedCompany.length < 2) throw new PublicPatentToolError("Enter a more specific company name.", 400);
 
-  return cached(`portfolio:${normalizedCompany}`, async () => {
+  const selectedKey = selectedApplicantNames?.slice().sort().join("|") ?? "discover";
+  return cached(`portfolio:${normalizedCompany}:${selectedKey}`, async () => {
     const discovery = await requestAggregate(companyName, {
       facets: ["applicationMetaData.firstApplicantName"],
     });
@@ -257,14 +258,17 @@ export async function analyzePortfolio(companyNameInput: string) {
     }
     const rankedCandidates = [...candidateGroups.values()].sort((left, right) => right.count - left.count);
     const largestCandidateCount = rankedCandidates[0]?.count ?? 0;
-    const selectedCandidates = rankedCandidates
+    const applicantCandidates = rankedCandidates
       .filter((candidate) => candidate.count >= Math.max(3, largestCandidateCount * 0.01))
-      .slice(0, 2);
+      .slice(0, 8)
+      .map((candidate) => ({ ...candidate, name: candidate.representative }));
 
-    if (!selectedCandidates.length) {
+    if (!applicantCandidates.length) {
       return {
         companyName,
         matchedApplicantNames: [],
+        selectionRequired: false,
+        applicantCandidates: [],
         identifiedGrantedPatents: 0,
         identifiedPendingApplications: 0,
         activePatentCount: null,
@@ -282,6 +286,36 @@ export async function analyzePortfolio(companyNameInput: string) {
           note: "No USPTO first-applicant name could be confidently matched to this search.",
         },
       };
+    }
+
+    if (!selectedApplicantNames?.length && applicantCandidates.length > 1) {
+      return {
+        companyName,
+        matchedApplicantNames: [],
+        selectionRequired: true,
+        applicantCandidates,
+        identifiedGrantedPatents: 0,
+        identifiedPendingApplications: 0,
+        activePatentCount: null,
+        activePatentCountNote: "",
+        filingTrends: [],
+        topTechnologyAreas: [],
+        recentApplications: [],
+        coverage: {
+          source: "USPTO Open Data Portal — Patent File Wrapper",
+          retrievedAt: new Date().toISOString(),
+          totalMatchesReported: 0,
+          recordsAnalyzed: 0,
+          resultLimit: 5,
+          truncated: false,
+          note: "Select the applicant names to include before calculating portfolio metrics.",
+        },
+      };
+    }
+    const selectedSet = selectedApplicantNames?.length ? new Set(selectedApplicantNames) : new Set([applicantCandidates[0].representative]);
+    const selectedCandidates = applicantCandidates.filter((candidate) => selectedSet.has(candidate.representative));
+    if (selectedCandidates.length !== selectedSet.size) {
+      throw new PublicPatentToolError("Choose one or more applicant names from the listed results.", 400);
     }
 
     const applicantQuery = selectedCandidates
@@ -349,6 +383,8 @@ export async function analyzePortfolio(companyNameInput: string) {
     return {
       companyName,
       matchedApplicantNames: selectedCandidates.map((candidate) => candidate.representative),
+      selectionRequired: false,
+      applicantCandidates,
       identifiedGrantedPatents: granted.count,
       identifiedPendingApplications: pendingCount,
       activePatentCount: null,
@@ -372,12 +408,12 @@ export async function analyzePortfolio(companyNameInput: string) {
   });
 }
 
-function examinerQuery(input: string) {
+function examinerQuery(input: string, selectedExaminerName?: string) {
   const query = input.trim().replace(/\s+/g, " ");
   if (/^\d{4}$/.test(query)) {
     return { searchType: "art-unit" as const, value: query, query: `applicationMetaData.groupArtUnitNumber:${query}` };
   }
-  const normalized = query.toLocaleUpperCase();
+  const normalized = (selectedExaminerName ?? query).toLocaleUpperCase();
   const formatted = normalized.includes(",")
     ? normalized
     : (() => {
@@ -404,20 +440,13 @@ function events(record: JsonRecord) {
     : [];
 }
 
-function officeActionCount(record: JsonRecord) {
-  return events(record).filter((event) => {
-    const description = text(event.eventDescriptionText)?.toLocaleLowerCase() ?? "";
-    return description.includes("non final action mailed") || description.includes("final rejection mailed");
-  }).length;
-}
-
-export async function analyzeExaminer(queryInput: string) {
-  const parsed = examinerQuery(queryInput);
+export async function analyzeExaminer(queryInput: string, selectedExaminerName?: string) {
+  const parsed = examinerQuery(queryInput, selectedExaminerName);
   if (parsed.searchType === "examiner" && parsed.value.length < 3) {
     throw new PublicPatentToolError("Enter an examiner's full name or a four-digit art unit.", 400);
   }
 
-  return cached(`examiner:${parsed.searchType}:${parsed.value}`, async () => {
+  return cached(`examiner:${parsed.searchType}:${parsed.value}:${selectedExaminerName ?? ""}`, async () => {
     const search = await requestSearch(
       parsed.query,
       "applicationNumberText,applicationMetaData,eventDataBag",
@@ -426,7 +455,6 @@ export async function analyzeExaminer(queryInput: string) {
     const abandoned = search.records.filter((record) => isAbandoned(metadata(record)));
     const disposed = allowed.length + abandoned.length;
     const completeCoverage = !search.truncated;
-    const officeActionValues = allowed.map(officeActionCount);
     const durationValues = allowed.flatMap((record) => {
       const meta = metadata(record);
       const duration = monthsBetween(text(meta.filingDate) ?? "", text(meta.grantDate) ?? "");
@@ -445,6 +473,33 @@ export async function analyzeExaminer(queryInput: string) {
       .map(([examinerName, count]) => ({ examinerName, count }))
       .sort((left, right) => right.count - left.count || left.examinerName.localeCompare(right.examinerName))
       .slice(0, 5);
+    if (parsed.searchType === "examiner" && !selectedExaminerName && topExaminers.length > 1) {
+      return {
+        query: queryInput.trim(),
+        searchType: parsed.searchType,
+        examinerName: null,
+        artUnit: null,
+        identifiedApplications: search.count,
+        disposedApplications: 0,
+        allowedApplications: 0,
+        abandonedApplications: 0,
+        estimatedAllowanceRate: null,
+        averageProsecutionDurationMonths: null,
+        selectionRequired: true,
+        examinerCandidates: topExaminers,
+        topExaminers: [],
+        calculationNote: "Choose the examiner you intended to look up.",
+        coverage: {
+          source: "USPTO Open Data Portal — Patent File Wrapper",
+          retrievedAt: new Date().toISOString(),
+          totalMatchesReported: search.count,
+          recordsAnalyzed: search.records.length,
+          resultLimit: RESULT_LIMIT,
+          truncated: search.truncated,
+          note: "Select an examiner from the matching USPTO names before calculating metrics.",
+        },
+      };
+    }
     const primaryArtUnit = [...artUnitCounts].sort((left, right) => right[1] - left[1])[0]?.[0] ?? null;
     const primaryExaminer = topExaminers[0]?.examinerName ?? null;
 
@@ -458,15 +513,14 @@ export async function analyzeExaminer(queryInput: string) {
       allowedApplications: completeCoverage ? allowed.length : 0,
       abandonedApplications: completeCoverage ? abandoned.length : 0,
       estimatedAllowanceRate: completeCoverage && disposed >= 10 ? round((allowed.length / disposed) * 100) : null,
-      averageOfficeActionsBeforeAllowance: completeCoverage && officeActionValues.length >= 10 && officeActionValues.some((value) => value > 0)
-        ? round(officeActionValues.reduce((sum, value) => sum + value, 0) / officeActionValues.length)
-        : null,
       averageProsecutionDurationMonths: completeCoverage && durationValues.length >= 10
         ? round(durationValues.reduce((sum, value) => sum + value, 0) / durationValues.length)
         : null,
+      selectionRequired: false,
+      examinerCandidates: [],
       topExaminers: parsed.searchType === "art-unit" ? topExaminers : [],
       calculationNote: completeCoverage
-        ? "Allowance rate uses identified allowed or patented cases divided by identified allowed, patented, and abandoned cases. Office Actions count mailed non-final actions and final rejections in the public event history."
+        ? "Allowance rate uses identified allowed or patented cases divided by identified allowed, patented, and abandoned cases."
         : `The USPTO reported more than ${RESULT_LIMIT.toLocaleString()} matching applications. Outcome metrics are withheld because the analyzed records are an incomplete sample.`,
       coverage: {
         source: "USPTO Open Data Portal — Patent File Wrapper",

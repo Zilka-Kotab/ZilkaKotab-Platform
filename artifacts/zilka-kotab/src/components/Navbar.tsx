@@ -26,7 +26,7 @@ export function Navbar() {
   }, [location]);
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur-xl supports-[backdrop-filter]:bg-background/95">
+    <header className={`sticky top-0 z-50 w-full ${location === '/ai-tools' ? '' : 'border-b border-border/40'} bg-background/95 backdrop-blur-xl supports-[backdrop-filter]:bg-background/95`}>
       <div className="container mx-auto px-4 h-20 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2 group z-50">
           <img

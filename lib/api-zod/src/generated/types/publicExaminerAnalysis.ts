@@ -34,12 +34,9 @@ export interface PublicExaminerAnalysis {
      * @minimum 0
      * @nullable
      */
-  averageOfficeActionsBeforeAllowance: number | null;
-  /**
-     * @minimum 0
-     * @nullable
-     */
   averageProsecutionDurationMonths: number | null;
+  selectionRequired: boolean;
+  examinerCandidates: PublicExaminerBreakdown[];
   topExaminers: PublicExaminerBreakdown[];
   calculationNote: string;
   coverage: PublicDataCoverage;

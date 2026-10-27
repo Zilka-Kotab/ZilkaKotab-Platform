@@ -8,12 +8,14 @@ import { CoverageLedger, EmptyPanel, ErrorPanel, Metric, ResultSkeleton, errorMe
 export function PortfolioAnalyzer() {
   const [company, setCompany] = useState('');
   const [submitted, setSubmitted] = useState('');
+  const [selectedNames, setSelectedNames] = useState<string[]>([]);
   const m = useAnalyzePublicPortfolio();
   const valid = company.trim().length >= 2;
 
-  const run = (name: string) => {
+  const run = (name: string, names?: string[]) => {
     setSubmitted(name);
-    m.mutate({ data: { companyName: name } });
+    setSelectedNames(names ?? []);
+    m.mutate({ data: { companyName: name, ...(names ? { selectedApplicantNames: names } : {}) } });
   };
   const onSubmit = (e: FormEvent) => { e.preventDefault(); if (valid && !m.isPending) run(company.trim()); };
 
@@ -23,7 +25,7 @@ export function PortfolioAnalyzer() {
         <label htmlFor="portfolio-company" className="zk-query-label">Company or assignee name</label>
         <div className="zk-query-row">
           <Search className="h-5 w-5 shrink-0 text-muted-foreground" />
-          <input id="portfolio-company" value={company} onChange={(e) => setCompany(e.target.value)} maxLength={120}
+          <input id="portfolio-company" value={company} onChange={(e) => { setCompany(e.target.value); setSelectedNames([]); }} maxLength={120}
             placeholder="e.g. Rambus Inc." className="zk-query-input" autoComplete="organization" data-testid="input-portfolio-company" />
           <button type="submit" disabled={!valid || m.isPending} className="zk-btn-primary" data-testid="button-analyze-portfolio">
             {m.isPending ? 'Analyzing' : 'Analyze portfolio'} <ArrowRight className="h-4 w-4" />
@@ -35,7 +37,11 @@ export function PortfolioAnalyzer() {
       <div className="mt-8">
         {m.isPending && <ResultSkeleton />}
         {m.isError && !m.isPending && <ErrorPanel message={errorMessage(m.error)} onRetry={() => run(submitted)} testId="error-portfolio" />}
-        {m.isSuccess && !m.isPending && <PortfolioResult data={m.data} />}
+        {m.isSuccess && !m.isPending && m.data.selectionRequired && (
+          <ApplicantDialog candidates={m.data.applicantCandidates} selected={selectedNames.length ? selectedNames : m.data.applicantCandidates.map((candidate) => candidate.name)}
+            onChange={setSelectedNames} onCancel={() => m.reset()} onContinue={() => run(submitted, selectedNames.length ? selectedNames : m.data.applicantCandidates.map((candidate) => candidate.name))} />
+        )}
+        {m.isSuccess && !m.isPending && !m.data.selectionRequired && <PortfolioResult data={m.data} />}
         {m.isIdle && (
           <EmptyPanel testId="empty-portfolio-idle" title="Enter a company to begin"
             body="You will see identified grants and pending applications, a five-year filing trend, leading technology classes, and recent filings, each with its USPTO source." />
@@ -43,6 +49,32 @@ export function PortfolioAnalyzer() {
       </div>
     </div>
   );
+}
+
+function ApplicantDialog({ candidates, selected, onChange, onCancel, onContinue }: {
+  candidates: { name: string; count: number }[];
+  selected: string[];
+  onChange: (names: string[]) => void;
+  onCancel: () => void;
+  onContinue: () => void;
+}) {
+  return <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4" role="presentation">
+    <section role="dialog" aria-modal="true" aria-labelledby="applicant-dialog-title" className="w-full max-w-lg rounded-sm border bg-background p-6 shadow-xl">
+      <div className="zk-eyebrow">Confirm portfolio scope</div>
+      <h3 id="applicant-dialog-title" className="mt-2 font-display text-2xl font-semibold">Which applicant names should be included?</h3>
+      <p className="mt-2 text-sm text-muted-foreground">USPTO records use several potential legal applicant names. Select all that belong in this portfolio.</p>
+      <div className="mt-5 max-h-64 space-y-2 overflow-y-auto">
+        {candidates.map((candidate) => <label key={candidate.name} className="flex cursor-pointer items-start gap-3 border p-3 text-sm hover:bg-muted/50">
+          <input type="checkbox" checked={selected.includes(candidate.name)} onChange={(event) => onChange(event.target.checked ? [...selected, candidate.name] : selected.filter((name) => name !== candidate.name))} className="mt-0.5 accent-primary" />
+          <span className="min-w-0 flex-1"><span className="block font-medium">{candidate.name}</span><span className="text-xs text-muted-foreground">{fmtNum(candidate.count)} matching USPTO records</span></span>
+        </label>)}
+      </div>
+      <div className="mt-6 flex justify-end gap-3">
+        <button type="button" className="zk-btn-secondary" onClick={onCancel}>Cancel</button>
+        <button type="button" className="zk-btn-primary" disabled={!selected.length} onClick={onContinue}>Analyze selected</button>
+      </div>
+    </section>
+  </div>;
 }
 
 function PortfolioResult({ data }: { data: PublicPortfolioAnalysis }) {

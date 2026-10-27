@@ -23,11 +23,19 @@ export const HealthCheckResponse = zod.object({
 export const analyzePublicPortfolioBodyCompanyNameMin = 2;
 export const analyzePublicPortfolioBodyCompanyNameMax = 120;
 
+export const analyzePublicPortfolioBodySelectedApplicantNamesItemMin = 2;
+export const analyzePublicPortfolioBodySelectedApplicantNamesItemMax = 200;
+
+export const analyzePublicPortfolioBodySelectedApplicantNamesMax = 8;
+
 
 
 export const AnalyzePublicPortfolioBody = zod.object({
-  "companyName": zod.string().min(analyzePublicPortfolioBodyCompanyNameMin).max(analyzePublicPortfolioBodyCompanyNameMax)
+  "companyName": zod.string().min(analyzePublicPortfolioBodyCompanyNameMin).max(analyzePublicPortfolioBodyCompanyNameMax),
+  "selectedApplicantNames": zod.array(zod.string().min(analyzePublicPortfolioBodySelectedApplicantNamesItemMin).max(analyzePublicPortfolioBodySelectedApplicantNamesItemMax)).max(analyzePublicPortfolioBodySelectedApplicantNamesMax).optional()
 })
+
+export const analyzePublicPortfolioResponseApplicantCandidatesItemCountMin = 0;
 
 export const analyzePublicPortfolioResponseIdentifiedGrantedPatentsMin = 0;
 
@@ -49,6 +57,11 @@ export const analyzePublicPortfolioResponseCoverageRecordsAnalyzedMin = 0;
 export const AnalyzePublicPortfolioResponse = zod.object({
   "companyName": zod.string(),
   "matchedApplicantNames": zod.array(zod.string()),
+  "selectionRequired": zod.boolean(),
+  "applicantCandidates": zod.array(zod.object({
+  "name": zod.string(),
+  "count": zod.number().min(analyzePublicPortfolioResponseApplicantCandidatesItemCountMin)
+})),
   "identifiedGrantedPatents": zod.number().min(analyzePublicPortfolioResponseIdentifiedGrantedPatentsMin),
   "identifiedPendingApplications": zod.number().min(analyzePublicPortfolioResponseIdentifiedPendingApplicationsMin),
   "activePatentCount": zod.number().min(analyzePublicPortfolioResponseActivePatentCountMin).nullable(),
@@ -89,10 +102,14 @@ export const AnalyzePublicPortfolioResponse = zod.object({
 export const analyzePublicExaminerBodyQueryMin = 2;
 export const analyzePublicExaminerBodyQueryMax = 100;
 
+export const analyzePublicExaminerBodySelectedExaminerNameMin = 2;
+export const analyzePublicExaminerBodySelectedExaminerNameMax = 120;
+
 
 
 export const AnalyzePublicExaminerBody = zod.object({
-  "query": zod.string().min(analyzePublicExaminerBodyQueryMin).max(analyzePublicExaminerBodyQueryMax)
+  "query": zod.string().min(analyzePublicExaminerBodyQueryMin).max(analyzePublicExaminerBodyQueryMax),
+  "selectedExaminerName": zod.string().min(analyzePublicExaminerBodySelectedExaminerNameMin).max(analyzePublicExaminerBodySelectedExaminerNameMax).optional()
 })
 
 export const analyzePublicExaminerResponseIdentifiedApplicationsMin = 0;
@@ -106,9 +123,9 @@ export const analyzePublicExaminerResponseAbandonedApplicationsMin = 0;
 export const analyzePublicExaminerResponseEstimatedAllowanceRateMin = 0;
 export const analyzePublicExaminerResponseEstimatedAllowanceRateMax = 100;
 
-export const analyzePublicExaminerResponseAverageOfficeActionsBeforeAllowanceMin = 0;
-
 export const analyzePublicExaminerResponseAverageProsecutionDurationMonthsMin = 0;
+
+export const analyzePublicExaminerResponseExaminerCandidatesItemCountMin = 0;
 
 export const analyzePublicExaminerResponseTopExaminersItemCountMin = 0;
 
@@ -129,8 +146,12 @@ export const AnalyzePublicExaminerResponse = zod.object({
   "allowedApplications": zod.number().min(analyzePublicExaminerResponseAllowedApplicationsMin),
   "abandonedApplications": zod.number().min(analyzePublicExaminerResponseAbandonedApplicationsMin),
   "estimatedAllowanceRate": zod.number().min(analyzePublicExaminerResponseEstimatedAllowanceRateMin).max(analyzePublicExaminerResponseEstimatedAllowanceRateMax).nullable(),
-  "averageOfficeActionsBeforeAllowance": zod.number().min(analyzePublicExaminerResponseAverageOfficeActionsBeforeAllowanceMin).nullable(),
   "averageProsecutionDurationMonths": zod.number().min(analyzePublicExaminerResponseAverageProsecutionDurationMonthsMin).nullable(),
+  "selectionRequired": zod.boolean(),
+  "examinerCandidates": zod.array(zod.object({
+  "examinerName": zod.string(),
+  "count": zod.number().min(analyzePublicExaminerResponseExaminerCandidatesItemCountMin)
+})),
   "topExaminers": zod.array(zod.object({
   "examinerName": zod.string(),
   "count": zod.number().min(analyzePublicExaminerResponseTopExaminersItemCountMin)

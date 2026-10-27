@@ -59,7 +59,7 @@ router.post("/public-tools/portfolio/analyze", rateLimit("portfolio", 10, SEARCH
     return;
   }
   try {
-    res.json(AnalyzePublicPortfolioResponse.parse(await analyzePortfolio(parsed.data.companyName)));
+    res.json(AnalyzePublicPortfolioResponse.parse(await analyzePortfolio(parsed.data.companyName, parsed.data.selectedApplicantNames)));
   } catch (error) {
     sendToolError(res, error);
   }
@@ -72,7 +72,7 @@ router.post("/public-tools/examiner/analyze", rateLimit("examiner", 10, SEARCH_W
     return;
   }
   try {
-    res.json(AnalyzePublicExaminerResponse.parse(await analyzeExaminer(parsed.data.query)));
+    res.json(AnalyzePublicExaminerResponse.parse(await analyzeExaminer(parsed.data.query, parsed.data.selectedExaminerName)));
   } catch (error) {
     sendToolError(res, error);
   }

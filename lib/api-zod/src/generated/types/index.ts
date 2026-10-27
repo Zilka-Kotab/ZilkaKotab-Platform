@@ -7,6 +7,7 @@
  */
 
 export * from './healthStatus';
+export * from './publicApplicantCandidate';
 export * from './publicDataCoverage';
 export * from './publicExaminerAnalysis';
 export * from './publicExaminerAnalysisSearchType';

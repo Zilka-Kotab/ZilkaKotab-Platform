@@ -116,6 +116,13 @@ components:
           type: string
           minLength: 2
           maxLength: 120
+        selectedApplicantNames:
+          type: array
+          maxItems: 8
+          items:
+            type: string
+            minLength: 2
+            maxLength: 200
     PublicFilingTrend:
       type: object
       additionalProperties: false
@@ -134,6 +141,16 @@ components:
         code:
           type: string
         label:
+          type: string
+        count:
+          type: integer
+          minimum: 0
+    PublicApplicantCandidate:
+      type: object
+      additionalProperties: false
+      required: [name, count]
+      properties:
+        name:
           type: string
         count:
           type: integer
@@ -186,6 +203,8 @@ components:
       required:
         - companyName
         - matchedApplicantNames
+        - selectionRequired
+        - applicantCandidates
         - identifiedGrantedPatents
         - identifiedPendingApplications
         - activePatentCount
@@ -201,6 +220,12 @@ components:
           type: array
           items:
             type: string
+        selectionRequired:
+          type: boolean
+        applicantCandidates:
+          type: array
+          items:
+            $ref: "#/components/schemas/PublicApplicantCandidate"
         identifiedGrantedPatents:
           type: integer
           minimum: 0
@@ -235,6 +260,10 @@ components:
           type: string
           minLength: 2
           maxLength: 100
+        selectedExaminerName:
+          type: string
+          minLength: 2
+          maxLength: 120
     PublicExaminerBreakdown:
       type: object
       additionalProperties: false
@@ -258,8 +287,9 @@ components:
         - allowedApplications
         - abandonedApplications
         - estimatedAllowanceRate
-        - averageOfficeActionsBeforeAllowance
         - averageProsecutionDurationMonths
+        - selectionRequired
+        - examinerCandidates
         - topExaminers
         - calculationNote
         - coverage
@@ -289,12 +319,15 @@ components:
           type: ["number", "null"]
           minimum: 0
           maximum: 100
-        averageOfficeActionsBeforeAllowance:
-          type: ["number", "null"]
-          minimum: 0
         averageProsecutionDurationMonths:
           type: ["number", "null"]
           minimum: 0
+        selectionRequired:
+          type: boolean
+        examinerCandidates:
+          type: array
+          items:
+            $ref: "#/components/schemas/PublicExaminerBreakdown"
         topExaminers:
           type: array
           items:

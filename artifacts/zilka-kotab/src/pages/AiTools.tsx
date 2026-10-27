@@ -21,9 +21,9 @@ export default function AiTools() {
       <SEO title="Patent Intelligence Tools" url="/ai-tools"
         description="Free public tools from Zilka-Kotab PC: analyze a company's U.S. patent portfolio or an examiner's allowance history using USPTO data, with sources and limits shown." />
       <main className="zk-tools flex-1 w-full">
-        <section className="relative overflow-hidden border-b">
+        <section className="relative overflow-hidden">
           <div className="zk-grid-bg" aria-hidden="true" />
-          <div className="container relative mx-auto px-4 pt-20 pb-14 md:pt-28">
+          <div className="container relative mx-auto px-4 pt-10 pb-8 md:pt-14 md:pb-10">
             <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }} className="max-w-4xl">
               <div className="zk-eyebrow">Zilka-Kotab PC / Public patent intelligence</div>
               <h1 className="mt-4 font-display text-5xl font-semibold leading-[1.02] tracking-tight md:text-7xl text-balance">
@@ -33,7 +33,7 @@ export default function AiTools() {
                 Two working tools built by patent practitioners. Every figure comes from public USPTO records, retrieved live, with the source, retrieval time, and record limits shown beside it. Where the data cannot support a number, we say so.
               </p>
             </motion.div>
-            <motion.dl initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3, duration: 0.6 }} className="mt-10 grid max-w-3xl grid-cols-1 gap-6 border-t pt-6 text-sm sm:grid-cols-3">
+            <motion.dl initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3, duration: 0.6 }} className="mt-6 grid max-w-3xl grid-cols-1 gap-4 text-sm sm:grid-cols-3">
               <div><dt className="zk-dt">Data source</dt><dd className="mt-1">USPTO public records</dd></div>
               <div><dt className="zk-dt">Access</dt><dd className="mt-1">Free, no account required</dd></div>
               <div><dt className="zk-dt">Results</dt><dd className="mt-1">Never gated behind a form</dd></div>
@@ -41,7 +41,7 @@ export default function AiTools() {
           </div>
         </section>
 
-        <section className="container mx-auto px-4 py-12 md:py-16">
+        <section className="container mx-auto px-4 pb-12 pt-8 md:pb-16 md:pt-10">
           <div role="tablist" aria-label="Patent tools" className="grid gap-px overflow-hidden rounded-sm border bg-border sm:grid-cols-2">
             {tools.map((t) => {
               const on = t.key === active;

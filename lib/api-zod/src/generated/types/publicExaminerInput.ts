@@ -12,4 +12,9 @@ export interface PublicExaminerInput {
      * @maxLength 100
      */
   query: string;
+  /**
+     * @minLength 2
+     * @maxLength 120
+     */
+  selectedExaminerName?: string;
 }

@@ -13,7 +13,7 @@ export function ExaminerIntelligence() {
   const valid = q.length >= 2;
   const looksArtUnit = /^\d{4}$/.test(q);
 
-  const run = (v: string) => { setSubmitted(v); m.mutate({ data: { query: v } }); };
+  const run = (v: string, name?: string) => { setSubmitted(v); m.mutate({ data: { query: v, ...(name ? { selectedExaminerName: name } : {}) } }); };
   const onSubmit = (e: FormEvent) => { e.preventDefault(); if (valid && !m.isPending) run(q); };
 
   return (
@@ -35,7 +35,22 @@ export function ExaminerIntelligence() {
       <div className="mt-8">
         {m.isPending && <ResultSkeleton />}
         {m.isError && !m.isPending && <ErrorPanel message={errorMessage(m.error)} onRetry={() => run(submitted)} testId="error-examiner" />}
-        {m.isSuccess && !m.isPending && <ExaminerResult data={m.data} />}
+        {m.isSuccess && !m.isPending && m.data.selectionRequired && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4" role="presentation">
+            <section role="dialog" aria-modal="true" aria-labelledby="examiner-dialog-title" className="w-full max-w-lg rounded-sm border bg-background p-6 shadow-xl">
+              <div className="zk-eyebrow">Choose examiner</div>
+              <h3 id="examiner-dialog-title" className="mt-2 font-display text-2xl font-semibold">Which examiner did you mean?</h3>
+              <p className="mt-2 text-sm text-muted-foreground">Several USPTO examiner names matched this search. Counts beside names are from the returned sample.</p>
+              <div className="mt-5 max-h-64 space-y-2 overflow-y-auto">
+                {m.data.examinerCandidates.map((candidate) => <button key={candidate.examinerName} type="button" className="flex w-full justify-between gap-4 border p-3 text-left text-sm hover:bg-muted/50" onClick={() => run(submitted, candidate.examinerName)}>
+                  <span>{candidate.examinerName}</span><span className="shrink-0 text-muted-foreground">{fmtNum(candidate.count)} sample matches</span>
+                </button>)}
+              </div>
+              <div className="mt-5 flex justify-end"><button type="button" className="zk-btn-secondary" onClick={() => m.reset()}>Cancel</button></div>
+            </section>
+          </div>
+        )}
+        {m.isSuccess && !m.isPending && !m.data.selectionRequired && <ExaminerResult data={m.data} />}
         {m.isIdle && (
           <EmptyPanel testId="empty-examiner-idle" title="Look up an examiner or art unit"
             body="See disposed, allowed, and abandoned counts, an estimated allowance rate where the record supports one, and the examiners most active in an art unit." />
@@ -88,7 +103,6 @@ function ExaminerResult({ data }: { data: PublicExaminerAnalysis }) {
           <Metric label="Disposed" value={data.disposedApplications} testId="metric-disposed" />
           <Metric emphasis label="Allowed" value={data.allowedApplications} testId="metric-allowed" />
           <Metric label="Abandoned" value={data.abandonedApplications} testId="metric-abandoned" />
-          <Metric label="Avg. office actions to allowance" value={data.averageOfficeActionsBeforeAllowance === null ? null : data.averageOfficeActionsBeforeAllowance.toFixed(1)} testId="metric-office-actions" />
           <Metric label="Avg. prosecution, months" value={data.averageProsecutionDurationMonths === null ? null : data.averageProsecutionDurationMonths.toFixed(1)} testId="metric-duration" />
         </div>
       </div>
