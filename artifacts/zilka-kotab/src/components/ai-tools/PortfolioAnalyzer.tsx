@@ -70,10 +70,9 @@ function PortfolioResult({ data }: { data: PublicPortfolioAnalysis }) {
         )}
       </header>
 
-      <div className="grid grid-cols-1 gap-px overflow-hidden rounded-sm border bg-border sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-px overflow-hidden rounded-sm border bg-border sm:grid-cols-2">
         <Metric emphasis label="Identified granted" value={data.identifiedGrantedPatents} testId="metric-granted" />
         <Metric label="Identified pending" value={data.identifiedPendingApplications} testId="metric-pending" />
-        <Metric label="Active patents" value={data.activePatentCount} note={data.activePatentCountNote} testId="metric-active" />
       </div>
 
       <div className="grid gap-8 lg:grid-cols-2">
