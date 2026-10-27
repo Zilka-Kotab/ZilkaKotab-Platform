@@ -44,6 +44,7 @@ import {
   useUpdatePatentMonitoring,
 } from '@/lib/hooks-portal';
 import type { AssigneePatentMatch, AttorneyNote, MonitoredPatent, PatentImportDraft, PatentRecommendation, ProjectWorkspace as ProjectWorkspaceData } from '@/lib/api-portal';
+import { getEligibleAssigneePatentNumbers, getSelectedEligibleAssigneePatentNumbers, isAssigneePatentAlreadyAdded } from '@/lib/assignee-search';
 
 const providerLabels = {
   CLIENT_MICROSOFT: 'Client Microsoft environment',
@@ -787,9 +788,7 @@ export default function ProjectWorkspace() {
       const response = await assigneeSearch.mutateAsync(assigneeSearchText);
       setAssigneeMatches(response.results);
       setAssigneeSearchTruncated(response.truncated);
-      setSelectedAssigneeNumbers(response.results
-        .filter((item) => !(data?.patents ?? []).some((patent) => patent.patentNumber.replace(/\D/g, '') === item.normalizedPatentNumber.replace(/\D/g, '')))
-        .map((item) => item.normalizedPatentNumber));
+      setSelectedAssigneeNumbers(getEligibleAssigneePatentNumbers(response.results, data?.patents ?? []));
     } catch (error) {
       setPatentInputError(error instanceof Error ? error.message : 'USPTO assignee search failed.');
     }
@@ -1100,10 +1099,10 @@ export default function ProjectWorkspace() {
              <div><h3 className="text-sm font-semibold">Find patents by assignee</h3><p className="mt-1 text-xs text-muted-foreground">Search issued U.S. patents in USPTO records, then select the ones to retrieve for review.</p></div>
              <div className="flex flex-col gap-2 sm:flex-row"><input required minLength={2} maxLength={120} value={assigneeSearchText} onChange={(event) => setAssigneeSearchText(event.target.value)} placeholder="Company or assignee name" className="h-10 min-w-0 flex-1 rounded-lg border border-input bg-background px-3 text-sm" /><button type="submit" disabled={assigneeSearch.isPending || patentImportProgress !== null} className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-border bg-card px-4 text-sm font-semibold disabled:opacity-50"><Search className={`h-4 w-4 ${assigneeSearch.isPending ? 'animate-pulse' : ''}`} />{assigneeSearch.isPending ? 'Searching USPTO…' : 'Search USPTO'}</button></div>
              {assigneeMatches.length > 0 && <div className="space-y-2">
-               <div className="flex flex-wrap items-center justify-between gap-2 text-xs"><span className="font-semibold">{assigneeMatches.length} matching patents{assigneeSearchTruncated ? ' (result limit reached; refine the name)' : ''}</span><button type="button" onClick={() => { const eligible = assigneeMatches.filter((item) => !(data?.patents ?? []).some((patent) => patent.patentNumber.replace(/\D/g, '') === item.normalizedPatentNumber.replace(/\D/g, ''))).map((item) => item.normalizedPatentNumber); setSelectedAssigneeNumbers(selectedAssigneeNumbers.length === eligible.length ? [] : eligible); }} className="font-semibold text-primary">Select / clear eligible</button></div>
+                <div className="flex flex-wrap items-center justify-between gap-2 text-xs"><span className="font-semibold">{assigneeMatches.length} matching patents{assigneeSearchTruncated ? ' (result limit reached; refine the name)' : ''}</span><button type="button" onClick={() => { const eligible = getEligibleAssigneePatentNumbers(assigneeMatches, data?.patents ?? []); setSelectedAssigneeNumbers(selectedAssigneeNumbers.length === eligible.length ? [] : eligible); }} className="font-semibold text-primary">Select / clear eligible</button></div>
                <div className="max-h-64 overflow-auto rounded-lg border border-border bg-background">
                  {assigneeMatches.map((item) => {
-                   const alreadyAdded = (data?.patents ?? []).some((patent) => patent.patentNumber.replace(/\D/g, '') === item.normalizedPatentNumber.replace(/\D/g, ''));
+                    const alreadyAdded = isAssigneePatentAlreadyAdded(item, data?.patents ?? []);
                    const checked = selectedAssigneeNumbers.includes(item.normalizedPatentNumber);
                    return <label key={item.normalizedPatentNumber} className="flex cursor-pointer gap-3 border-b border-border p-3 last:border-0 hover:bg-muted/30">
                      <input type="checkbox" disabled={alreadyAdded || patentImportProgress !== null} checked={checked} onChange={(event) => setSelectedAssigneeNumbers((current) => event.target.checked ? [...current, item.normalizedPatentNumber] : current.filter((number) => number !== item.normalizedPatentNumber))} className="mt-1 accent-[hsl(var(--primary))]" />
@@ -1111,7 +1110,7 @@ export default function ProjectWorkspace() {
                    </label>;
                  })}
                </div>
-               <button type="button" disabled={!selectedAssigneeNumbers.length || patentImportProgress !== null} onClick={() => void retrievePatentNumbers(selectedAssigneeNumbers, false)} className="inline-flex h-10 items-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground disabled:opacity-50"><RefreshCw className="h-4 w-4" />Retrieve {selectedAssigneeNumbers.length} selected for review</button>
+                <button type="button" disabled={!selectedAssigneeNumbers.length || patentImportProgress !== null} onClick={() => void retrievePatentNumbers(getSelectedEligibleAssigneePatentNumbers(assigneeMatches, selectedAssigneeNumbers, data?.patents ?? []), false)} className="inline-flex h-10 items-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground disabled:opacity-50"><RefreshCw className="h-4 w-4" />Retrieve {selectedAssigneeNumbers.length} selected for review</button>
              </div>}
              {assigneeMatches.length === 0 && assigneeSearch.isSuccess && <p className="text-xs text-muted-foreground">No issued patents matched this assignee name.</p>}
            </form>

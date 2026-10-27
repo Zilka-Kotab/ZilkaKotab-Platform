@@ -290,14 +290,15 @@ export async function searchPatentsByAssignee(input: string) {
       const metadata = asRecord(record)?.applicationMetaData ?? record;
       const assigneeNames = valuesForKeys(metadata, new Set(["assigneenametext"]))
         .filter((value): value is string => typeof value === "string" && value.trim().length > 0);
-      if (!assigneeNames.some((name) => name.toLowerCase().includes(assignee.toLowerCase()))) continue;
+      const matchedAssignee = assigneeNames.find((name) => name.toLowerCase().includes(assignee.toLowerCase()));
+      if (!matchedAssignee) continue;
       const digits = normalizeDigits(firstText(record, ["patentNumber"]));
       if (!/^\d{6,9}$/.test(digits)) continue;
       const patentNumber = `US${digits}`;
       matches.set(patentNumber, {
         normalizedPatentNumber: patentNumber,
         title: firstText(metadata, ["inventionTitle", "title"]) ?? "",
-        assignee: assigneeNames[0].trim(),
+        assignee: matchedAssignee.trim(),
         applicationNumber: firstText(record, ["applicationNumberText", "applicationNumber"]),
         issueDate: safeDate(firstText(metadata, ["grantDate", "issueDate", "patentIssueDate"])),
       });
