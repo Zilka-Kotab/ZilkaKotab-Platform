@@ -196,7 +196,8 @@ async function requestJson(path: string, init: RequestInit = {}) {
   }
   if (!response.ok) {
     const detail = firstText(parsed, ["errorDetails", "error", "message"]);
-    throw new UsptoImportError(detail ? `USPTO retrieval failed: ${detail}` : `USPTO retrieval failed with status ${response.status}.`, response.status >= 400 && response.status < 500 ? 400 : 502);
+    const status = response.status === 404 ? 404 : response.status >= 400 && response.status < 500 ? 400 : 502;
+    throw new UsptoImportError(detail ? `USPTO retrieval failed: ${detail}` : `USPTO retrieval failed with status ${response.status}.`, status);
   }
   return parsed;
 }
@@ -268,49 +269,145 @@ export type UsptoAssigneePatent = {
   assignee: string;
   applicationNumber: string | null;
   issueDate: string | null;
+  matchSources: Array<
+    | { type: "application"; matchedName: string }
+    | { type: "assignment"; matchedName: string; partyRole: "ASSIGNEE" | "ASSIGNOR"; recordedDate: string | null; conveyance: string | null }
+  >;
 };
 
-export async function searchPatentsByAssignee(input: string) {
+const ASSIGNMENT_LOOKUP_LIMIT = 500;
+const ASSIGNMENT_CONCURRENCY = 10;
+
+function normalizedAssigneeNames(input: string, alternates: string[]) {
   const assignee = input.trim().replace(/\s+/g, " ");
   if (assignee.length < 2 || assignee.length > 120) {
     throw new UsptoImportError("Enter an assignee name between 2 and 120 characters.", 400);
   }
+  if (alternates.length > 10) throw new UsptoImportError("Search with up to 10 alternate assignee names at a time.", 400);
+  const names = [assignee, ...alternates.map((name) => name.trim().replace(/\s+/g, " "))];
+  if (names.some((name) => name.length < 2 || name.length > 120)) {
+    throw new UsptoImportError("Each alternate assignee name must be between 2 and 120 characters.", 400);
+  }
+  return [...new Map(names.map((name) => [name.toLocaleLowerCase(), name])).values()];
+}
+
+function assigneeSearchQuery(assignee: string) {
   const escaped = assignee.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
-  const query = `applicationMetaData.assigneeBag.assigneeNameText:"${escaped}"`;
+  return `applicationMetaData.assigneeBag.assigneeNameText:"${escaped}"`;
+}
+
+function addMatchSource<T extends UsptoAssigneePatent["matchSources"][number]>(patent: UsptoAssigneePatent, source: T) {
+  const exists = patent.matchSources.some((match) =>
+    match.type === source.type &&
+    match.matchedName.toLocaleLowerCase() === source.matchedName.toLocaleLowerCase() &&
+    (match.type !== "assignment" || source.type !== "assignment" ||
+      (match.partyRole === source.partyRole && match.recordedDate === source.recordedDate && match.conveyance === source.conveyance)),
+  );
+  if (!exists) patent.matchSources.push(source);
+}
+
+async function assignmentRecords(applicationNumber: string) {
+  try {
+    const body = await requestJson(`/api/v1/patent/applications/${encodeURIComponent(applicationNumber)}/assignment`);
+    return valuesForKeys(body, new Set(["assignmentbag"])).flatMap(arrayFrom);
+  } catch (error) {
+    if (error instanceof UsptoImportError && error.status === 404) return [];
+    throw error;
+  }
+}
+
+function assignmentMatches(record: unknown, names: string[]) {
+  const matchForRole = (keys: string[], partyRole: "ASSIGNEE" | "ASSIGNOR") => {
+    const partyNames = valuesForKeys(record, new Set(keys)).filter(
+      (value): value is string => typeof value === "string" && value.trim().length > 0,
+    );
+    return partyNames.flatMap((partyName) => {
+      const matchingName = names.find((name) => partyName.toLocaleLowerCase().includes(name.toLocaleLowerCase()));
+      return matchingName ? [{
+        type: "assignment" as const,
+        matchedName: partyName.trim(),
+        partyRole,
+        recordedDate: safeDate(firstText(record, ["assignmentRecordedDate", "recordedDate"])),
+        conveyance: firstText(record, ["conveyanceText"]),
+      }] : [];
+    });
+  };
+  return [
+    ...matchForRole(["assigneenametext"], "ASSIGNEE"),
+    ...matchForRole(["assignorname"], "ASSIGNOR"),
+  ];
+}
+
+export async function searchPatentsByAssignee(
+  input: string,
+  options: { alternateAssignees?: string[]; includeAssignments?: boolean } = {},
+) {
+  const alternateAssignees = options.alternateAssignees ?? [];
+  if (!Array.isArray(alternateAssignees) || alternateAssignees.some((name) => typeof name !== "string")) {
+    throw new UsptoImportError("Alternate assignee names must be text values.", 400);
+  }
+  const names = normalizedAssigneeNames(input, alternateAssignees);
   const pageSize = 100;
   const maxResults = 5000;
   const matches = new Map<string, UsptoAssigneePatent>();
   let truncated = false;
 
-  for (let offset = 0; offset < maxResults; offset += pageSize) {
-    const body = await requestJson(`${SEARCH_PATH}?q=${encodeURIComponent(query)}&limit=${pageSize}&offset=${offset}`);
-    const records = valuesForKeys(body, new Set(["patentfilewrapperdatabag"])).flatMap(arrayFrom);
-    if (!records.length) break;
-    for (const record of records) {
-      const metadata = asRecord(record)?.applicationMetaData ?? record;
-      const assigneeNames = valuesForKeys(metadata, new Set(["assigneenametext"]))
-        .filter((value): value is string => typeof value === "string" && value.trim().length > 0);
-      const matchedAssignee = assigneeNames.find((name) => name.toLowerCase().includes(assignee.toLowerCase()));
-      if (!matchedAssignee) continue;
-      const digits = normalizeDigits(firstText(record, ["patentNumber"]));
-      if (!/^\d{6,9}$/.test(digits)) continue;
-      const patentNumber = `US${digits}`;
-      matches.set(patentNumber, {
-        normalizedPatentNumber: patentNumber,
-        title: firstText(metadata, ["inventionTitle", "title"]) ?? "",
-        assignee: matchedAssignee.trim(),
-        applicationNumber: firstText(record, ["applicationNumberText", "applicationNumber"]),
-        issueDate: safeDate(firstText(metadata, ["grantDate", "issueDate", "patentIssueDate"])),
-      });
+  for (const name of names) {
+    const query = assigneeSearchQuery(name);
+    for (let offset = 0; offset < maxResults; offset += pageSize) {
+      const body = await requestJson(`${SEARCH_PATH}?q=${encodeURIComponent(query)}&limit=${pageSize}&offset=${offset}`);
+      const records = valuesForKeys(body, new Set(["patentfilewrapperdatabag"])).flatMap(arrayFrom);
+      if (!records.length) break;
+      for (const record of records) {
+        const metadata = asRecord(record)?.applicationMetaData ?? record;
+        const assigneeNames = valuesForKeys(metadata, new Set(["assigneenametext"]))
+          .filter((value): value is string => typeof value === "string" && value.trim().length > 0);
+        const matchedAssignee = assigneeNames.find((candidate) => candidate.toLocaleLowerCase().includes(name.toLocaleLowerCase()));
+        if (!matchedAssignee) continue;
+        const digits = normalizeDigits(firstText(record, ["patentNumber"]));
+        if (!/^\d{6,9}$/.test(digits)) continue;
+        const patentNumber = `US${digits}`;
+        const existing = matches.get(patentNumber);
+        const patent: UsptoAssigneePatent = existing ?? {
+          normalizedPatentNumber: patentNumber,
+          title: firstText(metadata, ["inventionTitle", "title"]) ?? "",
+          assignee: matchedAssignee.trim(),
+          applicationNumber: firstText(record, ["applicationNumberText", "applicationNumber"]),
+          issueDate: safeDate(firstText(metadata, ["grantDate", "issueDate", "patentIssueDate"])),
+          matchSources: [],
+        };
+        addMatchSource(patent, { type: "application", matchedName: matchedAssignee.trim() });
+        matches.set(patentNumber, patent);
+      }
+      if (records.length < pageSize) break;
+      if (offset + pageSize >= maxResults) truncated = true;
     }
-    if (records.length < pageSize) break;
-    if (offset + pageSize >= maxResults) truncated = true;
+  }
+
+  let assignmentSearchTruncated = false;
+  if (options.includeAssignments) {
+    const candidates = [...matches.values()]
+      .sort((left, right) => (right.issueDate ?? "").localeCompare(left.issueDate ?? ""));
+    const assignmentCandidates = candidates.filter((patent) => patent.applicationNumber).slice(0, ASSIGNMENT_LOOKUP_LIMIT);
+    assignmentSearchTruncated = candidates.length > assignmentCandidates.length;
+    for (let offset = 0; offset < assignmentCandidates.length; offset += ASSIGNMENT_CONCURRENCY) {
+      const batch = assignmentCandidates.slice(offset, offset + ASSIGNMENT_CONCURRENCY);
+      const assignmentResults = await Promise.all(batch.map(async (patent) => ({
+        patent,
+        records: await assignmentRecords(patent.applicationNumber!),
+      })));
+      for (const { patent, records } of assignmentResults) {
+        for (const record of records) {
+          for (const source of assignmentMatches(record, names)) addMatchSource(patent, source);
+        }
+      }
+    }
   }
 
   const results = [...matches.values()].sort((left, right) =>
     (right.issueDate ?? "").localeCompare(left.issueDate ?? "") || left.normalizedPatentNumber.localeCompare(right.normalizedPatentNumber),
   );
-  return { results, truncated };
+  return { results, truncated, ...(options.includeAssignments ? { assignmentSearchTruncated } : {}) };
 }
 
 export async function retrievePatent(normalizedPatentNumber: string): Promise<PatentImportPayload> {

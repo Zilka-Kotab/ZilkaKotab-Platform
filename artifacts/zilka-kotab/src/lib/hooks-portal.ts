@@ -107,7 +107,7 @@ export const useCreatePatent = (projectId: string) =>
 export const usePreviewPatentImport = (projectId: string) =>
   useMutation({ mutationFn: (patentNumbers: string) => api.previewPatentImport(projectId, patentNumbers) });
 export const useSearchPatentsByAssignee = (projectId: string) =>
-  useMutation({ mutationFn: (assignee: string) => api.searchPatentsByAssignee(projectId, assignee) });
+  useMutation({ mutationFn: (input: Parameters<typeof api.searchPatentsByAssignee>[1]) => api.searchPatentsByAssignee(projectId, input) });
 export const useCommitPatentImport = (projectId: string) =>
   useWorkspaceMutation(projectId, ({ draftId, selectedClaimNumbers }: { draftId: string; selectedClaimNumbers: string[] }) =>
     api.commitPatentImport(draftId, selectedClaimNumbers));

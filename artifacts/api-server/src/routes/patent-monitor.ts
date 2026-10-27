@@ -476,8 +476,17 @@ router.post("/portal/projects/:id/patents/search-by-assignee", async (req, res) 
   const project = projectPublicId ? await accessibleProject(req.portalUser!, projectPublicId) : null;
   if (!project) return void res.status(404).json({ error: "Project not found." });
   if (typeof req.body?.assignee !== "string") return void res.status(400).json({ error: "Enter an assignee name." });
+  if (req.body?.alternateAssignees !== undefined && !Array.isArray(req.body.alternateAssignees)) {
+    return void res.status(400).json({ error: "Alternate assignee names must be provided as a list." });
+  }
+  if (req.body?.includeAssignments !== undefined && typeof req.body.includeAssignments !== "boolean") {
+    return void res.status(400).json({ error: "Choose whether to include USPTO assignment records." });
+  }
   try {
-    res.json(await searchPatentsByAssignee(req.body.assignee));
+    res.json(await searchPatentsByAssignee(req.body.assignee, {
+      alternateAssignees: req.body.alternateAssignees,
+      includeAssignments: req.body.includeAssignments,
+    }));
   } catch (error) {
     if (error instanceof UsptoImportError) return void res.status(error.status).json({ error: error.message });
     req.log.error({ err: error }, "USPTO assignee search failed");

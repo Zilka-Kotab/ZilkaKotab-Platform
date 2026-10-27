@@ -539,9 +539,12 @@ export default function ProjectWorkspace() {
   const [addOpen, setAddOpen] = useState(false);
   const [patentNumbers, setPatentNumbers] = useState('');
   const [assigneeSearchText, setAssigneeSearchText] = useState('');
+  const [alternateAssigneeNames, setAlternateAssigneeNames] = useState('');
+  const [includeAssignmentRecords, setIncludeAssignmentRecords] = useState(false);
   const [assigneeMatches, setAssigneeMatches] = useState<AssigneePatentMatch[]>([]);
   const [selectedAssigneeNumbers, setSelectedAssigneeNumbers] = useState<string[]>([]);
   const [assigneeSearchTruncated, setAssigneeSearchTruncated] = useState(false);
+  const [assignmentSearchTruncated, setAssignmentSearchTruncated] = useState(false);
   const [drafts, setDrafts] = useState<PatentImportDraft[]>([]);
   const [selectedClaims, setSelectedClaims] = useState<Record<string, string[]>>({});
   const [manualDraft, setManualDraft] = useState<PatentImportDraft | null>(null);
@@ -769,10 +772,22 @@ export default function ProjectWorkspace() {
     setPatentInputError('');
     setAssigneeMatches([]);
     setSelectedAssigneeNumbers([]);
+    setAssigneeSearchTruncated(false);
+    setAssignmentSearchTruncated(false);
+    const alternateAssignees = [...new Set(alternateAssigneeNames.split(/[\n,;]+/).map((name) => name.trim()).filter(Boolean))];
+    if (alternateAssignees.length > 10) {
+      setPatentInputError('Enter up to 10 alternate assignee names.');
+      return;
+    }
     try {
-      const response = await assigneeSearch.mutateAsync(assigneeSearchText);
+      const response = await assigneeSearch.mutateAsync({
+        assignee: assigneeSearchText,
+        alternateAssignees,
+        includeAssignments: includeAssignmentRecords,
+      });
       setAssigneeMatches(response.results);
       setAssigneeSearchTruncated(response.truncated);
+      setAssignmentSearchTruncated(response.assignmentSearchTruncated ?? false);
       setSelectedAssigneeNumbers(getEligibleAssigneePatentNumbers(response.results, data?.patents ?? []));
     } catch (error) {
       setPatentInputError(error instanceof Error ? error.message : 'USPTO assignee search failed.');
@@ -1066,15 +1081,20 @@ export default function ProjectWorkspace() {
            <form onSubmit={searchAssignee} className="space-y-3 border-b border-border bg-muted/20 p-5">
              <div><h3 className="text-sm font-semibold">Find patents by assignee</h3><p className="mt-1 text-xs text-muted-foreground">Search issued U.S. patents in USPTO records, then select the ones to retrieve for review.</p></div>
              <div className="flex flex-col gap-2 sm:flex-row"><input required minLength={2} maxLength={120} value={assigneeSearchText} onChange={(event) => setAssigneeSearchText(event.target.value)} placeholder="Company or assignee name" className="h-10 min-w-0 flex-1 rounded-lg border border-input bg-background px-3 text-sm" /><button type="submit" disabled={assigneeSearch.isPending || patentImportProgress !== null} className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-border bg-card px-4 text-sm font-semibold disabled:opacity-50"><Search className={`h-4 w-4 ${assigneeSearch.isPending ? 'animate-pulse' : ''}`} />{assigneeSearch.isPending ? 'Searching USPTO…' : 'Search USPTO'}</button></div>
+              <label className="block text-xs font-semibold text-foreground">Former or alternate company names <span className="font-normal text-muted-foreground">(optional, up to 10; separate names with commas or new lines)</span>
+                <textarea value={alternateAssigneeNames} onChange={(event) => setAlternateAssigneeNames(event.target.value)} maxLength={1300} rows={2} placeholder={'Example Holdings, Inc.\nPrevious Company LLC'} className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm font-normal" />
+              </label>
+              <label className="flex items-start gap-2 text-xs text-muted-foreground"><input type="checkbox" checked={includeAssignmentRecords} onChange={(event) => setIncludeAssignmentRecords(event.target.checked)} className="mt-0.5 accent-[hsl(var(--primary))]" /><span><span className="font-semibold text-foreground">Check USPTO assignment records</span><span className="mt-0.5 block">Checks recorded transfers for patents found by assignee-name search. Coverage is limited to the 500 most recently issued candidates per search.</span></span></label>
              {assigneeMatches.length > 0 && <div className="space-y-2">
-                <div className="flex flex-wrap items-center justify-between gap-2 text-xs"><span className="font-semibold">{assigneeMatches.length} matching patents{assigneeSearchTruncated ? ' (result limit reached; refine the name)' : ''}</span><button type="button" onClick={() => { const eligible = getEligibleAssigneePatentNumbers(assigneeMatches, data?.patents ?? []); setSelectedAssigneeNumbers(selectedAssigneeNumbers.length === eligible.length ? [] : eligible); }} className="font-semibold text-primary">Select / clear eligible</button></div>
+                 <div className="flex flex-wrap items-center justify-between gap-2 text-xs"><span className="font-semibold">{assigneeMatches.length} matching patents{assigneeSearchTruncated ? ' (result limit reached; refine the name)' : ''}</span><button type="button" onClick={() => { const eligible = getEligibleAssigneePatentNumbers(assigneeMatches, data?.patents ?? []); setSelectedAssigneeNumbers(selectedAssigneeNumbers.length === eligible.length ? [] : eligible); }} className="font-semibold text-primary">Select / clear eligible</button></div>
+                {assignmentSearchTruncated && <p className="text-xs text-amber-800">Assignment records were checked for the 500 most recently issued candidates only. Narrow the name search to check additional patents.</p>}
                <div className="max-h-64 overflow-auto rounded-lg border border-border bg-background">
                  {assigneeMatches.map((item) => {
                     const alreadyAdded = isAssigneePatentAlreadyAdded(item, data?.patents ?? []);
                    const checked = selectedAssigneeNumbers.includes(item.normalizedPatentNumber);
                    return <label key={item.normalizedPatentNumber} className="flex cursor-pointer gap-3 border-b border-border p-3 last:border-0 hover:bg-muted/30">
                      <input type="checkbox" disabled={alreadyAdded || patentImportProgress !== null} checked={checked} onChange={(event) => setSelectedAssigneeNumbers((current) => event.target.checked ? [...current, item.normalizedPatentNumber] : current.filter((number) => number !== item.normalizedPatentNumber))} className="mt-1 accent-[hsl(var(--primary))]" />
-                     <span className="min-w-0 flex-1"><span className="font-mono text-xs font-semibold">{item.normalizedPatentNumber}</span><span className="ml-2 text-[10px] text-muted-foreground">{item.issueDate || 'Issue date unavailable'}{alreadyAdded ? ' · Already in project' : ''}</span><span className="mt-1 block truncate text-xs text-muted-foreground">{item.title || 'Title unavailable'} · {item.assignee}</span></span>
+                      <span className="min-w-0 flex-1"><span className="font-mono text-xs font-semibold">{item.normalizedPatentNumber}</span><span className="ml-2 text-[10px] text-muted-foreground">{item.issueDate || 'Issue date unavailable'}{alreadyAdded ? ' · Already in project' : ''}</span><span className="mt-1 block truncate text-xs text-muted-foreground">{item.title || 'Title unavailable'} · {item.assignee}</span><span className="mt-1 flex flex-wrap gap-1">{item.matchSources.map((source, index) => <span key={`${source.type}-${source.matchedName}-${index}`} className={`rounded px-1.5 py-0.5 text-[10px] ${source.type === 'assignment' ? 'bg-amber-100 text-amber-900' : 'bg-muted text-muted-foreground'}`}>{source.type === 'application' ? `Application metadata · ${source.matchedName}` : `USPTO assignment ${source.partyRole === 'ASSIGNOR' ? '(prior owner)' : '(recipient)'} · ${source.matchedName}${source.recordedDate ? ` · recorded ${source.recordedDate}` : ''}${source.conveyance ? ` · ${source.conveyance}` : ''}`}</span>)}</span></span>
                    </label>;
                  })}
                </div>

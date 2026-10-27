@@ -153,6 +153,10 @@ export interface AssigneePatentMatch {
   assignee: string;
   applicationNumber: string | null;
   issueDate: string | null;
+  matchSources: Array<
+    | { type: 'application'; matchedName: string }
+    | { type: 'assignment'; matchedName: string; partyRole: 'ASSIGNEE' | 'ASSIGNOR'; recordedDate: string | null; conveyance: string | null }
+  >;
 }
 
 export interface WorkspaceItem {
@@ -254,8 +258,11 @@ export const createManualAnalysis = (projectId: string, data: { summary: string;
   fetchPortal<{ run: AnalysisRun }>(`/projects/${projectId}/analysis-runs`, { method: 'POST', body: JSON.stringify(data) });
 export const previewPatentImport = (projectId: string, patentNumbers: string) =>
   fetchPortal<{ drafts: PatentImportDraft[] }>(`/projects/${projectId}/patent-imports/preview`, { method: 'POST', body: JSON.stringify({ patentNumbers }) });
-export const searchPatentsByAssignee = (projectId: string, assignee: string) =>
-  fetchPortal<{ results: AssigneePatentMatch[]; truncated: boolean }>(`/projects/${projectId}/patents/search-by-assignee`, { method: 'POST', body: JSON.stringify({ assignee }) });
+export const searchPatentsByAssignee = (
+  projectId: string,
+  input: { assignee: string; alternateAssignees: string[]; includeAssignments: boolean },
+) =>
+  fetchPortal<{ results: AssigneePatentMatch[]; truncated: boolean; assignmentSearchTruncated?: boolean }>(`/projects/${projectId}/patents/search-by-assignee`, { method: 'POST', body: JSON.stringify(input) });
 export const commitPatentImport = (draftId: string, selectedClaimNumbers: string[]) =>
   fetchPortal<{ patent: MonitoredPatent }>(`/patent-imports/${draftId}/commit`, { method: 'POST', body: JSON.stringify({ selectedClaimNumbers }) });
 export const refreshPatent = (publicId: string) =>

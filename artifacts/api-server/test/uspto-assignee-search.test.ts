@@ -9,6 +9,7 @@ import { normalizePatentNumbers, searchPatentsByAssignee } from "../src/lib/uspt
 
 type SearchRecord = {
   patentNumber: string;
+  applicationNumberText?: string;
   applicationMetaData: {
     assigneeBag: { assigneeNameText: string }[];
     inventionTitle?: string;
@@ -19,6 +20,7 @@ type SearchRecord = {
 function record(patentNumber: string, assignees: string[] = ["Example Corp"]): SearchRecord {
   return {
     patentNumber,
+    applicationNumberText: "12345678",
     applicationMetaData: {
       assigneeBag: assignees.map((assigneeNameText) => ({ assigneeNameText })),
       inventionTitle: `Patent ${patentNumber}`,
@@ -77,6 +79,69 @@ test("USPTO assignee search and selection behavior", async (suite) => {
       assert.equal(response.results[0].normalizedPatentNumber, "US7654321");
       assert.equal(response.results[0].assignee, "Example Corp International");
     });
+  });
+
+  await suite.test("searches alternate names and labels assignment-record matches", async () => {
+    const originalFetch = globalThis.fetch;
+    const originalApiKey = process.env.USPTO_API_KEY;
+    const requests: URL[] = [];
+    process.env.USPTO_API_KEY = "test-key";
+    globalThis.fetch = (async (input: RequestInfo | URL) => {
+      const url = new URL(typeof input === "string" ? input : input.toString());
+      requests.push(url);
+      if (url.pathname.endsWith("/assignment")) {
+        return new Response(JSON.stringify({
+          assignmentBag: [{
+            assignorBag: [{ assignorName: "Former Example Corp" }],
+            assigneeBag: [{ assigneeNameText: "Example Corp" }],
+            assignmentRecordedDate: "2024-02-03",
+            conveyanceText: "ASSIGNMENT OF ASSIGNORS INTEREST",
+          }],
+        }), { status: 200, headers: { "Content-Type": "application/json" } });
+      }
+
+      const query = url.searchParams.get("q") ?? "";
+      const results = query.includes("Former Example Corp")
+        ? []
+        : [record("7654321", ["Example Corp"])];
+      return new Response(JSON.stringify({ patentFileWrapperDataBag: results }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }) as typeof fetch;
+
+    try {
+      const response = await searchPatentsByAssignee("Example Corp", {
+        alternateAssignees: ["Former Example Corp"],
+        includeAssignments: true,
+      });
+
+      assert.equal(response.results.length, 1);
+      assert.deepEqual(response.results[0].matchSources, [
+        { type: "application", matchedName: "Example Corp" },
+        {
+          type: "assignment",
+          matchedName: "Example Corp",
+          partyRole: "ASSIGNEE",
+          recordedDate: "2024-02-03",
+          conveyance: "ASSIGNMENT OF ASSIGNORS INTEREST",
+        },
+        {
+          type: "assignment",
+          matchedName: "Former Example Corp",
+          partyRole: "ASSIGNOR",
+          recordedDate: "2024-02-03",
+          conveyance: "ASSIGNMENT OF ASSIGNORS INTEREST",
+        },
+      ]);
+      assert.equal(response.assignmentSearchTruncated, false);
+      assert.equal(requests.filter((url) => url.pathname.endsWith("/assignment")).length, 1);
+      assert.equal(requests.filter((url) => url.pathname === "/api/v1/patent/applications/search").length, 2);
+    } finally {
+      globalThis.fetch = originalFetch;
+      if (originalApiKey === undefined) delete process.env.USPTO_API_KEY;
+      else process.env.USPTO_API_KEY = originalApiKey;
+    }
   });
 
   await suite.test("returns an empty non-truncated result when there are no matches", async () => {
