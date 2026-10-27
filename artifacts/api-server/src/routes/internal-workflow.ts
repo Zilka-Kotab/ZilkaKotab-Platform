@@ -123,7 +123,7 @@ function serializeMatter(matter: typeof internalWorkflowMattersTable.$inferSelec
 
 router.use(requireAdmin);
 
-router.get("/internal-workflow/matters", async (_req, res, next) => {
+router.get("/portal/internal-workflow/matters", async (_req, res, next) => {
   try {
     const matters = await db.select().from(internalWorkflowMattersTable).orderBy(asc(internalWorkflowMattersTable.docketId));
     res.json({ matters: matters.map(serializeMatter) });
@@ -132,7 +132,7 @@ router.get("/internal-workflow/matters", async (_req, res, next) => {
   }
 });
 
-router.get("/internal-workflow/imports", async (_req, res, next) => {
+router.get("/portal/internal-workflow/imports", async (_req, res, next) => {
   try {
     const imports = await db.select().from(internalWorkflowImportsTable).orderBy(asc(internalWorkflowImportsTable.createdAt));
     res.json({ imports: imports.reverse().map((item) => ({
@@ -149,7 +149,7 @@ router.get("/internal-workflow/imports", async (_req, res, next) => {
   }
 });
 
-router.post("/internal-workflow/imports/preview", async (req, res, next) => {
+router.post("/portal/internal-workflow/imports/preview", async (req, res, next) => {
   try {
     const csvText = typeof req.body?.csvText === "string" ? req.body.csvText : "";
     const fileName = typeof req.body?.fileName === "string" ? req.body.fileName.trim().slice(0, 240) : "";
@@ -235,7 +235,7 @@ router.post("/internal-workflow/imports/preview", async (req, res, next) => {
   }
 });
 
-router.post("/internal-workflow/imports/:importId/apply", async (req, res, next) => {
+router.post("/portal/internal-workflow/imports/:importId/apply", async (req, res, next) => {
   try {
     const publicId = typeof req.params.importId === "string" ? req.params.importId : "";
     if (!UUID.test(publicId)) return void res.status(400).json({ error: "Invalid import identifier." });
