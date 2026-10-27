@@ -24,6 +24,7 @@ import TeamMember from '@/pages/TeamMember';
 import Contact from '@/pages/Contact';
 import Privacy from '@/pages/Privacy';
 import Terms from '@/pages/Terms';
+import AiTools from '@/pages/AiTools';
 import SignInPage from '@/pages/SignIn';
 import NotFound from '@/pages/not-found';
 
@@ -150,6 +151,7 @@ function Router() {
             <Route path="/contact" component={Contact} />
             <Route path="/privacy-policy" component={Privacy} />
             <Route path="/terms" component={Terms} />
+            <Route path="/ai-tools" component={AiTools} />
             <Route component={NotFound} />
           </Switch>
         </PublicLayout>

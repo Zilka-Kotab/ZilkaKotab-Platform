@@ -12,6 +12,7 @@ const navLinks = [
   { name: 'About', path: '/about' },
   { name: 'Services', path: '/services' },
   { name: 'Team', path: '/team' },
+  { name: 'AI Tools', path: '/ai-tools' },
 ];
 
 export function Navbar() {
@@ -36,8 +37,8 @@ export function Navbar() {
         </Link>
 
         {/* Desktop Navigation */}
-        <nav className="hidden md:flex items-center gap-8">
-          <ul className="flex items-center gap-8">
+        <nav className="hidden md:flex items-center gap-6 lg:gap-8">
+          <ul className="flex items-center gap-5 lg:gap-8">
             {navLinks.map((link) => (
               <li key={link.path}>
                 <Link
@@ -61,24 +62,15 @@ export function Navbar() {
               </li>
             ))}
           </ul>
-          <div className="flex items-center gap-3 border-l border-border pl-8">
-            {!isAuthenticated && (
-              <Link
-                href="/sign-in"
-                className="inline-flex items-center gap-1.5 h-10 px-4 rounded-sm border border-border text-sm font-medium text-foreground/80 hover:text-primary hover:border-primary/30 transition-colors"
-              >
-                <LockKeyhole className="w-4 h-4" />
-                AI Tools
-              </Link>
-            )}
-            {isAuthenticated && (
-              <Link
-                href="/portal"
-                className="text-sm font-medium text-primary hover:text-primary/80 transition-colors"
-              >
-                Client Portal
-              </Link>
-            )}
+          <div className="flex items-center gap-3 border-l border-border pl-6 lg:pl-8">
+            <Link
+              href={isAuthenticated ? '/portal' : '/sign-in'}
+              data-testid="link-firm-portal"
+              className="inline-flex items-center gap-1.5 h-10 px-4 rounded-sm border border-border text-sm font-medium text-foreground/80 hover:text-primary hover:border-primary/30 transition-colors"
+            >
+              <LockKeyhole className="w-4 h-4" />
+              Firm Portal
+            </Link>
             <a
               href={PAY_INVOICE_URL}
               target="_blank"
@@ -149,17 +141,10 @@ export function Navbar() {
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.3, delay: 0.08 }}
               >
-                {!isAuthenticated && (
-                  <Link href="/sign-in" className="inline-flex items-center gap-2 text-2xl font-display font-medium text-primary">
-                    <LockKeyhole className="w-6 h-6" />
-                    AI Tools
-                  </Link>
-                )}
-                {isAuthenticated && (
-                  <Link href="/portal" className="text-2xl font-display font-medium text-primary">
-                    Client Portal
-                  </Link>
-                )}
+                <Link href={isAuthenticated ? '/portal' : '/sign-in'} data-testid="link-firm-portal-mobile" className="inline-flex items-center gap-2 text-2xl font-display font-medium text-foreground/70">
+                  <LockKeyhole className="w-6 h-6" />
+                  Firm Portal
+                </Link>
               </motion.li>
               <motion.li
                 initial={{ opacity: 0, x: -20 }}

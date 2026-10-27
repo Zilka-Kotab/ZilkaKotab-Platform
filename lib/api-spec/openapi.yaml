@@ -10,6 +10,8 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: public-patent-tools
+    description: Public USPTO-backed patent intelligence tools
 paths:
   /healthz:
     get:
@@ -24,6 +26,78 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /public-tools/portfolio/analyze:
+    post:
+      operationId: analyzePublicPortfolio
+      tags: [public-patent-tools]
+      summary: Analyze a public U.S. patent portfolio
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PublicPortfolioInput"
+      responses:
+        "200":
+          description: Portfolio analysis
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PublicPortfolioAnalysis"
+        "400":
+          description: Invalid company name
+        "429":
+          description: Rate limit exceeded
+        "502":
+          description: USPTO data unavailable
+  /public-tools/examiner/analyze:
+    post:
+      operationId: analyzePublicExaminer
+      tags: [public-patent-tools]
+      summary: Analyze a USPTO examiner or art unit
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PublicExaminerInput"
+      responses:
+        "200":
+          description: Examiner or art-unit analysis
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PublicExaminerAnalysis"
+        "400":
+          description: Invalid examiner or art-unit search
+        "429":
+          description: Rate limit exceeded
+        "502":
+          description: USPTO data unavailable
+  /public-tools/inquiry:
+    post:
+      operationId: submitPublicToolInquiry
+      tags: [public-patent-tools]
+      summary: Submit an inquiry from a public patent tool
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PublicToolInquiryInput"
+      responses:
+        "200":
+          description: Inquiry accepted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PublicToolInquiryResult"
+        "400":
+          description: Invalid inquiry
+        "429":
+          description: Rate limit exceeded
+        "500":
+          description: Inquiry delivery unavailable
 components:
   schemas:
     HealthStatus:
@@ -33,4 +107,235 @@ components:
           type: string
       required:
         - status
+    PublicPortfolioInput:
+      type: object
+      additionalProperties: false
+      required: [companyName]
+      properties:
+        companyName:
+          type: string
+          minLength: 2
+          maxLength: 120
+    PublicFilingTrend:
+      type: object
+      additionalProperties: false
+      required: [year, count]
+      properties:
+        year:
+          type: integer
+        count:
+          type: integer
+          minimum: 0
+    PublicTechnologyArea:
+      type: object
+      additionalProperties: false
+      required: [code, label, count]
+      properties:
+        code:
+          type: string
+        label:
+          type: string
+        count:
+          type: integer
+          minimum: 0
+    PublicPatentApplication:
+      type: object
+      additionalProperties: false
+      required: [applicationNumber, title, filingDate, publicationNumber, publicationDate, status, url]
+      properties:
+        applicationNumber:
+          type: string
+        title:
+          type: string
+        filingDate:
+          type: ["string", "null"]
+        publicationNumber:
+          type: ["string", "null"]
+        publicationDate:
+          type: ["string", "null"]
+        status:
+          type: string
+        url:
+          type: string
+    PublicDataCoverage:
+      type: object
+      additionalProperties: false
+      required: [source, retrievedAt, totalMatchesReported, recordsAnalyzed, resultLimit, truncated, note]
+      properties:
+        source:
+          type: string
+        retrievedAt:
+          type: string
+          format: date-time
+        totalMatchesReported:
+          type: integer
+          minimum: 0
+        recordsAnalyzed:
+          type: integer
+          minimum: 0
+        resultLimit:
+          type: integer
+          minimum: 1
+        truncated:
+          type: boolean
+        note:
+          type: string
+    PublicPortfolioAnalysis:
+      type: object
+      additionalProperties: false
+      required:
+        - companyName
+        - matchedApplicantNames
+        - identifiedGrantedPatents
+        - identifiedPendingApplications
+        - activePatentCount
+        - activePatentCountNote
+        - filingTrends
+        - topTechnologyAreas
+        - recentApplications
+        - coverage
+      properties:
+        companyName:
+          type: string
+        matchedApplicantNames:
+          type: array
+          items:
+            type: string
+        identifiedGrantedPatents:
+          type: integer
+          minimum: 0
+        identifiedPendingApplications:
+          type: integer
+          minimum: 0
+        activePatentCount:
+          type: ["integer", "null"]
+          minimum: 0
+        activePatentCountNote:
+          type: string
+        filingTrends:
+          type: array
+          items:
+            $ref: "#/components/schemas/PublicFilingTrend"
+        topTechnologyAreas:
+          type: array
+          items:
+            $ref: "#/components/schemas/PublicTechnologyArea"
+        recentApplications:
+          type: array
+          items:
+            $ref: "#/components/schemas/PublicPatentApplication"
+        coverage:
+          $ref: "#/components/schemas/PublicDataCoverage"
+    PublicExaminerInput:
+      type: object
+      additionalProperties: false
+      required: [query]
+      properties:
+        query:
+          type: string
+          minLength: 2
+          maxLength: 100
+    PublicExaminerBreakdown:
+      type: object
+      additionalProperties: false
+      required: [examinerName, count]
+      properties:
+        examinerName:
+          type: string
+        count:
+          type: integer
+          minimum: 0
+    PublicExaminerAnalysis:
+      type: object
+      additionalProperties: false
+      required:
+        - query
+        - searchType
+        - examinerName
+        - artUnit
+        - identifiedApplications
+        - disposedApplications
+        - allowedApplications
+        - abandonedApplications
+        - estimatedAllowanceRate
+        - averageOfficeActionsBeforeAllowance
+        - averageProsecutionDurationMonths
+        - topExaminers
+        - calculationNote
+        - coverage
+      properties:
+        query:
+          type: string
+        searchType:
+          type: string
+          enum: [examiner, art-unit]
+        examinerName:
+          type: ["string", "null"]
+        artUnit:
+          type: ["string", "null"]
+        identifiedApplications:
+          type: integer
+          minimum: 0
+        disposedApplications:
+          type: integer
+          minimum: 0
+        allowedApplications:
+          type: integer
+          minimum: 0
+        abandonedApplications:
+          type: integer
+          minimum: 0
+        estimatedAllowanceRate:
+          type: ["number", "null"]
+          minimum: 0
+          maximum: 100
+        averageOfficeActionsBeforeAllowance:
+          type: ["number", "null"]
+          minimum: 0
+        averageProsecutionDurationMonths:
+          type: ["number", "null"]
+          minimum: 0
+        topExaminers:
+          type: array
+          items:
+            $ref: "#/components/schemas/PublicExaminerBreakdown"
+        calculationNote:
+          type: string
+        coverage:
+          $ref: "#/components/schemas/PublicDataCoverage"
+    PublicToolInquiryInput:
+      type: object
+      additionalProperties: false
+      required: [name, company, email, tool, consent]
+      properties:
+        name:
+          type: string
+          minLength: 2
+          maxLength: 100
+        company:
+          type: string
+          minLength: 2
+          maxLength: 120
+        email:
+          type: string
+          pattern: '^[^@\s]+@[^@\s]+\.[^@\s]+$'
+          maxLength: 254
+        message:
+          type: string
+          maxLength: 2000
+        tool:
+          type: string
+          enum: [portfolio-analyzer, examiner-intelligence]
+        consent:
+          type: boolean
+        website:
+          type: string
+          maxLength: 200
+    PublicToolInquiryResult:
+      type: object
+      additionalProperties: false
+      required: [success]
+      properties:
+        success:
+          type: boolean
 
