@@ -4,6 +4,7 @@ import { useApplyInternalWorkflowImport, useInternalWorkflow, usePortalAccess, u
 import type { InternalWorkflowPreview } from "@/lib/api-portal";
 import InternalWorkflowTasks from "./InternalWorkflowTasks";
 import InternalWorkflowOperations from "./InternalWorkflowOperations";
+import InternalWorkflowDocketTasks from "./InternalWorkflowDocketTasks";
 
 export default function InternalWorkflow() {
   const access = usePortalAccess();
@@ -13,7 +14,7 @@ export default function InternalWorkflow() {
   const [preview, setPreview] = useState<InternalWorkflowPreview | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [section, setSection] = useState<"assignments" | "finance" | "management" | "notifications" | "docket">("assignments");
+  const [section, setSection] = useState<"assignments" | "finance" | "management" | "notifications" | "docket" | "docketTasks">("assignments");
 
   const onCsvFileSelected = async (file: File) => {
     setFileName(file.name);
@@ -51,7 +52,7 @@ export default function InternalWorkflow() {
   } : null;
 
   const navigation = <nav aria-label="Internal workflow sections" className="mx-auto flex max-w-[1440px] flex-wrap gap-2 px-4 py-5 sm:px-6 lg:px-9">
-    {([["assignments", "Work queue"], ["finance", "Time & billing"], ["management", "Management"], ["notifications", "Notifications"], ["docket", "Docket & imports"]] as const).map(([key, label]) =>
+    {([["assignments", "Work queue"], ["finance", "Time & billing"], ["management", "Management"], ["notifications", "Notifications"], ["docket", "Matter imports"], ["docketTasks", "AppColl tasks"]] as const).map(([key, label]) =>
       <button key={key} data-testid={`tab-internal-${key}`} onClick={() => setSection(key)} className={`rounded-lg px-3 py-2 text-sm font-semibold ${section === key ? "bg-primary text-primary-foreground" : "border border-border bg-card text-muted-foreground hover:bg-muted"}`}>{label}</button>)}
   </nav>;
   return <>
@@ -60,6 +61,7 @@ export default function InternalWorkflow() {
     {section === "finance" && <InternalWorkflowOperations section="finance" />}
     {section === "management" && <InternalWorkflowOperations section="management" />}
     {section === "notifications" && <InternalWorkflowOperations section="notifications" />}
+    {section === "docketTasks" && <InternalWorkflowDocketTasks canImport={canImport} />}
     {section === "docket" && <InternalWorkflowWorkspace
     canImport={canImport}
     matters={matters.map((matter) => ({

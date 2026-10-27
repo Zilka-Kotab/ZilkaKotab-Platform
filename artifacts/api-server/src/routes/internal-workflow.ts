@@ -1,11 +1,14 @@
 import { createHash } from "node:crypto";
-import { and, asc, eq, inArray, or } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, or } from "drizzle-orm";
 import { Router } from "express";
 import {
   db,
   attorneyClientsTable,
   clientsTable,
   internalWorkflowImportsTable,
+  internalWorkflowDocketTasksTable,
+  internalWorkflowDocketTaskImportsTable,
+  internalWorkflowDocketTaskChangesTable,
   internalWorkflowMattersTable,
   internalWorkflowTasksTable,
   internalWorkflowTaskAuditTable,
@@ -141,6 +144,30 @@ async function notifyUser(tx: any, userId: number, taskId: number, title: string
   await tx.insert(internalWorkflowNotificationsTable).values({ userId, taskId, title, message });
 }
 
+async function sweepInternalDeadlines() {
+  const today = new Date().toISOString().slice(0, 10);
+  const horizon = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  const tasks = await db.select().from(internalWorkflowTasksTable).limit(2000);
+  for (const task of tasks) {
+    const dueDate = task.internalTargetDate;
+    if (!dueDate || dueDate > horizon || task.workflowStatus === "FINALIZED") continue;
+    const overdue = dueDate < today;
+    const recipients = [...new Set([task.assignedToId, task.responsibleAttorneyId].filter((id): id is number => id !== null))];
+    for (const userId of recipients) {
+      const dedupeKey = `internal-deadline:${task.id}:${userId}:${overdue ? "overdue" : "upcoming"}:${dueDate}`;
+      await db.insert(internalWorkflowNotificationsTable).values({
+        userId, taskId: task.id, dedupeKey,
+        title: overdue ? "Internal target overdue" : "Internal target approaching",
+        message: `${task.title} · ${overdue ? "Target date passed" : `Due ${dueDate}`}`,
+      }).onConflictDoNothing({ target: internalWorkflowNotificationsTable.dedupeKey });
+    }
+  }
+}
+
+const deadlineSweep = setInterval(() => { void sweepInternalDeadlines().catch((error) => console.error("Internal deadline reminder sweep failed.", error)); }, 60 * 60 * 1000);
+deadlineSweep.unref?.();
+void sweepInternalDeadlines().catch((error) => console.error("Initial internal deadline reminder sweep failed.", error));
+
 router.use(requirePortalAccess, (req, res, next) => {
   if (req.portalUser?.role !== "ATTORNEY" && req.portalUser?.role !== "PARALEGAL" && req.portalUser?.role !== "ADMIN") {
     res.status(403).json({ error: "Internal workflow access is restricted to firm staff." });
@@ -185,6 +212,114 @@ router.get("/portal/internal-workflow/imports", async (_req, res, next) => {
   } catch (error) {
     next(error);
   }
+});
+
+router.post("/portal/internal-workflow/docket-task-imports/headers", requireAdmin, async (req, res) => {
+  const csvText = typeof req.body?.csvText === "string" ? req.body.csvText : "";
+  if (!csvText || csvText.length > MAX_CSV_CHARS) return void res.status(csvText.length > MAX_CSV_CHARS ? 413 : 400).json({ error: "Choose a valid CSV file." });
+  try {
+    const headers = parseCsv(csvText)[0]?.map((value) => value.replace(/^\uFEFF/, "").trim()).filter(Boolean) ?? [];
+    if (headers.length < 3) return void res.status(400).json({ error: "The CSV needs at least three columns." });
+    res.json({ headers });
+  } catch (error) { res.status(400).json({ error: error instanceof Error ? error.message : "Could not read CSV headers." }); }
+});
+
+router.post("/portal/internal-workflow/docket-task-imports/preview", requireAdmin, async (req, res, next) => {
+  try {
+    const csvText = typeof req.body?.csvText === "string" ? req.body.csvText : "";
+    const fileName = typeof req.body?.fileName === "string" ? req.body.fileName.trim().slice(0, 240) : "";
+    const mapping = req.body?.mapping && typeof req.body.mapping === "object" ? req.body.mapping as Record<string, string> : {};
+    const required = ["externalTaskId", "matterId", "title"];
+    if (!fileName || !csvText) return void res.status(400).json({ error: "Choose a CSV file." });
+    if (csvText.length > MAX_CSV_CHARS) return void res.status(413).json({ error: "The CSV exceeds the 8 MB import limit." });
+    if (required.some((field) => !mapping[field])) return void res.status(400).json({ error: "Map the stable task ID, matter ID, and title columns before previewing." });
+    const fileHash = createHash("sha256").update(csvText, "utf8").digest("hex");
+    const [priorBatch] = await db.select().from(internalWorkflowDocketTaskImportsTable).where(eq(internalWorkflowDocketTaskImportsTable.fileHash, fileHash)).limit(1);
+    if (priorBatch?.status === "APPLIED") return void res.status(409).json({ error: "This exact task CSV was already imported." });
+    const rows = parseCsv(csvText);
+    const headers = rows.shift()?.map((value) => value.replace(/^\uFEFF/, "").trim()) ?? [];
+    if (required.some((field) => !headers.includes(mapping[field]))) return void res.status(400).json({ error: "One or more mapped columns are not in this file." });
+    const index = new Map(headers.map((header, position) => [header, position]));
+    const matters = await db.select({ id: internalWorkflowMattersTable.id, appCollMatterId: internalWorkflowMattersTable.appCollMatterId }).from(internalWorkflowMattersTable);
+    const matterIds = new Map(matters.map((matter) => [matter.appCollMatterId, matter.id]));
+    const existing = await db.select({
+      externalTaskId: internalWorkflowDocketTasksTable.externalTaskId,
+      title: internalWorkflowDocketTasksTable.title,
+      description: internalWorkflowDocketTasksTable.description,
+      officialDueDate: internalWorkflowDocketTasksTable.officialDueDate,
+      status: internalWorkflowDocketTasksTable.status,
+      assignedPractitioner: internalWorkflowDocketTasksTable.assignedPractitioner,
+      completedDate: internalWorkflowDocketTasksTable.completedDate,
+      matterId: internalWorkflowDocketTasksTable.matterId,
+    }).from(internalWorkflowDocketTasksTable);
+    const existingMap = new Map(existing.map((item) => [item.externalTaskId, item]));
+    const seen = new Set<string>();
+    const records: Record<string, string>[] = [];
+    const previewRows: Array<{ row: number; externalTaskId: string; title: string; matterId: string; dueDate: string; disposition: string; detail: string }> = [];
+    const exceptions: ImportException[] = [];
+    for (const [rowNumber, values] of rows.entries()) {
+      const raw = Object.fromEntries(headers.map((header, i) => [header, values[i] ?? ""]));
+      const get = (field: string) => mapping[field] ? raw[mapping[field]]?.trim() ?? "" : "";
+      const externalTaskId = get("externalTaskId");
+      const matterId = get("matterId");
+      const title = get("title");
+      let disposition = "ready"; let detail = "";
+      if (!externalTaskId || !matterId || !title) { disposition = "invalid"; detail = "Stable task ID, matter ID, and title are required."; }
+      else if (!matterIds.has(matterId)) { disposition = "invalid"; detail = "MatterID is not in the imported AppColl matter list."; }
+      else if (seen.has(externalTaskId)) { disposition = "duplicate"; detail = "Duplicate external task ID in this file."; }
+      const dueDate = get("officialDueDate");
+      const completedDate = get("completedDate");
+      if (disposition === "ready" && dueDate && !toDate(dueDate)) { disposition = "invalid"; detail = "Official due date is not recognized."; }
+      if (disposition === "ready" && completedDate && !toDate(completedDate)) { disposition = "invalid"; detail = "Completion date is not recognized."; }
+      if (externalTaskId) seen.add(externalTaskId);
+      const prior = existingMap.get(externalTaskId);
+      const mapped = { ...raw, __externalTaskId: externalTaskId, __matterId: matterId, __title: title, __description: get("description"), __officialDueDate: dueDate, __status: get("status"), __assignedPractitioner: get("assignedPractitioner"), __completedDate: completedDate };
+      if (disposition === "ready") {
+        records.push(mapped);
+        if (prior && prior.title === title && prior.description === get("description") && prior.officialDueDate === (dueDate ? toDate(dueDate) : null) && prior.status === get("status") && prior.assignedPractitioner === get("assignedPractitioner") && prior.completedDate === (completedDate ? toDate(completedDate) : null) && prior.matterId === matterIds.get(matterId)) { disposition = "unchanged"; detail = "No mapped docket fields changed."; }
+        else if (prior) disposition = "changed";
+      }
+      if (disposition === "invalid") exceptions.push({ row: rowNumber + 2, field: "task", message: detail });
+      previewRows.push({ row: rowNumber + 2, externalTaskId, title, matterId, dueDate, disposition, detail });
+    }
+    if (!rows.length) return void res.status(400).json({ error: "The CSV has no task rows." });
+    const summary = { total: rows.length, added: previewRows.filter((r) => r.disposition === "ready").length, changed: previewRows.filter((r) => r.disposition === "changed").length, unchanged: previewRows.filter((r) => r.disposition === "unchanged").length, invalid: previewRows.filter((r) => r.disposition === "invalid").length, duplicate: previewRows.filter((r) => r.disposition === "duplicate").length };
+    const batchValues = { fileName, fileHash, status: "REVIEW", previewData: records, mapping, summary, exceptions, createdBy: req.portalUser!.id };
+    const [batch] = priorBatch
+      ? await db.update(internalWorkflowDocketTaskImportsTable).set(batchValues).where(eq(internalWorkflowDocketTaskImportsTable.id, priorBatch.id)).returning()
+      : await db.insert(internalWorkflowDocketTaskImportsTable).values(batchValues).returning();
+    res.status(201).json({ preview: { publicId: batch!.publicId, fileName, summary, exceptions }, rows: previewRows.slice(0, 250) });
+  } catch (error) { next(error); }
+});
+
+router.post("/portal/internal-workflow/docket-task-imports/:importId/apply", requireAdmin, async (req, res, next) => {
+  try {
+    const [batch] = await db.select().from(internalWorkflowDocketTaskImportsTable).where(eq(internalWorkflowDocketTaskImportsTable.publicId, String(req.params.importId))).limit(1);
+    if (!batch || batch.status !== "REVIEW" || !batch.previewData) return void res.status(409).json({ error: "Task import preview is missing or already applied." });
+    await db.transaction(async (tx) => {
+      for (const record of batch.previewData ?? []) {
+        const [matter] = await tx.select({ id: internalWorkflowMattersTable.id }).from(internalWorkflowMattersTable).where(eq(internalWorkflowMattersTable.appCollMatterId, record.__matterId)).limit(1);
+        if (!matter) throw new Error(`AppColl matter ${record.__matterId} disappeared before apply.`);
+        const [priorTask] = await tx.select({ id: internalWorkflowDocketTasksTable.id, officialDueDate: internalWorkflowDocketTasksTable.officialDueDate }).from(internalWorkflowDocketTasksTable).where(eq(internalWorkflowDocketTasksTable.externalTaskId, record.__externalTaskId)).limit(1);
+        const values = {
+          externalTaskId: record.__externalTaskId, matterId: matter.id, title: record.__title, description: record.__description ?? "",
+          officialDueDate: record.__officialDueDate ? toDate(record.__officialDueDate) : null, status: record.__status ?? "",
+          assignedPractitioner: record.__assignedPractitioner ?? "", completedDate: record.__completedDate ? toDate(record.__completedDate) : null,
+          rawRecord: Object.fromEntries(Object.entries(record).filter(([key]) => !key.startsWith("__"))),
+          lastImportedAt: new Date(),
+        };
+        if (priorTask && priorTask.officialDueDate !== values.officialDueDate) {
+          await tx.insert(internalWorkflowDocketTaskChangesTable).values({
+            docketTaskId: priorTask.id, importId: batch.id, actorId: batch.createdBy,
+            previousDueDate: priorTask.officialDueDate, nextDueDate: values.officialDueDate,
+          });
+        }
+        await tx.insert(internalWorkflowDocketTasksTable).values(values).onConflictDoUpdate({ target: internalWorkflowDocketTasksTable.externalTaskId, set: values });
+      }
+      await tx.update(internalWorkflowDocketTaskImportsTable).set({ status: "APPLIED", previewData: null, appliedAt: new Date() }).where(eq(internalWorkflowDocketTaskImportsTable.id, batch.id));
+    });
+    res.json({ applied: batch.summary.added + batch.summary.changed });
+  } catch (error) { next(error); }
 });
 
 router.post("/portal/internal-workflow/imports/preview", requireAdmin, async (req, res, next) => {
@@ -305,6 +440,31 @@ async function userCanReadMatter(user: NonNullable<Express.Request["portalUser"]
   const clients = await db.select({ name: clientsTable.name }).from(clientsTable).where(inArray(clientsTable.id, links.map(({ clientId }) => clientId)));
   return clients.some(({ name }) => name.trim().toLowerCase() === matter.client.trim().toLowerCase());
 }
+
+router.get("/portal/internal-workflow/docket-tasks", async (req, res, next) => {
+  try {
+    const user = req.portalUser!;
+    const records = await db.select({ task: internalWorkflowDocketTasksTable, matter: internalWorkflowMattersTable })
+      .from(internalWorkflowDocketTasksTable).innerJoin(internalWorkflowMattersTable, eq(internalWorkflowDocketTasksTable.matterId, internalWorkflowMattersTable.id))
+      .orderBy(asc(internalWorkflowDocketTasksTable.officialDueDate)).limit(1000);
+    const ids = records.map((record) => record.task.id);
+    const changes = ids.length ? await db.select().from(internalWorkflowDocketTaskChangesTable).where(inArray(internalWorkflowDocketTaskChangesTable.docketTaskId, ids)).orderBy(desc(internalWorkflowDocketTaskChangesTable.createdAt)) : [];
+    const latestChange = new Map<number, typeof changes[number]>();
+    for (const change of changes) if (!latestChange.has(change.docketTaskId)) latestChange.set(change.docketTaskId, change);
+    const visible = [];
+    for (const record of records) if (await userCanReadMatter(user, record.matter)) visible.push({
+      publicId: record.task.publicId, externalTaskId: record.task.externalTaskId, title: record.task.title, description: record.task.description,
+      officialDueDate: record.task.officialDueDate, status: record.task.status, assignedPractitioner: record.task.assignedPractitioner,
+      completedDate: record.task.completedDate, matter: { docketId: record.matter.docketId, appCollMatterId: record.matter.appCollMatterId, client: record.matter.client },
+      latestDeadlineChange: latestChange.get(record.task.id) ? {
+        previousDueDate: latestChange.get(record.task.id)!.previousDueDate,
+        nextDueDate: latestChange.get(record.task.id)!.nextDueDate,
+        changedAt: latestChange.get(record.task.id)!.createdAt,
+      } : null,
+    });
+    res.json({ tasks: visible });
+  } catch (error) { next(error); }
+});
 
 router.get("/portal/internal-workflow/team", async (_req, res, next) => {
   try {

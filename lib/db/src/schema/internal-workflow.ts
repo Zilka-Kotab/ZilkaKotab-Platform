@@ -75,6 +75,56 @@ export const internalWorkflowImportsTable = pgTable(
   ],
 );
 
+export const internalWorkflowDocketTasksTable = pgTable("internal_workflow_docket_tasks", {
+  id: serial("id").primaryKey(),
+  publicId: uuid("public_id").defaultRandom().notNull(),
+  externalTaskId: varchar("external_task_id", { length: 240 }).notNull(),
+  matterId: integer("matter_id").notNull().references(() => internalWorkflowMattersTable.id, { onDelete: "restrict" }),
+  title: text("title").notNull(),
+  description: text("description").notNull().default(""),
+  officialDueDate: date("official_due_date", { mode: "string" }),
+  status: varchar("status", { length: 80 }).notNull().default(""),
+  assignedPractitioner: varchar("assigned_practitioner", { length: 240 }).notNull().default(""),
+  completedDate: date("completed_date", { mode: "string" }),
+  rawRecord: jsonb("raw_record").$type<AppCollMatterRecord>().notNull().default({}),
+  lastImportedAt: timestamp("last_imported_at", { withTimezone: true }).notNull().defaultNow(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
+}, (table) => [
+  uniqueIndex("internal_workflow_docket_tasks_public_id_unique").on(table.publicId),
+  uniqueIndex("internal_workflow_docket_tasks_external_id_unique").on(table.externalTaskId),
+  index("internal_workflow_docket_tasks_matter_due_idx").on(table.matterId, table.officialDueDate),
+]);
+
+export const internalWorkflowDocketTaskImportsTable = pgTable("internal_workflow_docket_task_imports", {
+  id: serial("id").primaryKey(),
+  publicId: uuid("public_id").defaultRandom().notNull(),
+  fileName: text("file_name").notNull(),
+  fileHash: varchar("file_hash", { length: 64 }).notNull(),
+  status: varchar("status", { length: 20 }).notNull().default("REVIEW"),
+  previewData: jsonb("preview_data").$type<Array<Record<string, string>> | null>(),
+  mapping: jsonb("mapping").$type<Record<string, string>>().notNull().default({}),
+  summary: jsonb("summary").$type<Record<string, number>>().notNull().default({}),
+  exceptions: jsonb("exceptions").$type<Array<{ row: number; field: string; message: string }>>().notNull().default([]),
+  createdBy: integer("created_by").notNull().references(() => portalUsersTable.id),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  appliedAt: timestamp("applied_at", { withTimezone: true }),
+}, (table) => [
+  uniqueIndex("internal_workflow_docket_task_imports_public_id_unique").on(table.publicId),
+  uniqueIndex("internal_workflow_docket_task_imports_file_hash_unique").on(table.fileHash),
+  index("internal_workflow_docket_task_imports_created_idx").on(table.createdAt),
+]);
+
+export const internalWorkflowDocketTaskChangesTable = pgTable("internal_workflow_docket_task_changes", {
+  id: serial("id").primaryKey(),
+  docketTaskId: integer("docket_task_id").notNull().references(() => internalWorkflowDocketTasksTable.id, { onDelete: "cascade" }),
+  importId: integer("import_id").references(() => internalWorkflowDocketTaskImportsTable.id, { onDelete: "set null" }),
+  actorId: integer("actor_id").notNull().references(() => portalUsersTable.id),
+  previousDueDate: date("previous_due_date", { mode: "string" }),
+  nextDueDate: date("next_due_date", { mode: "string" }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [index("internal_workflow_docket_task_changes_task_idx").on(table.docketTaskId, table.createdAt)]);
+
 export const internalWorkflowTasksTable = pgTable(
   "internal_workflow_tasks",
   {
@@ -176,12 +226,13 @@ export const internalWorkflowNotificationsTable = pgTable(
     publicId: uuid("public_id").defaultRandom().notNull(),
     userId: integer("user_id").notNull().references(() => portalUsersTable.id, { onDelete: "cascade" }),
     taskId: integer("task_id").references(() => internalWorkflowTasksTable.id, { onDelete: "cascade" }),
+    dedupeKey: varchar("dedupe_key", { length: 240 }),
     title: varchar("title", { length: 180 }).notNull(),
     message: text("message").notNull().default(""),
     readAt: timestamp("read_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (table) => [uniqueIndex("internal_workflow_notifications_public_id_unique").on(table.publicId), index("internal_workflow_notifications_user_idx").on(table.userId, table.createdAt)],
+  (table) => [uniqueIndex("internal_workflow_notifications_public_id_unique").on(table.publicId), uniqueIndex("internal_workflow_notifications_dedupe_unique").on(table.dedupeKey), index("internal_workflow_notifications_user_idx").on(table.userId, table.createdAt)],
 );
 
 export const internalWorkflowTaskAuditTable = pgTable(
