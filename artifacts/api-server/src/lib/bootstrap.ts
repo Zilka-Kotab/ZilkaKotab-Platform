@@ -43,9 +43,12 @@ export async function ensureInitialAdminAuthorization() {
  */
 export async function ensurePatentMonitorTool() {
   await db.insert(toolsTable).values({
-    name: "Patent Infringement Monitor",
+    name: "Patent Portfolio Maintenance Audit",
     slug: "patent-infringement-monitor",
     description: "Monitor patent claims against potentially relevant products and technologies, organize evidence, and triage findings for attorney review.",
     active: true,
-  }).onConflictDoNothing({ target: toolsTable.slug });
+  }).onConflictDoUpdate({
+    target: toolsTable.slug,
+    set: { name: "Patent Portfolio Maintenance Audit" },
+  });
 }

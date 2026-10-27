@@ -24,18 +24,23 @@ import {
   clientsTable,
   type AiProcessingProvider,
   type DataClassification,
+  type PatentRecommendation,
   type PortalUser,
 } from "@workspace/db";
 import { requireAdmin, requirePortalAccess } from "../middlewares/portalAccess";
 import { projectRelations, serializeClient, serializeProject, serializeTool } from "../lib/portal-resources";
 import { logger } from "../lib/logger";
-import { normalizePatentNumbers, normalizePatentStatus, retrievePatent, type PatentImportPayload } from "../lib/uspto";
+import { normalizePatentNumbers, normalizePatentStatus, retrievePatent, searchPatentsByAssignee, UsptoImportError, type PatentImportPayload } from "../lib/uspto";
 
 const router = Router();
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const publicIdOf = (value: unknown) => typeof value === "string" && UUID.test(value) ? value : "";
 const validId = (value: number) => Number.isSafeInteger(value) && value > 0;
 const text = (value: unknown) => typeof value === "string" ? value.trim() : "";
+const patentRecommendation = (value: unknown): PatentRecommendation | null =>
+  value === "NOT_ANALYZED" || value === "MAINTAIN" || value === "REVIEW" || value === "PRUNE"
+    ? value
+    : null;
 const provider = (value: unknown): AiProcessingProvider | null =>
   value === "CLIENT_MICROSOFT" || value === "ZK_MANAGED_AI" || value === "MANUAL" ? value : null;
 const classification = (value: unknown): DataClassification | null =>
@@ -333,6 +338,7 @@ function serializePatent(
     retrievedAt: patent.retrievedAt,
     verificationStatus: patent.verificationStatus,
     monitoringActive: patent.monitoringActive,
+    recommendation: patent.recommendation,
     archivedAt: patent.archivedAt,
     lastAnalyzedAt: patent.lastAnalyzedAt,
     attorneyNotes: attorneyNote ? serializeAttorneyNote(attorneyNote) : undefined,
@@ -462,6 +468,20 @@ function serializeAttorneyNote(view: AttorneyNoteView) {
 }
 
 router.use("/portal", requirePortalAccess);
+
+router.post("/portal/projects/:id/patents/search-by-assignee", async (req, res) => {
+  const projectPublicId = publicIdOf(req.params.id);
+  const project = projectPublicId ? await accessibleProject(req.portalUser!, projectPublicId) : null;
+  if (!project) return void res.status(404).json({ error: "Project not found." });
+  if (typeof req.body?.assignee !== "string") return void res.status(400).json({ error: "Enter an assignee name." });
+  try {
+    res.json(await searchPatentsByAssignee(req.body.assignee));
+  } catch (error) {
+    if (error instanceof UsptoImportError) return void res.status(error.status).json({ error: error.message });
+    req.log.error({ err: error }, "USPTO assignee search failed");
+    res.status(502).json({ error: "USPTO assignee search failed. Please try again." });
+  }
+});
 
 router.post("/portal/projects/:id/patent-imports/preview", async (req, res) => {
   const projectPublicId = publicIdOf(req.params.id);
@@ -1116,6 +1136,114 @@ router.patch("/portal/patents/:id/monitoring", async (req, res) => {
   res.json({ patent: serializePatent(updated, project!.publicId, []) });
 });
 
+router.patch("/portal/projects/:id/patents/bulk", async (req, res) => {
+  const projectPublicId = publicIdOf(req.params.id);
+  const project = projectPublicId ? await accessibleProject(req.portalUser!, projectPublicId) : null;
+  if (!project) return void res.status(404).json({ error: "Project not found." });
+  if (!limitationEditor(req.portalUser!)) {
+    return void res.status(403).json({ error: "Only attorneys and administrators may update patent portfolio settings." });
+  }
+
+  const rawPatentIds = req.body?.patentIds;
+  if (!Array.isArray(rawPatentIds) || rawPatentIds.length === 0) {
+    return void res.status(400).json({ error: "At least one patent is required." });
+  }
+  const parsedPatentIds = rawPatentIds.map(publicIdOf);
+  if (parsedPatentIds.some((id) => !id)) {
+    return void res.status(400).json({ error: "Every patent ID must be valid." });
+  }
+  const patentPublicIds = [...new Set(parsedPatentIds)];
+
+  const hasMonitoringUpdate = req.body?.monitoringActive !== undefined;
+  if (hasMonitoringUpdate && typeof req.body.monitoringActive !== "boolean") {
+    return void res.status(400).json({ error: "Monitoring active state must be a boolean." });
+  }
+  const hasRecommendationUpdate = req.body?.recommendation !== undefined;
+  const nextRecommendation = hasRecommendationUpdate
+    ? patentRecommendation(req.body.recommendation)
+    : null;
+  if (hasRecommendationUpdate && !nextRecommendation) {
+    return void res.status(400).json({ error: "A valid portfolio recommendation is required." });
+  }
+  if (!hasMonitoringUpdate && !hasRecommendationUpdate) {
+    return void res.status(400).json({ error: "Provide a monitoring state or recommendation to update." });
+  }
+
+  const updates: Partial<typeof monitoredPatentsTable.$inferInsert> = {};
+  if (hasMonitoringUpdate) updates.monitoringActive = req.body.monitoringActive;
+  if (nextRecommendation) updates.recommendation = nextRecommendation;
+
+  const updatedPatents = await db.transaction(async (tx) => {
+    const matches = await tx.select({ publicId: monitoredPatentsTable.publicId })
+      .from(monitoredPatentsTable)
+      .where(and(
+        eq(monitoredPatentsTable.projectId, project.id),
+        inArray(monitoredPatentsTable.publicId, patentPublicIds),
+      ));
+    if (matches.length !== patentPublicIds.length) return null;
+
+    return tx.update(monitoredPatentsTable)
+      .set(updates)
+      .where(and(
+        eq(monitoredPatentsTable.projectId, project.id),
+        inArray(monitoredPatentsTable.publicId, patentPublicIds),
+      ))
+      .returning({ publicId: monitoredPatentsTable.publicId });
+  });
+  if (!updatedPatents) return void res.status(404).json({ error: "One or more patents were not found in this project." });
+  res.json({ updatedCount: updatedPatents.length });
+});
+
+router.delete("/portal/projects/:id/patents/bulk", async (req, res) => {
+  const projectPublicId = publicIdOf(req.params.id);
+  const project = projectPublicId ? await accessibleProject(req.portalUser!, projectPublicId) : null;
+  if (!project) {
+    res.status(404).json({ error: "Project not found." });
+    return;
+  }
+  if (!limitationEditor(req.portalUser!)) {
+    res.status(403).json({ error: "Only attorneys and administrators may delete patent records." });
+    return;
+  }
+
+  const rawPatentIds = req.body?.patentIds;
+  if (!Array.isArray(rawPatentIds) || rawPatentIds.length === 0 || rawPatentIds.length > 500) {
+    res.status(400).json({ error: "Provide between 1 and 500 patent IDs to delete." });
+    return;
+  }
+  const parsedPatentIds = rawPatentIds.map(publicIdOf);
+  if (parsedPatentIds.some((id) => !id)) {
+    res.status(400).json({ error: "Every patent ID must be valid." });
+    return;
+  }
+  const patentPublicIds = [...new Set(parsedPatentIds)];
+  if (patentPublicIds.length !== parsedPatentIds.length) {
+    res.status(400).json({ error: "Duplicate patent IDs are not allowed." });
+    return;
+  }
+
+  const deletedPatents = await db.transaction(async (tx) => {
+    const matches = await tx.select({ publicId: monitoredPatentsTable.publicId })
+      .from(monitoredPatentsTable)
+      .where(and(
+        eq(monitoredPatentsTable.projectId, project.id),
+        inArray(monitoredPatentsTable.publicId, patentPublicIds),
+      ));
+    if (matches.length !== patentPublicIds.length) return null;
+    return tx.delete(monitoredPatentsTable)
+      .where(and(
+        eq(monitoredPatentsTable.projectId, project.id),
+        inArray(monitoredPatentsTable.publicId, patentPublicIds),
+      ))
+      .returning({ publicId: monitoredPatentsTable.publicId });
+  });
+  if (!deletedPatents) {
+    res.status(404).json({ error: "One or more patents were not found in this project." });
+    return;
+  }
+  res.json({ deletedCount: deletedPatents.length });
+});
+
 router.patch("/portal/patents/:id/attorney-notes", async (req, res) => {
   const patentPublicId = publicIdOf(req.params.id);
   const patent = patentPublicId ? await patentProject(req.portalUser!, patentPublicId) : null;
@@ -1176,15 +1304,14 @@ router.patch("/portal/patents/:id/claims/monitoring-selection", async (req, res)
     const current = latestByNumber.get(claim.claimNumber);
     if (!current || claim.version > current.version) latestByNumber.set(claim.claimNumber, claim);
   }
-  const independentClaims = [...latestByNumber.values()].filter((claim) => claim.claimType === "INDEPENDENT");
-  if (independentClaims.length && !independentClaims.some((claim) => selectedClaimNumbers.has(claim.claimNumber))) {
-    return void res.status(400).json({ error: "Select at least one independent claim for monitoring." });
+  const availableClaims = [...latestByNumber.values()];
+  if (availableClaims.length && !availableClaims.some((claim) => selectedClaimNumbers.has(claim.claimNumber))) {
+    return void res.status(400).json({ error: "Select at least one claim for monitoring." });
   }
   if ([...selectedClaimNumbers].some((claimNumber) => {
-    const claim = latestByNumber.get(claimNumber);
-    return !claim || claim.claimType !== "INDEPENDENT";
+    return !latestByNumber.has(claimNumber);
   })) {
-    return void res.status(400).json({ error: "Only independent claims can be selected for monitoring." });
+    return void res.status(400).json({ error: "One or more selected claims do not belong to this patent." });
   }
 
   await db.transaction(async (tx) => {

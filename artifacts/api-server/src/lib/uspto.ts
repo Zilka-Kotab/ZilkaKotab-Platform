@@ -262,6 +262,56 @@ export function normalizePatentNumbers(input: unknown) {
   }).filter(Boolean))];
 }
 
+export type UsptoAssigneePatent = {
+  normalizedPatentNumber: string;
+  title: string;
+  assignee: string;
+  applicationNumber: string | null;
+  issueDate: string | null;
+};
+
+export async function searchPatentsByAssignee(input: string) {
+  const assignee = input.trim().replace(/\s+/g, " ");
+  if (assignee.length < 2 || assignee.length > 120) {
+    throw new UsptoImportError("Enter an assignee name between 2 and 120 characters.", 400);
+  }
+  const escaped = assignee.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+  const query = `applicationMetaData.assigneeBag.assigneeNameText:"${escaped}"`;
+  const pageSize = 100;
+  const maxResults = 5000;
+  const matches = new Map<string, UsptoAssigneePatent>();
+  let truncated = false;
+
+  for (let offset = 0; offset < maxResults; offset += pageSize) {
+    const body = await requestJson(`${SEARCH_PATH}?q=${encodeURIComponent(query)}&limit=${pageSize}&offset=${offset}`);
+    const records = valuesForKeys(body, new Set(["patentfilewrapperdatabag"])).flatMap(arrayFrom);
+    if (!records.length) break;
+    for (const record of records) {
+      const metadata = asRecord(record)?.applicationMetaData ?? record;
+      const assigneeNames = valuesForKeys(metadata, new Set(["assigneenametext"]))
+        .filter((value): value is string => typeof value === "string" && value.trim().length > 0);
+      if (!assigneeNames.some((name) => name.toLowerCase().includes(assignee.toLowerCase()))) continue;
+      const digits = normalizeDigits(firstText(record, ["patentNumber"]));
+      if (!/^\d{6,9}$/.test(digits)) continue;
+      const patentNumber = `US${digits}`;
+      matches.set(patentNumber, {
+        normalizedPatentNumber: patentNumber,
+        title: firstText(metadata, ["inventionTitle", "title"]) ?? "",
+        assignee: assigneeNames[0].trim(),
+        applicationNumber: firstText(record, ["applicationNumberText", "applicationNumber"]),
+        issueDate: safeDate(firstText(metadata, ["grantDate", "issueDate", "patentIssueDate"])),
+      });
+    }
+    if (records.length < pageSize) break;
+    if (offset + pageSize >= maxResults) truncated = true;
+  }
+
+  const results = [...matches.values()].sort((left, right) =>
+    (right.issueDate ?? "").localeCompare(left.issueDate ?? "") || left.normalizedPatentNumber.localeCompare(right.normalizedPatentNumber),
+  );
+  return { results, truncated };
+}
+
 export async function retrievePatent(normalizedPatentNumber: string): Promise<PatentImportPayload> {
   const patentDigits = normalizeDigits(normalizedPatentNumber);
   const retrievedAt = new Date().toISOString();

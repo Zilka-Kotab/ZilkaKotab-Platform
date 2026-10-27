@@ -14,7 +14,6 @@ export const portalKeys = {
   project: (id: string) => [...portalKeys.projects(), id] as const,
   projectWorkspace: (id: string, includeArchived = false) => [...portalKeys.project(id), 'workspace', includeArchived ? 'archived' : 'active'] as const,
   patent: (id: string) => [...portalKeys.all, 'patent', id] as const,
-  claimAnalysis: (patentId: string, claimId: string) => [...portalKeys.patent(patentId), 'claim-analysis', claimId] as const,
   adminUsers: () => [...portalKeys.all, 'adminUsers'] as const,
   adminAudit: () => [...portalKeys.all, 'adminAudit'] as const,
   adminProjects: () => [...portalKeys.all, 'adminProjects'] as const,
@@ -80,10 +79,6 @@ export function useProjectWorkspace(id: string, includeArchived = false) {
   return useQuery({ queryKey: portalKeys.projectWorkspace(id, includeArchived), queryFn: () => api.getProjectWorkspace(id, includeArchived), enabled: !!id });
 }
 
-export function usePatent(id: string) {
-  return useQuery({ queryKey: portalKeys.patent(id), queryFn: () => api.getPatent(id), enabled: !!id });
-}
-
 export function useRefreshPatent(patentId: string) {
   const queryClient = useQueryClient();
   return useMutation({
@@ -94,48 +89,6 @@ export function useRefreshPatent(patentId: string) {
     },
   });
 }
-
-export function useClaimAnalysis(patentId: string, claimId: string) {
-  return useQuery({
-    queryKey: portalKeys.claimAnalysis(patentId, claimId),
-    queryFn: () => api.getClaimAnalysis(patentId, claimId),
-    enabled: !!patentId && !!claimId,
-  });
-}
-
-function useClaimAnalysisMutation<T>(patentId: string, claimId: string, mutationFn: (data: T) => Promise<unknown>) {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn,
-    onSuccess: (result) => {
-      const analysis = result && typeof result === 'object' && 'analysis' in result
-        ? (result as { analysis?: api.ClaimAnalysis }).analysis
-        : undefined;
-      if (analysis) queryClient.setQueryData(portalKeys.claimAnalysis(patentId, claimId), analysis);
-      queryClient.invalidateQueries({ queryKey: portalKeys.claimAnalysis(patentId, claimId) });
-      queryClient.invalidateQueries({ queryKey: portalKeys.patent(patentId) });
-      queryClient.invalidateQueries({ queryKey: portalKeys.all });
-    },
-  });
-}
-
-export const useCreateClaimLimitation = (patentId: string, claimId: string) =>
-  useClaimAnalysisMutation(patentId, claimId, (data: Parameters<typeof api.createClaimLimitation>[2]) => api.createClaimLimitation(patentId, claimId, data));
-export const useUpdateClaimLimitation = (patentId: string, claimId: string) =>
-  useClaimAnalysisMutation(patentId, claimId, ({ limitationId, data }: { limitationId: string; data: Parameters<typeof api.updateClaimLimitation>[3] }) =>
-    api.updateClaimLimitation(patentId, claimId, limitationId, data));
-export const useDeleteClaimLimitation = (patentId: string, claimId: string) =>
-  useClaimAnalysisMutation(patentId, claimId, (limitationId: string) => api.deleteClaimLimitation(patentId, claimId, limitationId));
-export const useSplitClaimLimitation = (patentId: string, claimId: string) =>
-  useClaimAnalysisMutation(patentId, claimId, ({ limitationId, data }: { limitationId: string; data: Parameters<typeof api.splitClaimLimitation>[3] }) =>
-    api.splitClaimLimitation(patentId, claimId, limitationId, data));
-export const useMergeClaimLimitations = (patentId: string, claimId: string) =>
-  useClaimAnalysisMutation(patentId, claimId, ({ limitationId, withLimitationId }: { limitationId: string; withLimitationId: string }) =>
-    api.mergeClaimLimitations(patentId, claimId, limitationId, withLimitationId));
-export const useReorderClaimLimitations = (patentId: string, claimId: string) =>
-  useClaimAnalysisMutation(patentId, claimId, (limitationIds: string[]) => api.reorderClaimLimitations(patentId, claimId, limitationIds));
-export const useVerifyClaimLimitations = (patentId: string, claimId: string) =>
-  useClaimAnalysisMutation(patentId, claimId, () => api.verifyClaimLimitations(patentId, claimId));
 
 function useWorkspaceMutation<T>(projectId: string, mutationFn: (data: T) => Promise<unknown>) {
   const queryClient = useQueryClient();
@@ -153,6 +106,8 @@ export const useCreatePatent = (projectId: string) =>
   useWorkspaceMutation(projectId, (data: Parameters<typeof api.createPatent>[1]) => api.createPatent(projectId, data));
 export const usePreviewPatentImport = (projectId: string) =>
   useMutation({ mutationFn: (patentNumbers: string) => api.previewPatentImport(projectId, patentNumbers) });
+export const useSearchPatentsByAssignee = (projectId: string) =>
+  useMutation({ mutationFn: (assignee: string) => api.searchPatentsByAssignee(projectId, assignee) });
 export const useCommitPatentImport = (projectId: string) =>
   useWorkspaceMutation(projectId, ({ draftId, selectedClaimNumbers }: { draftId: string; selectedClaimNumbers: string[] }) =>
     api.commitPatentImport(draftId, selectedClaimNumbers));
@@ -162,6 +117,26 @@ export const useUpdatePatentMonitoring = (patentId: string) => {
     mutationFn: (active: boolean) => api.updatePatentMonitoring(patentId, active),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: portalKeys.patent(patentId) });
+      queryClient.invalidateQueries({ queryKey: portalKeys.all });
+    },
+  });
+};
+export const useBulkUpdatePatents = (projectId: string) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Parameters<typeof api.bulkUpdatePatents>[1]) => api.bulkUpdatePatents(projectId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: portalKeys.projectWorkspace(projectId) });
+      queryClient.invalidateQueries({ queryKey: portalKeys.all });
+    },
+  });
+};
+export const useBulkDeletePatents = (projectId: string) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (patentIds: string[]) => api.bulkDeletePatents(projectId, patentIds),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: portalKeys.projectWorkspace(projectId, true) });
       queryClient.invalidateQueries({ queryKey: portalKeys.all });
     },
   });

@@ -28,6 +28,12 @@ export const dataClassificationEnum = pgEnum("data_classification", [
   "ATTORNEY_WORK_PRODUCT",
 ]);
 export const analysisTriageEnum = pgEnum("analysis_triage", ["HIGH", "MEDIUM", "LOW"]);
+export const patentRecommendationEnum = pgEnum("patent_recommendation", [
+  "NOT_ANALYZED",
+  "MAINTAIN",
+  "REVIEW",
+  "PRUNE",
+]);
 export const analysisReviewStatusEnum = pgEnum("analysis_review_status", [
   "UNREVIEWED",
   "CLIENT_REVIEWED",
@@ -83,6 +89,7 @@ export const monitoredPatentsTable = pgTable(
     retrievedAt: timestamp("retrieved_at", { withTimezone: true }),
     verificationStatus: patentVerificationStatusEnum("verification_status").notNull().default("PENDING"),
     monitoringActive: boolean("monitoring_active").notNull().default(true),
+    recommendation: patentRecommendationEnum("recommendation").notNull().default("NOT_ANALYZED"),
     archivedAt: timestamp("archived_at", { withTimezone: true }),
     archivedById: integer("archived_by_id").references(() => portalUsersTable.id, { onDelete: "set null" }),
     lastAnalyzedAt: timestamp("last_analyzed_at", { withTimezone: true }),
@@ -330,6 +337,7 @@ export const insertAnalysisReviewSchema = createInsertSchema(analysisReviewsTabl
 
 export type AiProcessingProvider = typeof projectAiConfigsTable.$inferSelect.selectedProvider;
 export type DataClassification = typeof projectWorkspaceItemsTable.$inferSelect.classification;
+export type PatentRecommendation = typeof patentRecommendationEnum.enumValues[number];
 export type AnalysisRun = typeof analysisRunsTable.$inferSelect;
 export type PatentAttorneyNote = typeof patentAttorneyNotesTable.$inferSelect;
 export type PatentAttorneyNoteHistory = typeof patentAttorneyNoteHistoryTable.$inferSelect;
