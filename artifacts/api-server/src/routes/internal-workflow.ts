@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { and, asc, desc, eq, inArray, or } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNotNull, lte, notInArray, or } from "drizzle-orm";
 import { Router } from "express";
 import {
   db,
@@ -16,6 +16,7 @@ import {
   internalWorkflowTimeEntriesTable,
   internalWorkflowTimerSessionsTable,
   internalWorkflowNotificationsTable,
+  internalWorkflowNotificationPreferencesTable,
   internalWorkflowContributorsTable,
   portalUsersTable,
   type AppCollMatterRecord,
@@ -147,13 +148,28 @@ async function notifyUser(tx: any, userId: number, taskId: number, title: string
 async function sweepInternalDeadlines() {
   const today = new Date().toISOString().slice(0, 10);
   const horizon = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
-  const tasks = await db.select().from(internalWorkflowTasksTable).limit(2000);
+  const tasks = await db.select().from(internalWorkflowTasksTable).where(and(
+    isNotNull(internalWorkflowTasksTable.internalTargetDate),
+    lte(internalWorkflowTasksTable.internalTargetDate, horizon),
+    notInArray(internalWorkflowTasksTable.workflowStatus, ["FINALIZED", "COMPLETED"]),
+  )).limit(2000);
+  const preferences = await db.select().from(internalWorkflowNotificationPreferencesTable);
+  const preferenceMap = new Map(preferences.map((item) => [item.userId, item.deadlineMode]));
+  const digests = new Map<number, string[]>();
   for (const task of tasks) {
     const dueDate = task.internalTargetDate;
-    if (!dueDate || dueDate > horizon || task.workflowStatus === "FINALIZED") continue;
+    if (!dueDate || dueDate > horizon) continue;
     const overdue = dueDate < today;
     const recipients = [...new Set([task.assignedToId, task.responsibleAttorneyId].filter((id): id is number => id !== null))];
     for (const userId of recipients) {
+      const mode = preferenceMap.get(userId) ?? "IMMEDIATE";
+      if (mode === "OFF") continue;
+      if (mode === "DAILY_DIGEST") {
+        const items = digests.get(userId) ?? [];
+        items.push(`${task.title} (${overdue ? "overdue" : `due ${dueDate}`})`);
+        digests.set(userId, items);
+        continue;
+      }
       const dedupeKey = `internal-deadline:${task.id}:${userId}:${overdue ? "overdue" : "upcoming"}:${dueDate}`;
       await db.insert(internalWorkflowNotificationsTable).values({
         userId, taskId: task.id, dedupeKey,
@@ -161,6 +177,13 @@ async function sweepInternalDeadlines() {
         message: `${task.title} · ${overdue ? "Target date passed" : `Due ${dueDate}`}`,
       }).onConflictDoNothing({ target: internalWorkflowNotificationsTable.dedupeKey });
     }
+  }
+  for (const [userId, items] of digests) {
+    await db.insert(internalWorkflowNotificationsTable).values({
+      userId, dedupeKey: `internal-deadline-digest:${userId}:${today}`,
+      title: "Daily deadline digest",
+      message: items.slice(0, 20).join(" · ") + (items.length > 20 ? ` · and ${items.length - 20} more` : ""),
+    }).onConflictDoNothing({ target: internalWorkflowNotificationsTable.dedupeKey });
   }
 }
 
@@ -296,6 +319,9 @@ router.post("/portal/internal-workflow/docket-task-imports/:importId/apply", req
   try {
     const [batch] = await db.select().from(internalWorkflowDocketTaskImportsTable).where(eq(internalWorkflowDocketTaskImportsTable.publicId, String(req.params.importId))).limit(1);
     if (!batch || batch.status !== "REVIEW" || !batch.previewData) return void res.status(409).json({ error: "Task import preview is missing or already applied." });
+    const staff = await db.select({ id: portalUsersTable.id, name: portalUsersTable.name, email: portalUsersTable.email }).from(portalUsersTable).where(and(
+      eq(portalUsersTable.active, true), eq(portalUsersTable.status, "ACTIVE"), inArray(portalUsersTable.role, ["ATTORNEY", "PARALEGAL", "ADMIN"]),
+    ));
     await db.transaction(async (tx) => {
       for (const record of batch.previewData ?? []) {
         const [matter] = await tx.select({ id: internalWorkflowMattersTable.id }).from(internalWorkflowMattersTable).where(eq(internalWorkflowMattersTable.appCollMatterId, record.__matterId)).limit(1);
@@ -313,6 +339,16 @@ router.post("/portal/internal-workflow/docket-task-imports/:importId/apply", req
             docketTaskId: priorTask.id, importId: batch.id, actorId: batch.createdBy,
             previousDueDate: priorTask.officialDueDate, nextDueDate: values.officialDueDate,
           });
+          const practitioner = (record.__assignedPractitioner ?? "").trim().toLowerCase();
+          const recipients = new Set([batch.createdBy, ...staff.filter((person) => person.name.trim().toLowerCase() === practitioner || person.email.trim().toLowerCase() === practitioner).map((person) => person.id)]);
+          for (const userId of recipients) {
+            await tx.insert(internalWorkflowNotificationsTable).values({
+              userId,
+              dedupeKey: `appcoll-deadline-change:${priorTask.id}:${userId}:${values.officialDueDate ?? "removed"}`,
+              title: "AppColl deadline changed",
+              message: `${record.__title}: ${priorTask.officialDueDate ?? "no prior date"} → ${values.officialDueDate ?? "no current date"}`,
+            }).onConflictDoNothing({ target: internalWorkflowNotificationsTable.dedupeKey });
+          }
         }
         await tx.insert(internalWorkflowDocketTasksTable).values(values).onConflictDoUpdate({ target: internalWorkflowDocketTasksTable.externalTaskId, set: values });
       }
@@ -859,7 +895,19 @@ router.post("/portal/internal-workflow/billing/export", async (req, res, next) =
 router.get("/portal/internal-workflow/notifications", async (req, res, next) => {
   try {
     const rows = await db.select().from(internalWorkflowNotificationsTable).where(eq(internalWorkflowNotificationsTable.userId, req.portalUser!.id)).orderBy(asc(internalWorkflowNotificationsTable.createdAt)).limit(100);
-    res.json({ notifications: rows.reverse() });
+    const [preference] = await db.select().from(internalWorkflowNotificationPreferencesTable).where(eq(internalWorkflowNotificationPreferencesTable.userId, req.portalUser!.id)).limit(1);
+    res.json({ notifications: rows.reverse(), preference: { deadlineMode: preference?.deadlineMode ?? "IMMEDIATE" } });
+  } catch (error) { next(error); }
+});
+
+router.patch("/portal/internal-workflow/notifications/preferences", async (req, res, next) => {
+  try {
+    const deadlineMode = req.body?.deadlineMode;
+    if (!["IMMEDIATE", "DAILY_DIGEST", "OFF"].includes(deadlineMode)) return void res.status(400).json({ error: "Choose immediate, daily digest, or off." });
+    await db.insert(internalWorkflowNotificationPreferencesTable).values({ userId: req.portalUser!.id, deadlineMode }).onConflictDoUpdate({
+      target: internalWorkflowNotificationPreferencesTable.userId, set: { deadlineMode, updatedAt: new Date() },
+    });
+    res.json({ updated: true, deadlineMode });
   } catch (error) { next(error); }
 });
 

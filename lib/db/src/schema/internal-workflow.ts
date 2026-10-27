@@ -235,6 +235,13 @@ export const internalWorkflowNotificationsTable = pgTable(
   (table) => [uniqueIndex("internal_workflow_notifications_public_id_unique").on(table.publicId), uniqueIndex("internal_workflow_notifications_dedupe_unique").on(table.dedupeKey), index("internal_workflow_notifications_user_idx").on(table.userId, table.createdAt)],
 );
 
+export const internalWorkflowNotificationPreferencesTable = pgTable("internal_workflow_notification_preferences", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => portalUsersTable.id, { onDelete: "cascade" }),
+  deadlineMode: varchar("deadline_mode", { length: 24 }).notNull().default("IMMEDIATE"),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
+}, (table) => [uniqueIndex("internal_workflow_notification_preferences_user_unique").on(table.userId)]);
+
 export const internalWorkflowTaskAuditTable = pgTable(
   "internal_workflow_task_audit",
   {

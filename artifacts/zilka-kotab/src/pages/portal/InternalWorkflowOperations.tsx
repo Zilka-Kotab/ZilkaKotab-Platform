@@ -37,6 +37,7 @@ export default function InternalWorkflowOperations({ section }: { section: Secti
     setNotice(`${result.exported} approved entries exported.`); await refresh();
   } });
   const markRead = useMutation({ mutationFn: api.markInternalWorkflowNotificationRead, onSuccess: refresh });
+  const setDeadlineMode = useMutation({ mutationFn: api.setInternalWorkflowDeadlineMode, onSuccess: refresh });
   const handleAddTime = (event: FormEvent) => {
     event.preventDefault();
     if (!taskPublicId) { setNotice("Choose a task before saving time."); return; }
@@ -91,6 +92,7 @@ export default function InternalWorkflowOperations({ section }: { section: Secti
     </>}
   </section>;
   return <section className="mx-auto max-w-[1100px] px-4 pb-10 sm:px-6 lg:px-9"><div className="mb-5"><p className="text-[10px] font-bold uppercase tracking-[0.18em] text-primary">Updates</p><h2 className="mt-1 text-2xl font-semibold">Notifications</h2></div>
+    <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-card p-4"><div><p className="text-sm font-semibold">Internal deadline reminders</p><p className="text-xs text-muted-foreground">Choose how often the portal groups approaching and overdue internal targets.</p></div><select aria-label="Deadline reminder frequency" data-testid="select-deadline-reminder-mode" value={notifications.data?.preference.deadlineMode ?? "IMMEDIATE"} onChange={(event) => setDeadlineMode.mutate(event.target.value as api.InternalWorkflowDeadlineMode)} className="h-10 rounded-lg border bg-background px-3 text-sm"><option value="IMMEDIATE">Immediate in-app</option><option value="DAILY_DIGEST">Daily digest</option><option value="OFF">Off</option></select></div>
     {notifications.isLoading ? <p>Loading notifications…</p> : <div className="divide-y rounded-xl border bg-card">{(notifications.data?.notifications ?? []).map((item) => <article key={item.publicId} data-testid={`notification-${item.publicId}`} className="flex items-start justify-between gap-4 p-4"><div className="flex gap-3"><Bell className="mt-1 h-4 w-4 text-primary" /><div><p className="font-medium">{item.title}</p><p className="text-sm text-muted-foreground">{item.message}</p><p className="mt-1 text-xs text-muted-foreground">{new Date(item.createdAt).toLocaleString()}</p></div></div>{!item.readAt && <button data-testid={`button-read-${item.publicId}`} onClick={() => markRead.mutate(item.publicId)} className="rounded-lg border px-3 py-1.5 text-xs">Mark read</button>}</article>)}</div>}
     {notifications.data?.notifications.length === 0 && <p className="rounded-xl border bg-card p-8 text-center text-sm text-muted-foreground">You’re all caught up.</p>}
   </section>;

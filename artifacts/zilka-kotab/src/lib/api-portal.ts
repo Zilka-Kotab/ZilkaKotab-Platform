@@ -75,6 +75,7 @@ export interface InternalWorkflowTimeEntry {
 export interface InternalWorkflowNotification {
   publicId: string; title: string; message: string; taskId: number | null; readAt: string | null; createdAt: string;
 }
+export type InternalWorkflowDeadlineMode = "IMMEDIATE" | "DAILY_DIGEST" | "OFF";
 export interface InternalWorkflowReport {
   totals: { active: number; overdue: number; pendingBilling: number; approvedCents: number; exportedCents: number };
   byUser: { name: string; role: Role; assigned: number; minutes: number }[];
@@ -325,7 +326,8 @@ export const getInternalWorkflowTimer = () => fetchPortal<{ timer: { taskPublicI
 export const changeInternalWorkflowTimer = (data: { action: 'start' | 'pause' | 'resume' | 'stop'; taskPublicId?: string; rateCents?: number; billingCode?: string }) => fetchPortal('/internal-workflow/timer', { method: 'POST', body: JSON.stringify(data) });
 export const getInternalWorkflowReport = () => fetchPortal<InternalWorkflowReport>('/internal-workflow/reports');
 export const exportInternalWorkflowBilling = () => fetchPortal<{ csv: string; exported: number }>('/internal-workflow/billing/export', { method: 'POST', body: JSON.stringify({}) });
-export const getInternalWorkflowNotifications = () => fetchPortal<{ notifications: InternalWorkflowNotification[] }>('/internal-workflow/notifications');
+export const getInternalWorkflowNotifications = () => fetchPortal<{ notifications: InternalWorkflowNotification[]; preference: { deadlineMode: InternalWorkflowDeadlineMode } }>('/internal-workflow/notifications');
+export const setInternalWorkflowDeadlineMode = (deadlineMode: InternalWorkflowDeadlineMode) => fetchPortal('/internal-workflow/notifications/preferences', { method: 'PATCH', body: JSON.stringify({ deadlineMode }) });
 export const markInternalWorkflowNotificationRead = (publicId: string) => fetchPortal(`/internal-workflow/notifications/${publicId}/read`, { method: 'PATCH', body: JSON.stringify({}) });
 export const getDashboard = () => fetchPortal<{ tools: Tool[], projects: Project[], clients?: Client[] }>('/dashboard');
 
