@@ -1,13 +1,18 @@
 import { createHash } from "node:crypto";
-import { asc, eq } from "drizzle-orm";
+import { and, asc, eq, inArray, or } from "drizzle-orm";
 import { Router } from "express";
 import {
   db,
+  attorneyClientsTable,
+  clientsTable,
   internalWorkflowImportsTable,
   internalWorkflowMattersTable,
+  internalWorkflowTasksTable,
+  internalWorkflowTaskAuditTable,
+  portalUsersTable,
   type AppCollMatterRecord,
 } from "@workspace/db";
-import { requireAdmin } from "../middlewares/portalAccess";
+import { requireAdmin, requirePortalAccess } from "../middlewares/portalAccess";
 
 const router = Router();
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -121,11 +126,26 @@ function serializeMatter(matter: typeof internalWorkflowMattersTable.$inferSelec
   };
 }
 
-router.use(requireAdmin);
+router.use(requirePortalAccess, (req, res, next) => {
+  if (req.portalUser?.role !== "ATTORNEY" && req.portalUser?.role !== "ADMIN") {
+    res.status(403).json({ error: "Internal workflow access is restricted to firm staff." });
+    return;
+  }
+  next();
+});
 
 router.get("/portal/internal-workflow/matters", async (_req, res, next) => {
   try {
-    const matters = await db.select().from(internalWorkflowMattersTable).orderBy(asc(internalWorkflowMattersTable.docketId));
+    const user = _req.portalUser!;
+    let matters = await db.select().from(internalWorkflowMattersTable).orderBy(asc(internalWorkflowMattersTable.docketId));
+    if (user.role !== "ADMIN") {
+      const clientIds = await db.select({ id: attorneyClientsTable.clientId }).from(attorneyClientsTable).where(eq(attorneyClientsTable.attorneyUserId, user.id));
+      const clients = clientIds.length
+        ? await db.select({ name: clientsTable.name }).from(clientsTable).where(inArray(clientsTable.id, clientIds.map(({ id }) => id)))
+        : [];
+      const names = new Set(clients.map(({ name }) => name.trim().toLowerCase()));
+      matters = matters.filter((matter) => names.has(matter.client.trim().toLowerCase()));
+    }
     res.json({ matters: matters.map(serializeMatter) });
   } catch (error) {
     next(error);
@@ -134,6 +154,7 @@ router.get("/portal/internal-workflow/matters", async (_req, res, next) => {
 
 router.get("/portal/internal-workflow/imports", async (_req, res, next) => {
   try {
+    if (_req.portalUser?.role !== "ADMIN") return void res.json({ imports: [] });
     const imports = await db.select().from(internalWorkflowImportsTable).orderBy(asc(internalWorkflowImportsTable.createdAt));
     res.json({ imports: imports.reverse().map((item) => ({
       publicId: item.publicId,
@@ -149,7 +170,7 @@ router.get("/portal/internal-workflow/imports", async (_req, res, next) => {
   }
 });
 
-router.post("/portal/internal-workflow/imports/preview", async (req, res, next) => {
+router.post("/portal/internal-workflow/imports/preview", requireAdmin, async (req, res, next) => {
   try {
     const csvText = typeof req.body?.csvText === "string" ? req.body.csvText : "";
     const fileName = typeof req.body?.fileName === "string" ? req.body.fileName.trim().slice(0, 240) : "";
@@ -235,7 +256,7 @@ router.post("/portal/internal-workflow/imports/preview", async (req, res, next) 
   }
 });
 
-router.post("/portal/internal-workflow/imports/:importId/apply", async (req, res, next) => {
+router.post("/portal/internal-workflow/imports/:importId/apply", requireAdmin, async (req, res, next) => {
   try {
     const publicId = typeof req.params.importId === "string" ? req.params.importId : "";
     if (!UUID.test(publicId)) return void res.status(400).json({ error: "Invalid import identifier." });
@@ -254,6 +275,174 @@ router.post("/portal/internal-workflow/imports/:importId/apply", async (req, res
       await tx.update(internalWorkflowImportsTable).set({ status: "APPLIED", previewData: null, appliedAt: new Date() }).where(eq(internalWorkflowImportsTable.id, batch.id));
     });
     res.json({ applied: records.length, summary: batch.summary });
+  } catch (error) {
+    next(error);
+  }
+});
+
+async function userCanReadMatter(user: NonNullable<Express.Request["portalUser"]>, matter: typeof internalWorkflowMattersTable.$inferSelect) {
+  if (user.role === "ADMIN") return true;
+  const links = await db.select({ clientId: attorneyClientsTable.clientId }).from(attorneyClientsTable).where(eq(attorneyClientsTable.attorneyUserId, user.id));
+  if (!links.length) return false;
+  const clients = await db.select({ name: clientsTable.name }).from(clientsTable).where(inArray(clientsTable.id, links.map(({ clientId }) => clientId)));
+  return clients.some(({ name }) => name.trim().toLowerCase() === matter.client.trim().toLowerCase());
+}
+
+router.get("/portal/internal-workflow/team", async (_req, res, next) => {
+  try {
+    const users = await db.select({
+      id: portalUsersTable.id,
+      publicId: portalUsersTable.publicId,
+      name: portalUsersTable.name,
+      email: portalUsersTable.email,
+      role: portalUsersTable.role,
+    }).from(portalUsersTable).where(and(
+      eq(portalUsersTable.active, true),
+      eq(portalUsersTable.status, "ACTIVE"),
+      inArray(portalUsersTable.role, ["ATTORNEY", "ADMIN"]),
+    )).orderBy(asc(portalUsersTable.name));
+    res.json({ users });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.get("/portal/internal-workflow/tasks", async (req, res, next) => {
+  try {
+    const user = req.portalUser!;
+    const tasks = await db.select().from(internalWorkflowTasksTable)
+      .where(user.role === "ADMIN" ? undefined : or(
+        eq(internalWorkflowTasksTable.createdById, user.id),
+        eq(internalWorkflowTasksTable.assignedById, user.id),
+        eq(internalWorkflowTasksTable.assignedToId, user.id),
+        eq(internalWorkflowTasksTable.responsibleAttorneyId, user.id),
+      ))
+      .orderBy(asc(internalWorkflowTasksTable.internalTargetDate), asc(internalWorkflowTasksTable.officialDueDate))
+      .limit(500);
+    const matters = tasks.length ? await db.select().from(internalWorkflowMattersTable).where(inArray(internalWorkflowMattersTable.id, tasks.map((task) => task.matterId).filter((id): id is number => id !== null))) : [];
+    const users = tasks.length ? await db.select().from(portalUsersTable).where(inArray(portalUsersTable.id, [...new Set(tasks.flatMap((task) => [task.createdById, task.assignedById, task.assignedToId, task.responsibleAttorneyId].filter((id): id is number => id !== null)))])) : [];
+    const matterMap = new Map(matters.map((matter) => [matter.id, matter]));
+    const userMap = new Map(users.map((entry) => [entry.id, entry]));
+    res.json({ tasks: tasks.map((task) => {
+      const matter = task.matterId ? matterMap.get(task.matterId) : null;
+      return {
+        publicId: task.publicId, title: task.title, instructions: task.instructions,
+        matter: matter ? { publicId: matter.publicId, docketId: matter.docketId, title: matter.title, client: matter.client } : null,
+        responsibleAttorney: task.responsibleAttorneyId ? userMap.get(task.responsibleAttorneyId)?.name ?? "" : "",
+        createdBy: userMap.get(task.createdById)?.name ?? "",
+        assignedBy: userMap.get(task.assignedById)?.name ?? "",
+        assignedTo: { publicId: userMap.get(task.assignedToId)?.publicId ?? "", name: userMap.get(task.assignedToId)?.name ?? "" },
+        assignedToId: task.assignedToId,
+        assignedToPublicId: userMap.get(task.assignedToId)?.publicId ?? "",
+        createdById: task.createdById,
+        createdByPublicId: userMap.get(task.createdById)?.publicId ?? "",
+        assignedById: task.assignedById,
+        assignedByPublicId: userMap.get(task.assignedById)?.publicId ?? "",
+        responsibleAttorneyId: task.responsibleAttorneyId,
+        responsibleAttorneyPublicId: task.responsibleAttorneyId ? userMap.get(task.responsibleAttorneyId)?.publicId ?? null : null,
+        officialDueDate: task.officialDueDate,
+        internalTargetDate: task.internalTargetDate,
+        workflowStatus: task.workflowStatus,
+        priority: task.priority,
+        createdAt: task.createdAt,
+        finalizedAt: task.finalizedAt,
+        canReassign: user.role === "ADMIN" || task.createdById === user.id || task.assignedById === user.id,
+      };
+    }) });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post("/portal/internal-workflow/tasks", async (req, res, next) => {
+  try {
+    const user = req.portalUser!;
+    const title = typeof req.body?.title === "string" ? req.body.title.trim().slice(0, 240) : "";
+    const instructions = typeof req.body?.instructions === "string" ? req.body.instructions.trim().slice(0, 12000) : "";
+    const assignedToId = Number(req.body?.assignedToId);
+    const matterPublicId = typeof req.body?.matterPublicId === "string" ? req.body.matterPublicId : "";
+    const requestedResponsibleAttorneyId = req.body?.responsibleAttorneyId === undefined
+      ? (user.role === "ATTORNEY" ? user.id : 0)
+      : Number(req.body.responsibleAttorneyId);
+    const officialDueDate = typeof req.body?.officialDueDate === "string" ? toDate(req.body.officialDueDate) : null;
+    const internalTargetDate = typeof req.body?.internalTargetDate === "string" ? toDate(req.body.internalTargetDate) : null;
+    const priority = ["LOW", "NORMAL", "HIGH", "URGENT"].includes(req.body?.priority) ? req.body.priority : "NORMAL";
+    if (title.length < 3 || !Number.isInteger(assignedToId) || assignedToId < 1) return void res.status(400).json({ error: "Enter a task title and select an assignee." });
+    const [assignee] = await db.select().from(portalUsersTable).where(and(
+      eq(portalUsersTable.id, assignedToId),
+      eq(portalUsersTable.active, true),
+      eq(portalUsersTable.status, "ACTIVE"),
+      inArray(portalUsersTable.role, ["ATTORNEY", "ADMIN"]),
+    )).limit(1);
+    if (!assignee) return void res.status(400).json({ error: "Select an active attorney or administrator." });
+    const [responsibleAttorney] = await db.select({ id: portalUsersTable.id }).from(portalUsersTable).where(and(
+      eq(portalUsersTable.id, requestedResponsibleAttorneyId),
+      eq(portalUsersTable.active, true),
+      eq(portalUsersTable.status, "ACTIVE"),
+      eq(portalUsersTable.role, "ATTORNEY"),
+    )).limit(1);
+    if (!responsibleAttorney) return void res.status(400).json({ error: "Select an active attorney responsible for the assignment." });
+    let matter: typeof internalWorkflowMattersTable.$inferSelect | undefined;
+    if (matterPublicId) {
+      [matter] = await db.select().from(internalWorkflowMattersTable).where(eq(internalWorkflowMattersTable.publicId, matterPublicId)).limit(1);
+      if (!matter || !(await userCanReadMatter(user, matter))) return void res.status(404).json({ error: "Matter not found or not assigned to you." });
+    }
+    const responsibleAttorneyId = requestedResponsibleAttorneyId;
+    const [task] = await db.transaction(async (tx) => {
+      const [created] = await tx.insert(internalWorkflowTasksTable).values({
+        matterId: matter?.id ?? null, title, instructions, responsibleAttorneyId,
+        createdById: user.id, assignedById: user.id, assignedToId,
+        officialDueDate, internalTargetDate, priority,
+      }).returning();
+      await tx.insert(internalWorkflowTaskAuditTable).values({
+        taskId: created!.id, actorId: user.id, action: "CREATED",
+        details: { title, matterId: matter?.publicId ?? null, assignedTo: assignee.publicId },
+      });
+      return [created];
+    });
+    res.status(201).json({ task: { publicId: task!.publicId, title: task!.title, workflowStatus: task!.workflowStatus } });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.patch("/portal/internal-workflow/tasks/:taskId", async (req, res, next) => {
+  try {
+    const user = req.portalUser!;
+    const publicId = typeof req.params.taskId === "string" ? req.params.taskId : "";
+    if (!UUID.test(publicId)) return void res.status(400).json({ error: "Invalid task identifier." });
+    const [task] = await db.select().from(internalWorkflowTasksTable).where(eq(internalWorkflowTasksTable.publicId, publicId)).limit(1);
+    if (!task) return void res.status(404).json({ error: "Task not found." });
+    const mayReassign = user.role === "ADMIN" || task.createdById === user.id || task.assignedById === user.id;
+    const isParticipant = mayReassign || task.assignedToId === user.id || task.responsibleAttorneyId === user.id;
+    if (!isParticipant) return void res.status(404).json({ error: "Task not found." });
+    const status = typeof req.body?.workflowStatus === "string" ? req.body.workflowStatus : task.workflowStatus;
+    if (!["OPEN", "IN_PROGRESS", "RETURNED_FOR_PROOF", "COMPLETED"].includes(status)) return void res.status(400).json({ error: "Invalid workflow status." });
+    let assignedToId = task.assignedToId;
+    if (req.body?.assignedToId !== undefined) {
+      if (!mayReassign) return void res.status(403).json({ error: "Only the task creator or delegator may reassign this task." });
+      assignedToId = Number(req.body.assignedToId);
+      const [assignee] = await db.select({ id: portalUsersTable.id }).from(portalUsersTable).where(and(
+        eq(portalUsersTable.id, assignedToId), eq(portalUsersTable.active, true), eq(portalUsersTable.status, "ACTIVE"),
+        inArray(portalUsersTable.role, ["ATTORNEY", "ADMIN"]),
+      )).limit(1);
+      if (!assignee) return void res.status(400).json({ error: "Select an active attorney or administrator." });
+    }
+    const nextDate = typeof req.body?.internalTargetDate === "string" ? toDate(req.body.internalTargetDate) : task.internalTargetDate;
+    const finalizedAt = status === "COMPLETED" ? task.finalizedAt ?? new Date() : null;
+    await db.transaction(async (tx) => {
+      await tx.update(internalWorkflowTasksTable).set({
+        workflowStatus: status, assignedToId,
+        assignedById: assignedToId !== task.assignedToId ? user.id : task.assignedById,
+        internalTargetDate: nextDate, finalizedAt, updatedAt: new Date(),
+      }).where(eq(internalWorkflowTasksTable.id, task.id));
+      await tx.insert(internalWorkflowTaskAuditTable).values({
+        taskId: task.id, actorId: user.id,
+        action: assignedToId !== task.assignedToId ? "REASSIGNED" : "UPDATED",
+        details: { fromStatus: task.workflowStatus, toStatus: status, internalTargetDate: nextDate, assignedToId },
+      });
+    });
+    res.json({ updated: true });
   } catch (error) {
     next(error);
   }

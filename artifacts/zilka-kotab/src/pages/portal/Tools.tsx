@@ -6,7 +6,7 @@ import { SEO } from '@/components/SEO';
 export default function PortalTools() {
   const { data, isLoading, error } = usePortalTools();
   const { data: accessData } = usePortalAccess();
-  const isAdmin = accessData?.user?.role === 'ADMIN';
+  const canUseInternalWorkflow = accessData?.user?.role === 'ADMIN' || accessData?.user?.role === 'ATTORNEY';
 
   if (isLoading) {
     return (
@@ -41,7 +41,7 @@ export default function PortalTools() {
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {isAdmin && (
+        {canUseInternalWorkflow && (
           <Link
             href="/portal/internal-workflow"
             data-testid="link-tool-internal-workflow"
@@ -85,7 +85,7 @@ export default function PortalTools() {
             </div>
           </Link>
         ))}
-        {data.tools.length === 0 && !isAdmin && (
+        {data.tools.length === 0 && !canUseInternalWorkflow && (
           <div className="col-span-full rounded-xl border border-dashed border-border p-12 text-center">
             <Wrench className="mx-auto h-12 w-12 text-muted-foreground/50 mb-4" />
             <h3 className="text-lg font-medium text-foreground mb-1">No tools available</h3>

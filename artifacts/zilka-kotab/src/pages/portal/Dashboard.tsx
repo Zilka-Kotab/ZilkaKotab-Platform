@@ -48,6 +48,7 @@ export default function PortalDashboard() {
 
   const role = accessData?.user?.role;
   const isAttorneyOrAdmin = role === 'ATTORNEY' || role === 'ADMIN';
+  const canUseInternalWorkflow = isAttorneyOrAdmin;
   const displayName = accessData?.user?.name?.split(' ')[0] || 'there';
   const projectCount = dashboardData.projects.length;
   const clientCount = dashboardData.clients?.length ?? 0;
@@ -129,18 +130,18 @@ export default function PortalDashboard() {
               <p className="mt-1 text-xs leading-5 text-muted-foreground">Approved services for your matters.</p>
             </div>
             <div className="space-y-2 p-4">
-              {dashboardData.tools.length === 0 && role !== 'ADMIN' ? (
+              {dashboardData.tools.length === 0 && !canUseInternalWorkflow ? (
                 <div className="px-2 py-8 text-center"><Wrench className="mx-auto h-6 w-6 text-muted-foreground/60" /><p className="mt-3 text-sm font-semibold">No tools available</p></div>
               ) : (
                 <>
-                {role === 'ADMIN' && (
+                {canUseInternalWorkflow && (
                   <Link href="/portal/internal-workflow" data-testid="link-tool-internal-workflow-dashboard" className="portal-action portal-focus group flex items-center gap-3 rounded-xl border border-[#d5c79f] bg-[#fffdf8] p-3 hover:border-[#ad8b43] hover:bg-[#fbf7ec]">
                     <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-[#f4ecd5] text-[#795f25]"><BriefcaseBusiness className="h-4 w-4" /></span>
                     <span className="min-w-0 flex-1"><span className="block truncate text-sm font-semibold">Internal Workflow &amp; Docketing</span><span className="mt-0.5 block truncate text-xs text-muted-foreground">AppColl matter imports and firm operations</span></span>
                     <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground group-hover:text-primary" />
                   </Link>
                 )}
-                {dashboardData.tools.slice(0, role === 'ADMIN' ? 3 : 4).map((tool) => (
+                {dashboardData.tools.slice(0, canUseInternalWorkflow ? 3 : 4).map((tool) => (
                 <Link key={tool.publicId} href={`/portal/tools/${tool.slug}`} data-testid={`link-tool-${tool.publicId}`} className="portal-action portal-focus group flex items-center gap-3 rounded-xl border border-border p-3 hover:border-primary/30 hover:bg-primary/[0.035]">
                   <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary"><Wrench className="h-4 w-4" /></span>
                   <span className="min-w-0 flex-1"><span className="block truncate text-sm font-semibold">{tool.name}</span><span className="mt-0.5 block truncate text-xs text-muted-foreground">{tool.description}</span></span>

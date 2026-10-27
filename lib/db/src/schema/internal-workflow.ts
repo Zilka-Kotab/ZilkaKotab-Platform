@@ -74,5 +74,47 @@ export const internalWorkflowImportsTable = pgTable(
   ],
 );
 
+export const internalWorkflowTasksTable = pgTable(
+  "internal_workflow_tasks",
+  {
+    id: serial("id").primaryKey(),
+    publicId: uuid("public_id").defaultRandom().notNull(),
+    matterId: integer("matter_id").references(() => internalWorkflowMattersTable.id, { onDelete: "set null" }),
+    title: text("title").notNull(),
+    instructions: text("instructions").notNull().default(""),
+    responsibleAttorneyId: integer("responsible_attorney_id").references(() => portalUsersTable.id, { onDelete: "set null" }),
+    createdById: integer("created_by_id").notNull().references(() => portalUsersTable.id),
+    assignedById: integer("assigned_by_id").notNull().references(() => portalUsersTable.id),
+    assignedToId: integer("assigned_to_id").notNull().references(() => portalUsersTable.id),
+    officialDueDate: date("official_due_date", { mode: "string" }),
+    internalTargetDate: date("internal_target_date", { mode: "string" }),
+    workflowStatus: varchar("workflow_status", { length: 32 }).notNull().default("OPEN"),
+    priority: varchar("priority", { length: 16 }).notNull().default("NORMAL"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
+    finalizedAt: timestamp("finalized_at", { withTimezone: true }),
+  },
+  (table) => [
+    uniqueIndex("internal_workflow_tasks_public_id_unique").on(table.publicId),
+    index("internal_workflow_tasks_assigned_to_idx").on(table.assignedToId, table.workflowStatus),
+    index("internal_workflow_tasks_created_by_idx").on(table.createdById, table.workflowStatus),
+    index("internal_workflow_tasks_matter_idx").on(table.matterId),
+  ],
+);
+
+export const internalWorkflowTaskAuditTable = pgTable(
+  "internal_workflow_task_audit",
+  {
+    id: serial("id").primaryKey(),
+    taskId: integer("task_id").notNull().references(() => internalWorkflowTasksTable.id, { onDelete: "cascade" }),
+    actorId: integer("actor_id").notNull().references(() => portalUsersTable.id),
+    action: varchar("action", { length: 32 }).notNull(),
+    details: jsonb("details").$type<Record<string, unknown>>().notNull().default({}),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [index("internal_workflow_task_audit_task_idx").on(table.taskId, table.createdAt)],
+);
+
 export type InternalWorkflowMatter = typeof internalWorkflowMattersTable.$inferSelect;
 export type InternalWorkflowImport = typeof internalWorkflowImportsTable.$inferSelect;
+export type InternalWorkflowTask = typeof internalWorkflowTasksTable.$inferSelect;

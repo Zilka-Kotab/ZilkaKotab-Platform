@@ -51,6 +51,22 @@ export interface InternalWorkflowPreview {
   rows: { id: string; matterNumber: string; title: string; clientName: string; disposition: string; detail: string }[];
   notice: string;
 }
+export interface InternalWorkflowStaff {
+  id: number; publicId: string; name: string; email: string; role: 'ATTORNEY' | 'ADMIN';
+}
+export interface InternalWorkflowTask {
+  publicId: string; title: string; instructions: string;
+  matter: { publicId: string; docketId: string; title: string; client: string } | null;
+  responsibleAttorney: string; createdBy: string; assignedBy: string;
+  assignedTo: { publicId: string; name: string };
+  assignedToId: number;
+  assignedToPublicId: string; assignedByPublicId: string; createdByPublicId: string;
+  responsibleAttorneyPublicId: string | null;
+  officialDueDate: string | null; internalTargetDate: string | null;
+  workflowStatus: 'OPEN' | 'IN_PROGRESS' | 'RETURNED_FOR_PROOF' | 'COMPLETED';
+  priority: 'LOW' | 'NORMAL' | 'HIGH' | 'URGENT'; createdAt: string; finalizedAt: string | null;
+  canReassign: boolean;
+}
 
 export type AiProcessingProvider = 'CLIENT_MICROSOFT' | 'ZK_MANAGED_AI' | 'MANUAL';
 export type DataClassification = 'PUBLIC_SOURCE' | 'CLIENT_CONFIDENTIAL' | 'ATTORNEY_WORK_PRODUCT';
@@ -264,6 +280,12 @@ export const previewInternalWorkflowImport = (data: { fileName: string; csvText:
   fetchPortal<InternalWorkflowPreview>('/internal-workflow/imports/preview', { method: 'POST', body: JSON.stringify(data) });
 export const applyInternalWorkflowImport = (importId: string) =>
   fetchPortal<{ applied: number; summary: Record<string, number> }>(`/internal-workflow/imports/${importId}/apply`, { method: 'POST', body: JSON.stringify({}) });
+export const getInternalWorkflowTasks = () => fetchPortal<{ tasks: InternalWorkflowTask[] }>('/internal-workflow/tasks');
+export const getInternalWorkflowTeam = () => fetchPortal<{ users: InternalWorkflowStaff[] }>('/internal-workflow/team');
+export const createInternalWorkflowTask = (data: { title: string; instructions: string; matterPublicId?: string; assignedToId: number; responsibleAttorneyId?: number; officialDueDate?: string; internalTargetDate?: string; priority: string }) =>
+  fetchPortal<{ task: { publicId: string } }>('/internal-workflow/tasks', { method: 'POST', body: JSON.stringify(data) });
+export const updateInternalWorkflowTask = (data: { taskId: string; workflowStatus?: string; assignedToId?: number; internalTargetDate?: string }) =>
+  fetchPortal<{ updated: boolean }>(`/internal-workflow/tasks/${data.taskId}`, { method: 'PATCH', body: JSON.stringify(data) });
 export const getDashboard = () => fetchPortal<{ tools: Tool[], projects: Project[], clients?: Client[] }>('/dashboard');
 
 export const getClients = () => fetchPortal<{ clients: Client[] }>('/clients');

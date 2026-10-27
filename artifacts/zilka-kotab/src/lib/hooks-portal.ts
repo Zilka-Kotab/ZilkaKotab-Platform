@@ -20,6 +20,8 @@ export const portalKeys = {
   adminToolAccess: () => [...portalKeys.all, 'adminToolAccess'] as const,
   adminClientTools: () => [...portalKeys.all, 'adminClientTools'] as const,
   internalWorkflow: () => [...portalKeys.all, 'internalWorkflow'] as const,
+  internalWorkflowTasks: () => [...portalKeys.all, 'internalWorkflowTasks'] as const,
+  internalWorkflowTeam: () => [...portalKeys.all, 'internalWorkflowTeam'] as const,
 };
 
 export function usePortalAccess(enabled = true) {
@@ -80,6 +82,21 @@ export function useApplyInternalWorkflowImport() {
     mutationFn: api.applyInternalWorkflowImport,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: portalKeys.internalWorkflow() }),
   });
+}
+
+export function useInternalWorkflowTasks() {
+  return useQuery({ queryKey: portalKeys.internalWorkflowTasks(), queryFn: api.getInternalWorkflowTasks });
+}
+export function useInternalWorkflowTeam() {
+  return useQuery({ queryKey: portalKeys.internalWorkflowTeam(), queryFn: api.getInternalWorkflowTeam });
+}
+export function useCreateInternalWorkflowTask() {
+  const queryClient = useQueryClient();
+  return useMutation({ mutationFn: api.createInternalWorkflowTask, onSuccess: () => queryClient.invalidateQueries({ queryKey: portalKeys.internalWorkflowTasks() }) });
+}
+export function useUpdateInternalWorkflowTask() {
+  const queryClient = useQueryClient();
+  return useMutation({ mutationFn: api.updateInternalWorkflowTask, onSuccess: () => queryClient.invalidateQueries({ queryKey: portalKeys.internalWorkflowTasks() }) });
 }
 
 export function usePortalTool(slug: string) {

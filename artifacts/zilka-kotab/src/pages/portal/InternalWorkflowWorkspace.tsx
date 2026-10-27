@@ -62,6 +62,7 @@ export interface CsvUploadState {
 }
 
 export interface InternalWorkflowWorkspaceProps {
+  canImport?: boolean;
   matters: WorkflowMatter[];
   importHistory: MatterImportHistoryItem[];
   isLoading: boolean;
@@ -108,6 +109,7 @@ function dispositionClass(disposition: string) {
 }
 
 export default function InternalWorkflowWorkspace({
+  canImport = true,
   matters,
   importHistory,
   isLoading,
@@ -189,7 +191,7 @@ export default function InternalWorkflowWorkspace({
         </div>
       </header>
 
-      <section aria-labelledby="import-title" className="mb-8 overflow-hidden rounded-2xl border border-[#cbd8df] bg-card shadow-[0_12px_35px_-28px_rgba(24,55,76,0.45)]">
+      {canImport && <section aria-labelledby="import-title" className="mb-8 overflow-hidden rounded-2xl border border-[#cbd8df] bg-card shadow-[0_12px_35px_-28px_rgba(24,55,76,0.45)]">
         <div className="grid lg:grid-cols-[0.86fr_1.14fr]">
           <div className="relative overflow-hidden bg-[#163b56] px-6 py-7 text-[#f4f0e5] sm:px-8 sm:py-9">
             <div className="absolute -right-12 -top-16 h-64 w-64 rounded-full border border-white/10" />
@@ -362,9 +364,9 @@ export default function InternalWorkflowWorkspace({
             </div>
           </div>
         )}
-      </section>
+      </section>}
 
-      <div className="grid gap-8 xl:grid-cols-[1.45fr_0.75fr]">
+      <div className={canImport ? "grid gap-8 xl:grid-cols-[1.45fr_0.75fr]" : "block"}>
         <section aria-labelledby="matters-title" className="min-w-0">
           <div className="mb-4 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
             <div>
@@ -483,7 +485,7 @@ export default function InternalWorkflowWorkspace({
           </div>
         </section>
 
-        <section aria-labelledby="history-title" className="min-w-0">
+        {canImport && <section aria-labelledby="history-title" className="min-w-0">
           <button
             type="button"
             data-testid="button-toggle-import-history"
@@ -551,7 +553,7 @@ export default function InternalWorkflowWorkspace({
             <ShieldCheck className="h-3.5 w-3.5 shrink-0 text-primary" />
             Import records are shown for traceability.
           </p>
-        </section>
+        </section>}
       </div>
     </div>
   );

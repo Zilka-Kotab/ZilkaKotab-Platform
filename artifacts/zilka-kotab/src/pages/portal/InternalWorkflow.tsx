@@ -1,9 +1,11 @@
 import { useState } from "react";
 import InternalWorkflowWorkspace from "./InternalWorkflowWorkspace";
-import { useApplyInternalWorkflowImport, useInternalWorkflow, usePreviewInternalWorkflowImport } from "@/lib/hooks-portal";
+import { useApplyInternalWorkflowImport, useInternalWorkflow, usePortalAccess, usePreviewInternalWorkflowImport } from "@/lib/hooks-portal";
 import type { InternalWorkflowPreview } from "@/lib/api-portal";
+import InternalWorkflowTasks from "./InternalWorkflowTasks";
 
 export default function InternalWorkflow() {
+  const access = usePortalAccess();
   const workspace = useInternalWorkflow();
   const previewImport = usePreviewInternalWorkflowImport();
   const applyImport = useApplyInternalWorkflowImport();
@@ -37,6 +39,7 @@ export default function InternalWorkflow() {
 
   const matters = workspace.data?.matters ?? [];
   const history = workspace.data?.imports ?? [];
+  const canImport = access.data?.user?.role === "ADMIN";
   const previewSummary = preview ? {
     totalRows: preview.preview.summary.total,
     readyCount: preview.preview.summary.added + preview.preview.summary.changed,
@@ -45,7 +48,10 @@ export default function InternalWorkflow() {
     rows: preview.rows.map((row) => ({ ...row, disposition: row.disposition === "ready" ? "ready" : row.disposition })),
   } : null;
 
-  return <InternalWorkflowWorkspace
+  return <>
+    <InternalWorkflowTasks matters={matters} />
+    <InternalWorkflowWorkspace
+    canImport={canImport}
     matters={matters.map((matter) => ({
       id: matter.publicId,
       matterNumber: matter.docketId || matter.appCollMatterId,
@@ -73,5 +79,6 @@ export default function InternalWorkflow() {
     onApplyConfirm={onApplyConfirm}
     onRetry={() => { void workspace.refetch(); }}
     onClearPreview={() => { setPreview(null); setFileName(null); setError(null); }}
-  />;
+    />
+  </>;
 }

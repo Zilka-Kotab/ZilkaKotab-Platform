@@ -135,7 +135,7 @@ function Router() {
         <ProtectedPortalRoute component={ProjectWorkspace} />
       </Route>
       <Route path="/portal/internal-workflow">
-        <ProtectedPortalRoute component={InternalWorkflow} requiredRole="ADMIN" />
+        <ProtectedPortalRoute component={InternalWorkflow} requiredRoles={['ATTORNEY', 'ADMIN']} />
       </Route>
       {/* Public Routes */}
       <Route>
