@@ -32,7 +32,7 @@ const normalizeEmail = (value: unknown) => typeof value === "string" ? value.tri
 const text = (value: unknown, fallback = "") => typeof value === "string" ? value.trim() : fallback;
 const boolean = (value: unknown, fallback: boolean) => typeof value === "boolean" ? value : fallback;
 const role = (value: unknown): PortalUser["role"] | null =>
-  value === "CLIENT" || value === "ATTORNEY" || value === "ADMIN" ? value : null;
+  value === "CLIENT" || value === "ATTORNEY" || value === "PARALEGAL" || value === "ADMIN" ? value : null;
 const userStatus = (value: unknown): PortalUser["status"] | null =>
   value === "PENDING" || value === "ACTIVE" || value === "DEACTIVATED" ? value : null;
 const publicIds = (value: unknown) =>
@@ -45,7 +45,8 @@ async function assignments(userId: number, userRole: PortalUser["role"]) {
   if (userRole === "ATTORNEY") {
     return (await db.select({ clientId: attorneyClientsTable.clientId }).from(attorneyClientsTable).where(eq(attorneyClientsTable.attorneyUserId, userId))).map((x) => x.clientId);
   }
-  return (await db.select({ id: clientsTable.id }).from(clientsTable).where(eq(clientsTable.active, true))).map((x) => x.id);
+  if (userRole === "ADMIN") return (await db.select({ id: clientsTable.id }).from(clientsTable).where(eq(clientsTable.active, true))).map((x) => x.id);
+  return [];
 }
 
 async function serializeUser(user: PortalUser) {
@@ -59,6 +60,7 @@ async function serializeUser(user: PortalUser) {
 
 async function canAccessClient(user: PortalUser, clientId: number) {
   if (user.role === "ADMIN") return true;
+  if (user.role === "PARALEGAL") return false;
   const table = user.role === "CLIENT" ? clientUsersTable : attorneyClientsTable;
   const userColumn = user.role === "CLIENT" ? clientUsersTable.userId : attorneyClientsTable.attorneyUserId;
   const [match] = await db.select().from(table).where(and(eq(userColumn, user.id), eq(table.clientId, clientId))).limit(1);

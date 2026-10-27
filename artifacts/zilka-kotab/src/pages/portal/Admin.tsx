@@ -130,6 +130,7 @@ function UsersAdmin() {
             >
               <option value="CLIENT">Client</option>
               <option value="ATTORNEY">Attorney</option>
+              <option value="PARALEGAL">Paralegal</option>
               <option value="ADMIN">Admin</option>
             </select>
           </div>
@@ -167,6 +168,7 @@ function UsersAdmin() {
                   >
                     <option value="CLIENT">Client</option>
                     <option value="ATTORNEY">Attorney</option>
+                    <option value="PARALEGAL">Paralegal</option>
                     <option value="ADMIN">Admin</option>
                   </select>
                 </td>
@@ -185,6 +187,8 @@ function UsersAdmin() {
                 <td className="px-6 py-4 min-w-56">
                   {user.role === 'ADMIN' ? (
                     <span className="text-xs text-muted-foreground">All clients</span>
+                  ) : user.role === 'PARALEGAL' ? (
+                    <span className="text-xs text-muted-foreground">Matters listed to this paralegal in AppColl</span>
                   ) : (
                     <select
                       multiple

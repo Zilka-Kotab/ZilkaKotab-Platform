@@ -1,4 +1,4 @@
-export type Role = 'CLIENT' | 'ATTORNEY' | 'ADMIN';
+export type Role = 'CLIENT' | 'ATTORNEY' | 'PARALEGAL' | 'ADMIN';
 export type UserStatus = 'PENDING' | 'ACTIVE' | 'DEACTIVATED';
 
 export interface PortalUser {
@@ -52,7 +52,7 @@ export interface InternalWorkflowPreview {
   notice: string;
 }
 export interface InternalWorkflowStaff {
-  id: number; publicId: string; name: string; email: string; role: 'ATTORNEY' | 'ADMIN';
+  id: number; publicId: string; name: string; email: string; role: 'ATTORNEY' | 'PARALEGAL' | 'ADMIN';
 }
 export interface InternalWorkflowTask {
   publicId: string; title: string; instructions: string;

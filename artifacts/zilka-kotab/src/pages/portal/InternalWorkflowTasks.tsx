@@ -93,11 +93,11 @@ export default function InternalWorkflowTasks({ matters }: { matters: InternalWo
           <label className="mb-3 block text-xs font-semibold text-foreground">Assign to
             <select data-testid="select-task-assignee" value={assignedToId} onChange={(event) => setAssignedToId(event.target.value)} required className="mt-1.5 h-10 w-full rounded-lg border border-border bg-background px-3 text-sm font-normal">
               <option value="">Select a colleague</option>
-              {team.map((person) => <option key={person.id} value={person.id}>{person.name} · {person.role === "ADMIN" ? "Admin" : "Attorney"}</option>)}
+              {team.map((person) => <option key={person.id} value={person.id}>{person.name} · {person.role === "ADMIN" ? "Admin" : person.role === "PARALEGAL" ? "Paralegal" : "Attorney"}</option>)}
             </select>
           </label>
           <label className="mb-3 block text-xs font-semibold text-foreground">Responsible attorney
-            <select data-testid="select-task-responsible-attorney" value={responsibleAttorneyId} onChange={(event) => setResponsibleAttorneyId(event.target.value)} required={access.data?.user?.role === "ADMIN"} className="mt-1.5 h-10 w-full rounded-lg border border-border bg-background px-3 text-sm font-normal">
+            <select data-testid="select-task-responsible-attorney" value={responsibleAttorneyId} onChange={(event) => setResponsibleAttorneyId(event.target.value)} required={access.data?.user?.role !== "ATTORNEY"} className="mt-1.5 h-10 w-full rounded-lg border border-border bg-background px-3 text-sm font-normal">
               <option value="">{access.data?.user?.role === "ATTORNEY" ? "Current attorney" : "Select responsible attorney"}</option>
               {team.filter((person) => person.role === "ATTORNEY").map((person) => <option key={person.id} value={person.id}>{person.name}</option>)}
             </select>

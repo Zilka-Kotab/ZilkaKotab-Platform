@@ -69,12 +69,13 @@ export function PortalLayout({ children }: PortalLayoutProps) {
   const role = portalUser.role;
   const isClient = role === 'CLIENT';
   const isAttorney = role === 'ATTORNEY';
+  const isParalegal = role === 'PARALEGAL';
   const isAdmin = role === 'ADMIN';
 
   const navItems = [
     { label: 'Dashboard', href: '/portal', icon: <LayoutDashboard className="h-5 w-5" />, visible: true },
     { label: 'My Clients', href: '/portal/clients', icon: <Users className="h-5 w-5" />, visible: isAttorney },
-    { label: 'Tools', href: '/portal/tools', icon: <Wrench className="h-5 w-5" />, visible: isClient || isAttorney || isAdmin },
+    { label: 'Tools', href: '/portal/tools', icon: <Wrench className="h-5 w-5" />, visible: isClient || isAttorney || isParalegal || isAdmin },
     { label: 'Admin', href: '/portal/admin', icon: <Settings className="h-5 w-5" />, visible: isAdmin },
   ].filter(item => item.visible);
 

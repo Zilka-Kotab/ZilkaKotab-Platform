@@ -13,7 +13,7 @@ import {
   varchar,
 } from "drizzle-orm/pg-core";
 
-export const portalRoleEnum = pgEnum("portal_role", ["CLIENT", "ATTORNEY", "ADMIN"]);
+export const portalRoleEnum = pgEnum("portal_role", ["CLIENT", "ATTORNEY", "PARALEGAL", "ADMIN"]);
 export const portalUserStatusEnum = pgEnum("portal_user_status", ["PENDING", "ACTIVE", "DEACTIVATED"]);
 
 export const portalUsersTable = pgTable(

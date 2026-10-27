@@ -127,7 +127,7 @@ function serializeMatter(matter: typeof internalWorkflowMattersTable.$inferSelec
 }
 
 router.use(requirePortalAccess, (req, res, next) => {
-  if (req.portalUser?.role !== "ATTORNEY" && req.portalUser?.role !== "ADMIN") {
+  if (req.portalUser?.role !== "ATTORNEY" && req.portalUser?.role !== "PARALEGAL" && req.portalUser?.role !== "ADMIN") {
     res.status(403).json({ error: "Internal workflow access is restricted to firm staff." });
     return;
   }
@@ -138,13 +138,15 @@ router.get("/portal/internal-workflow/matters", async (_req, res, next) => {
   try {
     const user = _req.portalUser!;
     let matters = await db.select().from(internalWorkflowMattersTable).orderBy(asc(internalWorkflowMattersTable.docketId));
-    if (user.role !== "ADMIN") {
+    if (user.role === "ATTORNEY") {
       const clientIds = await db.select({ id: attorneyClientsTable.clientId }).from(attorneyClientsTable).where(eq(attorneyClientsTable.attorneyUserId, user.id));
       const clients = clientIds.length
         ? await db.select({ name: clientsTable.name }).from(clientsTable).where(inArray(clientsTable.id, clientIds.map(({ id }) => id)))
         : [];
       const names = new Set(clients.map(({ name }) => name.trim().toLowerCase()));
       matters = matters.filter((matter) => names.has(matter.client.trim().toLowerCase()));
+    } else if (user.role === "PARALEGAL") {
+      matters = matters.filter((matter) => matter.paralegal.trim().toLowerCase() === user.name.trim().toLowerCase());
     }
     res.json({ matters: matters.map(serializeMatter) });
   } catch (error) {
@@ -282,6 +284,7 @@ router.post("/portal/internal-workflow/imports/:importId/apply", requireAdmin, a
 
 async function userCanReadMatter(user: NonNullable<Express.Request["portalUser"]>, matter: typeof internalWorkflowMattersTable.$inferSelect) {
   if (user.role === "ADMIN") return true;
+  if (user.role === "PARALEGAL") return matter.paralegal.trim().toLowerCase() === user.name.trim().toLowerCase();
   const links = await db.select({ clientId: attorneyClientsTable.clientId }).from(attorneyClientsTable).where(eq(attorneyClientsTable.attorneyUserId, user.id));
   if (!links.length) return false;
   const clients = await db.select({ name: clientsTable.name }).from(clientsTable).where(inArray(clientsTable.id, links.map(({ clientId }) => clientId)));
@@ -299,7 +302,7 @@ router.get("/portal/internal-workflow/team", async (_req, res, next) => {
     }).from(portalUsersTable).where(and(
       eq(portalUsersTable.active, true),
       eq(portalUsersTable.status, "ACTIVE"),
-      inArray(portalUsersTable.role, ["ATTORNEY", "ADMIN"]),
+      inArray(portalUsersTable.role, ["ATTORNEY", "PARALEGAL", "ADMIN"]),
     )).orderBy(asc(portalUsersTable.name));
     res.json({ users });
   } catch (error) {
@@ -372,7 +375,7 @@ router.post("/portal/internal-workflow/tasks", async (req, res, next) => {
       eq(portalUsersTable.id, assignedToId),
       eq(portalUsersTable.active, true),
       eq(portalUsersTable.status, "ACTIVE"),
-      inArray(portalUsersTable.role, ["ATTORNEY", "ADMIN"]),
+      inArray(portalUsersTable.role, ["ATTORNEY", "PARALEGAL", "ADMIN"]),
     )).limit(1);
     if (!assignee) return void res.status(400).json({ error: "Select an active attorney or administrator." });
     const [responsibleAttorney] = await db.select({ id: portalUsersTable.id }).from(portalUsersTable).where(and(
@@ -424,7 +427,7 @@ router.patch("/portal/internal-workflow/tasks/:taskId", async (req, res, next) =
       assignedToId = Number(req.body.assignedToId);
       const [assignee] = await db.select({ id: portalUsersTable.id }).from(portalUsersTable).where(and(
         eq(portalUsersTable.id, assignedToId), eq(portalUsersTable.active, true), eq(portalUsersTable.status, "ACTIVE"),
-        inArray(portalUsersTable.role, ["ATTORNEY", "ADMIN"]),
+        inArray(portalUsersTable.role, ["ATTORNEY", "PARALEGAL", "ADMIN"]),
       )).limit(1);
       if (!assignee) return void res.status(400).json({ error: "Select an active attorney or administrator." });
     }

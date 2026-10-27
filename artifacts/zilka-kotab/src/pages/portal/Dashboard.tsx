@@ -48,7 +48,7 @@ export default function PortalDashboard() {
 
   const role = accessData?.user?.role;
   const isAttorneyOrAdmin = role === 'ATTORNEY' || role === 'ADMIN';
-  const canUseInternalWorkflow = isAttorneyOrAdmin;
+  const canUseInternalWorkflow = isAttorneyOrAdmin || role === 'PARALEGAL';
   const displayName = accessData?.user?.name?.split(' ')[0] || 'there';
   const projectCount = dashboardData.projects.length;
   const clientCount = dashboardData.clients?.length ?? 0;

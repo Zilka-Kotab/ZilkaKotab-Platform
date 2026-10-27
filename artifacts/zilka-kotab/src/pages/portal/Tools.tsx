@@ -6,7 +6,7 @@ import { SEO } from '@/components/SEO';
 export default function PortalTools() {
   const { data, isLoading, error } = usePortalTools();
   const { data: accessData } = usePortalAccess();
-  const canUseInternalWorkflow = accessData?.user?.role === 'ADMIN' || accessData?.user?.role === 'ATTORNEY';
+  const canUseInternalWorkflow = ['ADMIN', 'ATTORNEY', 'PARALEGAL'].includes(accessData?.user?.role ?? '');
 
   if (isLoading) {
     return (
