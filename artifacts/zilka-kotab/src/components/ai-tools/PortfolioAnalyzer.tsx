@@ -1,9 +1,10 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { motion } from 'framer-motion';
 import { ArrowRight, ExternalLink, Search, X } from 'lucide-react';
-import { useAnalyzePublicPortfolio } from '@workspace/api-client-react';
+import { useAnalyzePublicPortfolio, useAnalyzePublicPortfolioAdvanced } from '@workspace/api-client-react';
 import type { PublicPortfolioAnalysis } from '@workspace/api-client-react';
 import { AdvancedPortfolioMetrics } from './AdvancedPortfolioMetrics';
+import { PortfolioSnapshotPdfButton } from './PortfolioSnapshotPdfButton';
 import { CoverageLedger, EmptyPanel, ErrorPanel, Metric, ResultSkeleton, errorMessage, fmtDate, fmtNum } from './shared';
 
 export function PortfolioAnalyzer() {
@@ -42,7 +43,7 @@ export function PortfolioAnalyzer() {
           <ApplicantDialog candidates={m.data.applicantCandidates} selected={selectedNames.length ? selectedNames : m.data.applicantCandidates.map((candidate) => candidate.name)}
             onChange={setSelectedNames} onCancel={() => m.reset()} onContinue={() => run(submitted, selectedNames.length ? selectedNames : m.data.applicantCandidates.map((candidate) => candidate.name))} />
         )}
-        {m.isSuccess && !m.isPending && !m.data.selectionRequired && <PortfolioResult data={m.data} />}
+        {m.isSuccess && !m.isPending && !m.data.selectionRequired && <PortfolioResult key={`${m.data.coverage.retrievedAt}:${m.data.matchedApplicantNames.join('|')}`} data={m.data} />}
         {m.isIdle && (
           <EmptyPanel testId="empty-portfolio-idle" title="Enter a company to begin"
             body="You will see identified grants and pending applications, a five-year filing trend, leading technology classes, and recent filings, each with its USPTO source." />
@@ -81,6 +82,12 @@ function ApplicantDialog({ candidates, selected, onChange, onCancel, onContinue 
 function PortfolioResult({ data }: { data: PublicPortfolioAnalysis }) {
   const [showMoreGrants, setShowMoreGrants] = useState(false);
   const [selectedTechnology, setSelectedTechnology] = useState<PublicPortfolioAnalysis['topTechnologyAreas'][number] | null>(null);
+  const advanced = useAnalyzePublicPortfolioAdvanced();
+  const namesKey = data.matchedApplicantNames.slice().sort().join('|');
+  useEffect(() => {
+    const names = namesKey.split('|').filter(Boolean);
+    if (names.length) advanced.mutate({ data: { selectedApplicantNames: names } });
+  }, [namesKey]);
   const total = data.identifiedGrantedPatents + data.identifiedPendingApplications;
   if (total === 0 && data.recentApplications.length === 0) {
     return <div className="space-y-6">
@@ -95,7 +102,10 @@ function PortfolioResult({ data }: { data: PublicPortfolioAnalysis }) {
     <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }} className="space-y-8" data-testid="result-portfolio">
       <header>
         <div className="zk-eyebrow">Portfolio snapshot</div>
-        <h3 className="mt-1 font-display text-3xl font-semibold" data-testid="text-portfolio-company">{data.companyName}</h3>
+        <div className="mt-1 flex flex-wrap items-center justify-between gap-4">
+          <h3 className="font-display text-3xl font-semibold" data-testid="text-portfolio-company">{data.companyName}</h3>
+          <PortfolioSnapshotPdfButton portfolio={data} advanced={advanced.data} />
+        </div>
         {data.matchedApplicantNames.length > 0 && (
           <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
             <span className="text-muted-foreground">Matched applicant names:</span>
@@ -142,7 +152,7 @@ function PortfolioResult({ data }: { data: PublicPortfolioAnalysis }) {
         </section>
       </div>
 
-      <AdvancedPortfolioMetrics applicantNames={data.matchedApplicantNames} portfolio={data} />
+      <AdvancedPortfolioMetrics applicantNames={data.matchedApplicantNames} request={advanced} />
 
       <section>
         <h4 className="zk-h4">Recent applications</h4>

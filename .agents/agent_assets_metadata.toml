@@ -6,27 +6,46 @@ id = "iSh0Z0ymf_lRzE4L2N-Vq"
 uri = "file://artifacts/zilka-kotab/public/images/hero-new.jpg"
 type = "image"
 title = "New Hero Background"
+logical_id = "b4a90f62-c637-4a38-a59d-4271e434bc9b"
 
 [[outputs]]
 id = "VZGT0wEOxXawVBfH92BWE"
 uri = "file://artifacts/zilka-kotab/public/images/patent-doc.jpg"
 type = "image"
 title = "Patent Document Image"
+logical_id = "431a8637-fad1-47ea-ac99-d5788978c5d7"
 
 [[outputs]]
 id = "uiL9h5JhsY6J6mzDmB0Mj"
 uri = "file://artifacts/zilka-kotab/public/images/ai-patents.jpg"
 type = "image"
 title = "AI + Patents Section Image"
+logical_id = "02e6203c-6b50-4a73-b593-4fb7cd447ae7"
 
 [[outputs]]
 id = "OGlyoJbQYlvJJ20iNpCWn"
 uri = "file://zilka-kotab-website.zip"
 type = "unspecified"
 title = "Zilka-Kotab Website — Pure Static HTML/CSS/JS"
+logical_id = "b05bee70-1a8d-498e-bdad-4f60bfdf92bd"
 
 [[outputs]]
 id = "QbrkmZPKASw58m-bPe-MI"
 uri = "file://zilka-kotab-static-final.zip"
 type = "unspecified"
 title = "zilka-kotab-static-final.zip — Updated team page"
+logical_id = "de8914bd-0066-42aa-a1c6-c4b964302eb2"
+
+[[outputs]]
+id = "MBcWhVNednWnKdED3LP0Z"
+uri = "file://generated-artifacts/microsoft-portfolio-snapshot-example.pdf"
+type = "pdf"
+title = "Example portfolio snapshot PDF"
+description = "A one-page example using Microsoft portfolio results, with the firm's branding and practice copy in the bottom two-fifths."
+logical_id = "685d2774-710e-4f9c-ac19-7b3d03b6bce8"
+content_hash = "sha256:22f913f1c736deddb9a6bb7152827911bbf5cd69a8ec893b1415522b4f7b93a4"
+size = 203923
+mtime_ms = 1793153180164
+storage_uri = "gcs://replit-rams-assets-reed/rams/assets/repl:d8317486-6b11-41c5-bec6-74c880ade2f7/685d2774-710e-4f9c-ac19-7b3d03b6bce8/a55e93a7-6d05-48df-be9f-f662d30c7ead"
+storage_version_token = "1793153251326353"
+content_type = "application/pdf"

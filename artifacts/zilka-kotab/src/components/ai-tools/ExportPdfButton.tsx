@@ -2,7 +2,12 @@ import { useState } from 'react';
 import { Download } from 'lucide-react';
 import { downloadPdfReport, type PdfReport } from './pdf-export';
 
-export function ExportPdfButton({ report, label = 'Download PDF' }: { report: PdfReport; label?: string }) {
+type ExportPdfButtonProps = { label?: string } & (
+  | { report: PdfReport; onDownload?: never }
+  | { report?: never; onDownload: () => Promise<void> }
+);
+
+export function ExportPdfButton({ report, onDownload, label = 'Download PDF' }: ExportPdfButtonProps) {
   const [isExporting, setIsExporting] = useState(false);
   const [error, setError] = useState('');
 
@@ -11,7 +16,8 @@ export function ExportPdfButton({ report, label = 'Download PDF' }: { report: Pd
     setIsExporting(true);
     setError('');
     try {
-      await downloadPdfReport(report);
+      if (onDownload) await onDownload();
+      else await downloadPdfReport(report!);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'The PDF could not be created.');
     } finally {

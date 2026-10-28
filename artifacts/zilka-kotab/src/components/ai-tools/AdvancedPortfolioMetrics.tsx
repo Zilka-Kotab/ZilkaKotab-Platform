@@ -1,29 +1,21 @@
-import { useEffect } from 'react';
 import { useAnalyzePublicPortfolioAdvanced } from '@workspace/api-client-react';
-import type { PublicPortfolioAnalysis } from '@workspace/api-client-react';
 import { Metric, fmtNum } from './shared';
-import { ExportPdfButton } from './ExportPdfButton';
-import { portfolioPdfReport } from './report-builders';
 
-export function AdvancedPortfolioMetrics({ applicantNames, portfolio }: { applicantNames: string[]; portfolio: PublicPortfolioAnalysis }) {
-  const request = useAnalyzePublicPortfolioAdvanced();
-  const namesKey = applicantNames.slice().sort().join('|');
-
-  useEffect(() => {
-    const names = namesKey.split('|').filter(Boolean);
-    if (names.length) request.mutate({ data: { selectedApplicantNames: names } });
-  }, [namesKey]);
+export function AdvancedPortfolioMetrics({ applicantNames, request }: {
+  applicantNames: string[];
+  request: ReturnType<typeof useAnalyzePublicPortfolioAdvanced>;
+}) {
 
   if (request.isPending) {
     return <section aria-live="polite" className="space-y-3" data-testid="advanced-portfolio-loading">
-      <div className="flex flex-wrap items-center justify-between gap-3"><h4 className="zk-h4">Advanced portfolio metrics</h4><ExportPdfButton report={portfolioPdfReport(portfolio)} label="Export snapshot PDF" /></div>
+      <h4 className="zk-h4">Advanced portfolio metrics</h4>
       <p className="text-sm text-muted-foreground">Loading prosecution histories separately. The portfolio snapshot remains available.</p>
       <div className="h-20 animate-pulse rounded-sm bg-muted" />
     </section>;
   }
   if (request.isError) {
     return <section className="border p-4" data-testid="advanced-portfolio-error">
-      <div className="flex flex-wrap items-center justify-between gap-3"><h4 className="zk-h4">Advanced portfolio metrics unavailable</h4><ExportPdfButton report={portfolioPdfReport(portfolio)} label="Export snapshot PDF" /></div>
+      <h4 className="zk-h4">Advanced portfolio metrics unavailable</h4>
       <p className="mt-1 text-sm text-muted-foreground">The main portfolio results are still available. {request.error instanceof Error ? request.error.message : 'USPTO prosecution-history data could not be loaded.'}</p>
       <button type="button" className="mt-3 text-sm text-primary underline underline-offset-4" onClick={() => request.mutate({ data: { selectedApplicantNames: applicantNames } })}>Retry advanced metrics</button>
     </section>;
@@ -34,7 +26,7 @@ export function AdvancedPortfolioMetrics({ applicantNames, portfolio }: { applic
   return (
     <section className="space-y-7" data-testid="advanced-portfolio-metrics">
       <header>
-        <div className="flex flex-wrap items-center justify-between gap-3"><h4 className="zk-h4">Prosecution Efficiency</h4><ExportPdfButton report={portfolioPdfReport(portfolio, request.data)} /></div>
+        <h4 className="zk-h4">Prosecution Efficiency</h4>
         <p className="mt-1 text-xs text-muted-foreground">
           Based on {fmtNum(e.applicationsWithHistories)} applications with prosecution histories
           {coverage.truncated ? ` in a ${fmtNum(coverage.recordsAnalyzed)}-record sample` : ''}.
