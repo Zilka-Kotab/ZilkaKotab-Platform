@@ -6,11 +6,13 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { PublicDataCoverage } from './publicDataCoverage';
+import type { PublicExaminerAnalysisOfficeActionAnalytics } from './publicExaminerAnalysisOfficeActionAnalytics';
 import type { PublicExaminerAnalysisSearchType } from './publicExaminerAnalysisSearchType';
 import type { PublicExaminerBreakdown } from './publicExaminerBreakdown';
 
 export interface PublicExaminerAnalysis {
   query: string;
+  applicationNumberContext?: string;
   searchType: PublicExaminerAnalysisSearchType;
   /** @nullable */
   examinerName: string | null;
@@ -38,6 +40,7 @@ export interface PublicExaminerAnalysis {
   selectionRequired: boolean;
   examinerCandidates: PublicExaminerBreakdown[];
   topExaminers: PublicExaminerBreakdown[];
+  officeActionAnalytics?: PublicExaminerAnalysisOfficeActionAnalytics;
   calculationNote: string;
   coverage: PublicDataCoverage;
 }

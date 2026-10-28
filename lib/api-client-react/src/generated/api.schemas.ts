@@ -29,11 +29,18 @@ export interface PublicFilingTrend {
   count: number;
 }
 
+export type PublicTechnologyAreaClassificationsItem = {
+  code: string;
+  /** @minimum 0 */
+  count: number;
+};
+
 export interface PublicTechnologyArea {
   code: string;
   label: string;
   /** @minimum 0 */
   count: number;
+  classifications: PublicTechnologyAreaClassificationsItem[];
 }
 
 export interface PublicApplicantCandidate {
@@ -134,8 +141,29 @@ export const PublicExaminerAnalysisSearchType = {
   'art-unit': 'art-unit',
 } as const;
 
+export type PublicExaminerAnalysisOfficeActionAnalytics = {
+  /** @minimum 0 */
+  applicationsWithEventData: number;
+  /** @minimum 0 */
+  applicationsWithOfficeAction: number;
+  /** @minimum 0 */
+  applicationsWithFinalRejection: number;
+  /** @minimum 0 */
+  applicationsWithRestriction: number;
+  /** @minimum 0 */
+  averageNonFinalActionsPerApplication: number;
+  /** @minimum 0 */
+  averageFinalActionsPerApplication: number;
+  /**
+     * @minimum 0
+     * @nullable
+     */
+  medianMonthsFilingToFirstAction: number | null;
+};
+
 export interface PublicExaminerAnalysis {
   query: string;
+  applicationNumberContext?: string;
   searchType: PublicExaminerAnalysisSearchType;
   /** @nullable */
   examinerName: string | null;
@@ -163,6 +191,7 @@ export interface PublicExaminerAnalysis {
   selectionRequired: boolean;
   examinerCandidates: PublicExaminerBreakdown[];
   topExaminers: PublicExaminerBreakdown[];
+  officeActionAnalytics?: PublicExaminerAnalysisOfficeActionAnalytics;
   calculationNote: string;
   coverage: PublicDataCoverage;
 }

@@ -138,6 +138,13 @@ function monthsBetween(start: string, end: string) {
   return (endDate.valueOf() - startDate.valueOf()) / (1000 * 60 * 60 * 24 * 30.4375);
 }
 
+function median(values: number[]) {
+  if (!values.length) return null;
+  const sorted = values.slice().sort((left, right) => left - right);
+  const middle = Math.floor(sorted.length / 2);
+  return round(sorted.length % 2 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2);
+}
+
 async function requestSearch(query: string, fields: string): Promise<SearchResult> {
   const records: JsonRecord[] = [];
   let count = 0;
@@ -381,9 +388,15 @@ export async function analyzePortfolio(companyNameInput: string, selectedApplica
           .reduce((sum, entry) => sum + entry.count, 0)
       : null;
     const sections = new Map<string, number>();
+    const classificationsBySection = new Map<string, Map<string, number>>();
     for (const entry of summary.facets["applicationMetaData.cpcClassificationBag"] ?? []) {
-      const section = entry.value.trim().charAt(0);
-      if (CPC_SECTIONS[section]) sections.set(section, (sections.get(section) ?? 0) + entry.count);
+      const cpcCode = entry.value.trim();
+      const section = cpcCode.charAt(0);
+      if (!CPC_SECTIONS[section]) continue;
+      sections.set(section, (sections.get(section) ?? 0) + entry.count);
+      const sectionCodes = classificationsBySection.get(section) ?? new Map<string, number>();
+      sectionCodes.set(cpcCode, (sectionCodes.get(cpcCode) ?? 0) + entry.count);
+      classificationsBySection.set(section, sectionCodes);
     }
 
     const recentApplications = recent.records
@@ -435,7 +448,15 @@ export async function analyzePortfolio(companyNameInput: string, selectedApplica
       activePatentCountNote: "",
       filingTrends: yearResults.map((result, index) => ({ year: firstTrendYear + index, count: result.count })),
       topTechnologyAreas: [...sections]
-        .map(([code, count]) => ({ code, label: CPC_SECTIONS[code], count }))
+        .map(([code, count]) => ({
+          code,
+          label: CPC_SECTIONS[code],
+          count,
+          classifications: [...(classificationsBySection.get(code) ?? new Map())]
+            .map(([classificationCode, classificationCount]) => ({ code: classificationCode, count: classificationCount }))
+            .sort((left, right) => right.count - left.count || left.code.localeCompare(right.code))
+            .slice(0, 12),
+        }))
         .sort((left, right) => right.count - left.count || left.code.localeCompare(right.code))
         .slice(0, 5),
       recentApplications,
@@ -472,6 +493,13 @@ function examinerQuery(input: string, selectedExaminerName?: string) {
   };
 }
 
+function normalizeApplicationNumber(input: string) {
+  const compact = input.trim().replace(/[\s,.-]/g, "");
+  if (/^\d{8}$/.test(compact)) return `${compact.slice(0, 2)}/${compact.slice(2)}`;
+  if (/^\d{2}\/\d{6}$/.test(input.trim())) return input.trim();
+  return null;
+}
+
 function isAllowed(record: JsonRecord) {
   const meta = metadata(record);
   const status = text(meta.applicationStatusDescriptionText)?.toLocaleLowerCase() ?? "";
@@ -485,7 +513,7 @@ function events(record: JsonRecord) {
     : [];
 }
 
-export async function analyzeExaminer(queryInput: string, selectedExaminerName?: string) {
+async function analyzeExaminerProfile(queryInput: string, selectedExaminerName?: string) {
   const parsed = examinerQuery(queryInput, selectedExaminerName);
   if (parsed.searchType === "examiner" && parsed.value.length < 3) {
     throw new PublicPatentToolError("Enter an examiner's full name or a four-digit art unit.", 400);
@@ -547,6 +575,26 @@ export async function analyzeExaminer(queryInput: string, selectedExaminerName?:
     }
     const primaryArtUnit = [...artUnitCounts].sort((left, right) => right[1] - left[1])[0]?.[0] ?? null;
     const primaryExaminer = topExaminers[0]?.examinerName ?? null;
+    const recordsWithEventData = search.records.filter((record) => Array.isArray(record.eventDataBag));
+    const officeActionCounts = recordsWithEventData.map((record) => {
+      const actionEvents = events(record);
+      return {
+        nonFinal: actionEvents.filter((event) => text(event.eventCode) === "CTNF").length,
+        final: actionEvents.filter((event) => text(event.eventCode) === "CTFR").length,
+        restriction: actionEvents.some((event) => text(event.eventCode) === "CTRS"),
+        firstActionDate: actionEvents
+          .filter((event) => ["CTNF", "CTFR"].includes(text(event.eventCode) ?? ""))
+          .map((event) => text(event.eventDate))
+          .filter((date): date is string => Boolean(date))
+          .sort()[0] ?? null,
+      };
+    });
+    const firstActionMonths = recordsWithEventData.flatMap((record, index) => {
+      const filingDate = text(metadata(record).filingDate);
+      const firstActionDate = officeActionCounts[index]?.firstActionDate;
+      const months = filingDate && firstActionDate ? monthsBetween(filingDate, firstActionDate) : null;
+      return months === null ? [] : [months];
+    });
 
     return {
       query: queryInput.trim(),
@@ -564,6 +612,15 @@ export async function analyzeExaminer(queryInput: string, selectedExaminerName?:
       selectionRequired: false,
       examinerCandidates: [],
       topExaminers: parsed.searchType === "art-unit" ? topExaminers : [],
+      officeActionAnalytics: recordsWithEventData.length ? {
+        applicationsWithEventData: recordsWithEventData.length,
+        applicationsWithOfficeAction: officeActionCounts.filter((item) => item.nonFinal + item.final > 0).length,
+        applicationsWithFinalRejection: officeActionCounts.filter((item) => item.final > 0).length,
+        applicationsWithRestriction: officeActionCounts.filter((item) => item.restriction).length,
+        averageNonFinalActionsPerApplication: round(officeActionCounts.reduce((sum, item) => sum + item.nonFinal, 0) / recordsWithEventData.length),
+        averageFinalActionsPerApplication: round(officeActionCounts.reduce((sum, item) => sum + item.final, 0) / recordsWithEventData.length),
+        medianMonthsFilingToFirstAction: median(firstActionMonths),
+      } : undefined,
       calculationNote: completeCoverage
         ? "Allowance rate uses identified allowed or patented cases divided by identified allowed, patented, and abandoned cases."
         : `The USPTO reported more than ${RESULT_LIMIT.toLocaleString()} matching applications. Outcome metrics are withheld because the analyzed records are an incomplete sample.`,
@@ -576,6 +633,33 @@ export async function analyzeExaminer(queryInput: string, selectedExaminerName?:
         truncated: search.truncated,
         note: "Statistics reflect public application records returned by the USPTO. Examiner identity and art-unit assignments can change during prosecution.",
       },
+    };
+  });
+}
+
+export async function analyzeExaminer(queryInput: string, selectedExaminerName?: string) {
+  const applicationNumber = normalizeApplicationNumber(queryInput);
+  if (!applicationNumber) return analyzeExaminerProfile(queryInput, selectedExaminerName);
+
+  return cached(`examiner-application:${applicationNumber}`, async () => {
+    const application = await requestSearch(
+      `applicationNumberText:"${applicationNumber.replace("/", "")}"`,
+      "applicationNumberText,applicationMetaData,eventDataBag",
+    );
+    const record = application.records[0];
+    if (!record) throw new PublicPatentToolError(`No USPTO application was found for ${applicationNumber}.`, 404);
+    const examinerName = text(metadata(record).examinerNameText);
+    const artUnit = text(metadata(record).groupArtUnitNumber);
+    if (!examinerName || !artUnit || !/^\d{4}$/.test(artUnit)) {
+      throw new PublicPatentToolError(`The USPTO has not assigned a named examiner to application ${applicationNumber} yet.`, 422);
+    }
+
+    const profile = await analyzeExaminerProfile(examinerName, examinerName);
+    return {
+      ...profile,
+      query: queryInput.trim(),
+      applicationNumberContext: applicationNumber,
+      calculationNote: `${profile.calculationNote} This profile uses the examiner currently listed for application ${applicationNumber}; earlier prosecution may involve another examiner.`,
     };
   });
 }

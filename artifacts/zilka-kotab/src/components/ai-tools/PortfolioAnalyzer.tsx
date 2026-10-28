@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { motion } from 'framer-motion';
-import { ArrowRight, ExternalLink, Search } from 'lucide-react';
+import { ArrowRight, ExternalLink, Search, X } from 'lucide-react';
 import { useAnalyzePublicPortfolio } from '@workspace/api-client-react';
 import type { PublicPortfolioAnalysis } from '@workspace/api-client-react';
 import { CoverageLedger, EmptyPanel, ErrorPanel, Metric, ResultSkeleton, errorMessage, fmtDate, fmtNum } from './shared';
@@ -79,6 +79,7 @@ function ApplicantDialog({ candidates, selected, onChange, onCancel, onContinue 
 
 function PortfolioResult({ data }: { data: PublicPortfolioAnalysis }) {
   const [showMoreGrants, setShowMoreGrants] = useState(false);
+  const [selectedTechnology, setSelectedTechnology] = useState<PublicPortfolioAnalysis['topTechnologyAreas'][number] | null>(null);
   const total = data.identifiedGrantedPatents + data.identifiedPendingApplications;
   if (total === 0 && data.recentApplications.length === 0) {
     return <div className="space-y-6">
@@ -125,7 +126,13 @@ function PortfolioResult({ data }: { data: PublicPortfolioAnalysis }) {
             <ul className="mt-4 space-y-3">
               {data.topTechnologyAreas.map((t, i) => (
                 <li key={t.code} data-testid={`row-tech-${i}`}>
-                  <div className="flex justify-between gap-3 text-sm"><span><span className="font-mono text-xs text-[hsl(var(--zk-brass))] mr-2">{t.code}</span>{t.label}</span><span className="tabular-nums font-medium">{fmtNum(t.count)}</span></div>
+                  <div className="flex justify-between gap-3 text-sm">
+                    <button type="button" onClick={() => setSelectedTechnology(t)} aria-haspopup="dialog" className="text-left hover:text-primary">
+                      <span className="font-mono text-xs text-[hsl(var(--zk-brass))] mr-2">{t.code}</span>{t.label}
+                      <span className="ml-2 text-xs text-muted-foreground underline underline-offset-2">CPC details</span>
+                    </button>
+                    <span className="tabular-nums font-medium">{fmtNum(t.count)}</span>
+                  </div>
                   <div className="mt-1.5 h-1 bg-muted"><motion.div className="h-full bg-primary origin-left" style={{ width: `${(t.count / maxTech) * 100}%` }} initial={{ scaleX: 0 }} animate={{ scaleX: 1 }} transition={{ delay: 0.15 + i * 0.06, duration: 0.6 }} /></div>
                 </li>
               ))}
@@ -191,8 +198,39 @@ function PortfolioResult({ data }: { data: PublicPortfolioAnalysis }) {
         )}
       </section>
 
+      {selectedTechnology && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setSelectedTechnology(null); }}>
+          <section role="dialog" aria-modal="true" aria-labelledby="cpc-details-title" className="w-full max-w-xl rounded-sm border bg-background p-6 shadow-xl">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <div className="zk-eyebrow">Cooperative Patent Classification</div>
+                <h3 id="cpc-details-title" className="mt-2 font-display text-2xl font-semibold">{selectedTechnology.code} — {selectedTechnology.label}</h3>
+                <p className="mt-2 text-sm text-muted-foreground">Top CPC codes returned for this section, with their classification-occurrence counts.</p>
+              </div>
+              <button type="button" aria-label="Close CPC details" onClick={() => setSelectedTechnology(null)} className="rounded-sm p-2 text-muted-foreground hover:bg-muted hover:text-foreground"><X className="h-5 w-5" /></button>
+            </div>
+            <div className="mt-5 max-h-72 overflow-y-auto border-t">
+              {selectedTechnology.classifications.length ? (
+                <ul className="divide-y">
+                  {selectedTechnology.classifications.map((classification) => (
+                    <li key={classification.code} className="flex items-center justify-between gap-4 py-3 text-sm">
+                      <code className="font-mono text-primary">{classification.code.trim().replace(/\s+/g, ' ')}</code>
+                      <span className="tabular-nums text-muted-foreground">{fmtNum(classification.count)} occurrences</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : <p className="py-4 text-sm text-muted-foreground">No detailed CPC codes were returned for this group.</p>}
+            </div>
+            <p className="mt-4 text-xs leading-relaxed text-muted-foreground">A CPC code classifies a technical subject area in a patent record. One application can carry multiple codes, so these occurrence counts overlap and should not be summed as unique patents.</p>
+          </section>
+        </div>
+      )}
+
       <CoverageLedger coverage={data.coverage} testId="coverage-portfolio"
-        extra={<p className="mt-3 text-xs leading-relaxed text-muted-foreground"><strong className="font-semibold text-foreground">Legal status limitation.</strong> USPTO status text reflects prosecution records only. It does not confirm maintenance-fee payment, ownership after assignment, expiration, or enforceability. This is not a legal opinion.</p>} />
+        extra={<>
+          <p className="mt-3 text-xs leading-relaxed text-muted-foreground"><strong className="font-semibold text-foreground">Record limit.</strong> The limit of five applies to recent application detail rows; the portfolio totals and technology aggregates use the full reported match count.</p>
+          <p className="mt-3 text-xs leading-relaxed text-muted-foreground"><strong className="font-semibold text-foreground">Legal status limitation.</strong> USPTO status text reflects prosecution records only. It does not confirm maintenance-fee payment, ownership after assignment, expiration, or enforceability. This is not a legal opinion.</p>
+        </>} />
     </motion.div>
   );
 }

@@ -5,10 +5,12 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { PublicTechnologyAreaClassificationsItem } from './publicTechnologyAreaClassificationsItem';
 
 export interface PublicTechnologyArea {
   code: string;
   label: string;
   /** @minimum 0 */
   count: number;
+  classifications: PublicTechnologyAreaClassificationsItem[];
 }

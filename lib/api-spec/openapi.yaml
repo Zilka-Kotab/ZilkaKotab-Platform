@@ -136,7 +136,7 @@ components:
     PublicTechnologyArea:
       type: object
       additionalProperties: false
-      required: [code, label, count]
+      required: [code, label, count, classifications]
       properties:
         code:
           type: string
@@ -145,6 +145,18 @@ components:
         count:
           type: integer
           minimum: 0
+        classifications:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [code, count]
+            properties:
+              code:
+                type: string
+              count:
+                type: integer
+                minimum: 0
     PublicApplicantCandidate:
       type: object
       additionalProperties: false
@@ -326,6 +338,8 @@ components:
       properties:
         query:
           type: string
+        applicationNumberContext:
+          type: string
         searchType:
           type: string
           enum: [examiner, art-unit]
@@ -362,6 +376,39 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/PublicExaminerBreakdown"
+        officeActionAnalytics:
+          type: object
+          additionalProperties: false
+          required:
+            - applicationsWithEventData
+            - applicationsWithOfficeAction
+            - applicationsWithFinalRejection
+            - applicationsWithRestriction
+            - averageNonFinalActionsPerApplication
+            - averageFinalActionsPerApplication
+            - medianMonthsFilingToFirstAction
+          properties:
+            applicationsWithEventData:
+              type: integer
+              minimum: 0
+            applicationsWithOfficeAction:
+              type: integer
+              minimum: 0
+            applicationsWithFinalRejection:
+              type: integer
+              minimum: 0
+            applicationsWithRestriction:
+              type: integer
+              minimum: 0
+            averageNonFinalActionsPerApplication:
+              type: number
+              minimum: 0
+            averageFinalActionsPerApplication:
+              type: number
+              minimum: 0
+            medianMonthsFilingToFirstAction:
+              type: ["number", "null"]
+              minimum: 0
         calculationNote:
           type: string
         coverage:

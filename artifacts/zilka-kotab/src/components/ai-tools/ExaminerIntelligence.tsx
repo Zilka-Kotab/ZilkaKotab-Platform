@@ -12,6 +12,7 @@ export function ExaminerIntelligence() {
   const q = query.trim();
   const valid = q.length >= 2;
   const looksArtUnit = /^\d{4}$/.test(q);
+  const looksApplicationNumber = /^\d{2}\/?\d{6}$/.test(q.replace(/[\s,.-]/g, ''));
 
   const run = (v: string, name?: string) => { setSubmitted(v); m.mutate({ data: { query: v, ...(name ? { selectedExaminerName: name } : {}) } }); };
   const onSubmit = (e: FormEvent) => { e.preventDefault(); if (valid && !m.isPending) run(q); };
@@ -19,17 +20,17 @@ export function ExaminerIntelligence() {
   return (
     <div>
       <form onSubmit={onSubmit} className="zk-query">
-        <label htmlFor="examiner-query" className="zk-query-label">Examiner name or four-digit art unit</label>
+        <label htmlFor="examiner-query" className="zk-query-label">Examiner name, art unit, or application number</label>
         <div className="zk-query-row">
           <Search className="h-5 w-5 shrink-0 text-muted-foreground" />
           <input id="examiner-query" value={query} onChange={(e) => setQuery(e.target.value)} maxLength={100}
             placeholder="e.g. 2128 or Smith, Jane" className="zk-query-input" data-testid="input-examiner-query" />
-          {valid && <span className="hidden sm:inline zk-chip" data-testid="text-query-type">{looksArtUnit ? 'Art unit' : 'Examiner'}</span>}
+          {valid && <span className="hidden sm:inline zk-chip" data-testid="text-query-type">{looksApplicationNumber ? 'Application' : looksArtUnit ? 'Art unit' : 'Examiner'}</span>}
           <button type="submit" disabled={!valid || m.isPending} className="zk-btn-primary" data-testid="button-analyze-examiner">
             {m.isPending ? 'Analyzing' : 'Analyze'} <ArrowRight className="h-4 w-4" />
           </button>
         </div>
-        <p className="mt-2 text-xs text-muted-foreground">Four digits are treated as an art unit. Anything else is matched against examiner names in USPTO records.</p>
+        <p className="mt-2 text-xs text-muted-foreground">Enter an examiner name, a four-digit art unit, or an 8-digit USPTO application number.</p>
       </form>
 
       <div className="mt-8">
@@ -77,6 +78,7 @@ function ExaminerResult({ data }: { data: PublicExaminerAnalysis }) {
       <header>
         <div className="zk-eyebrow">{data.searchType === 'art-unit' ? 'Art unit profile' : 'Examiner profile'}</div>
         <h3 className="mt-1 font-display text-3xl font-semibold" data-testid="text-examiner-title">{title}</h3>
+        {data.applicationNumberContext && <p className="mt-2 text-sm text-muted-foreground">Profile opened from application <span className="font-mono">{data.applicationNumberContext}</span>. The profile reflects the examiner currently listed; earlier prosecution may have involved another examiner.</p>}
         {data.searchType === 'examiner' && data.artUnit && <p className="mt-1 text-sm text-muted-foreground">Most common art unit in analyzed records: <span className="font-mono">{data.artUnit}</span></p>}
       </header>
 
@@ -119,6 +121,22 @@ function ExaminerResult({ data }: { data: PublicExaminerAnalysis }) {
               </li>
             ))}
           </ul>
+        </section>
+      )}
+
+      {data.officeActionAnalytics && (
+        <section data-testid="section-office-actions">
+          <h4 className="zk-h4">Office Action Behavior</h4>
+          <p className="mt-1 text-xs text-muted-foreground">Event-code metrics use {fmtNum(data.officeActionAnalytics.applicationsWithEventData)} analyzed applications with event histories{data.coverage.truncated ? ' in the retrieved sample' : ''}. Pending applications remain in the event sample; these are not outcome rates.</p>
+          <div className="mt-4 grid gap-px overflow-hidden rounded-sm border bg-border sm:grid-cols-2 lg:grid-cols-3">
+            <Metric label="Applications with an office action" value={data.officeActionAnalytics.applicationsWithOfficeAction} testId="metric-office-action-apps" />
+            <Metric label="Applications with a final rejection" value={data.officeActionAnalytics.applicationsWithFinalRejection} testId="metric-final-rejection-apps" />
+            <Metric label="Applications with a restriction" value={data.officeActionAnalytics.applicationsWithRestriction} testId="metric-restriction-apps" />
+            <Metric label="Avg. non-final actions / application" value={data.officeActionAnalytics.averageNonFinalActionsPerApplication.toFixed(2)} testId="metric-nonfinal-actions" />
+            <Metric label="Avg. final actions / application" value={data.officeActionAnalytics.averageFinalActionsPerApplication.toFixed(2)} testId="metric-final-actions" />
+            <Metric label="Median filing to first action, months" value={data.officeActionAnalytics.medianMonthsFilingToFirstAction?.toFixed(1) ?? null} testId="metric-first-action-time" />
+          </div>
+          <p className="mt-2 text-xs text-muted-foreground">Counts use USPTO prosecution event codes for non-final actions, final actions, and restriction requirements; mailed notices are not double-counted.</p>
         </section>
       )}
 

@@ -51,6 +51,8 @@ export const analyzePublicPortfolioResponseFilingTrendsItemCountMin = 0;
 
 export const analyzePublicPortfolioResponseTopTechnologyAreasItemCountMin = 0;
 
+export const analyzePublicPortfolioResponseTopTechnologyAreasItemClassificationsItemCountMin = 0;
+
 export const analyzePublicPortfolioResponseCoverageTotalMatchesReportedMin = 0;
 
 export const analyzePublicPortfolioResponseCoverageRecordsAnalyzedMin = 0;
@@ -79,7 +81,11 @@ export const AnalyzePublicPortfolioResponse = zod.object({
   "topTechnologyAreas": zod.array(zod.object({
   "code": zod.string(),
   "label": zod.string(),
-  "count": zod.number().min(analyzePublicPortfolioResponseTopTechnologyAreasItemCountMin)
+  "count": zod.number().min(analyzePublicPortfolioResponseTopTechnologyAreasItemCountMin),
+  "classifications": zod.array(zod.object({
+  "code": zod.string(),
+  "count": zod.number().min(analyzePublicPortfolioResponseTopTechnologyAreasItemClassificationsItemCountMin)
+}))
 })),
   "recentApplications": zod.array(zod.object({
   "applicationNumber": zod.string(),
@@ -143,6 +149,20 @@ export const analyzePublicExaminerResponseExaminerCandidatesItemCountMin = 0;
 
 export const analyzePublicExaminerResponseTopExaminersItemCountMin = 0;
 
+export const analyzePublicExaminerResponseOfficeActionAnalyticsApplicationsWithEventDataMin = 0;
+
+export const analyzePublicExaminerResponseOfficeActionAnalyticsApplicationsWithOfficeActionMin = 0;
+
+export const analyzePublicExaminerResponseOfficeActionAnalyticsApplicationsWithFinalRejectionMin = 0;
+
+export const analyzePublicExaminerResponseOfficeActionAnalyticsApplicationsWithRestrictionMin = 0;
+
+export const analyzePublicExaminerResponseOfficeActionAnalyticsAverageNonFinalActionsPerApplicationMin = 0;
+
+export const analyzePublicExaminerResponseOfficeActionAnalyticsAverageFinalActionsPerApplicationMin = 0;
+
+export const analyzePublicExaminerResponseOfficeActionAnalyticsMedianMonthsFilingToFirstActionMin = 0;
+
 export const analyzePublicExaminerResponseCoverageTotalMatchesReportedMin = 0;
 
 export const analyzePublicExaminerResponseCoverageRecordsAnalyzedMin = 0;
@@ -152,6 +172,7 @@ export const analyzePublicExaminerResponseCoverageRecordsAnalyzedMin = 0;
 
 export const AnalyzePublicExaminerResponse = zod.object({
   "query": zod.string(),
+  "applicationNumberContext": zod.string().optional(),
   "searchType": zod.enum(['examiner', 'art-unit']),
   "examinerName": zod.string().nullable(),
   "artUnit": zod.string().nullable(),
@@ -170,6 +191,15 @@ export const AnalyzePublicExaminerResponse = zod.object({
   "examinerName": zod.string(),
   "count": zod.number().min(analyzePublicExaminerResponseTopExaminersItemCountMin)
 })),
+  "officeActionAnalytics": zod.object({
+  "applicationsWithEventData": zod.number().min(analyzePublicExaminerResponseOfficeActionAnalyticsApplicationsWithEventDataMin),
+  "applicationsWithOfficeAction": zod.number().min(analyzePublicExaminerResponseOfficeActionAnalyticsApplicationsWithOfficeActionMin),
+  "applicationsWithFinalRejection": zod.number().min(analyzePublicExaminerResponseOfficeActionAnalyticsApplicationsWithFinalRejectionMin),
+  "applicationsWithRestriction": zod.number().min(analyzePublicExaminerResponseOfficeActionAnalyticsApplicationsWithRestrictionMin),
+  "averageNonFinalActionsPerApplication": zod.number().min(analyzePublicExaminerResponseOfficeActionAnalyticsAverageNonFinalActionsPerApplicationMin),
+  "averageFinalActionsPerApplication": zod.number().min(analyzePublicExaminerResponseOfficeActionAnalyticsAverageFinalActionsPerApplicationMin),
+  "medianMonthsFilingToFirstAction": zod.number().min(analyzePublicExaminerResponseOfficeActionAnalyticsMedianMonthsFilingToFirstActionMin).nullable()
+}).optional(),
   "calculationNote": zod.string(),
   "coverage": zod.object({
   "source": zod.string(),
