@@ -385,6 +385,8 @@ components:
             - technologyCenterAllowanceRate
             - artUnit
             - technologyCenter
+            - artUnitApplications
+            - technologyCenterApplications
             - artUnitDisposedApplications
             - technologyCenterDisposedApplications
             - calculationNote
@@ -405,6 +407,12 @@ components:
               type: ["string", "null"]
             technologyCenter:
               type: ["string", "null"]
+            artUnitApplications:
+              type: integer
+              minimum: 0
+            technologyCenterApplications:
+              type: integer
+              minimum: 0
             artUnitDisposedApplications:
               type: integer
               minimum: 0
@@ -445,6 +453,47 @@ components:
               minimum: 0
             medianMonthsFilingToFirstAction:
               type: ["number", "null"]
+              minimum: 0
+        interviewAnalytics:
+          type: object
+          additionalProperties: false
+          required:
+            - applicationsWithEventData
+            - applicationsWithInterviewSummary
+            - interviewSummaryAllowed
+            - interviewSummaryAbandoned
+            - interviewSummaryOther
+            - applicationsWithoutInterviewSummary
+            - noSummaryAllowed
+            - noSummaryAbandoned
+            - noSummaryOther
+          properties:
+            applicationsWithEventData:
+              type: integer
+              minimum: 0
+            applicationsWithInterviewSummary:
+              type: integer
+              minimum: 0
+            interviewSummaryAllowed:
+              type: integer
+              minimum: 0
+            interviewSummaryAbandoned:
+              type: integer
+              minimum: 0
+            interviewSummaryOther:
+              type: integer
+              minimum: 0
+            applicationsWithoutInterviewSummary:
+              type: integer
+              minimum: 0
+            noSummaryAllowed:
+              type: integer
+              minimum: 0
+            noSummaryAbandoned:
+              type: integer
+              minimum: 0
+            noSummaryOther:
+              type: integer
               minimum: 0
         calculationNote:
           type: string

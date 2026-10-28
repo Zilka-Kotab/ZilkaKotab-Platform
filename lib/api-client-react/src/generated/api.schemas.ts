@@ -165,6 +165,10 @@ export type PublicExaminerAnalysisAllowanceBenchmarks = {
   /** @nullable */
   technologyCenter: string | null;
   /** @minimum 0 */
+  artUnitApplications: number;
+  /** @minimum 0 */
+  technologyCenterApplications: number;
+  /** @minimum 0 */
   artUnitDisposedApplications: number;
   /** @minimum 0 */
   technologyCenterDisposedApplications: number;
@@ -189,6 +193,27 @@ export type PublicExaminerAnalysisOfficeActionAnalytics = {
      * @nullable
      */
   medianMonthsFilingToFirstAction: number | null;
+};
+
+export type PublicExaminerAnalysisInterviewAnalytics = {
+  /** @minimum 0 */
+  applicationsWithEventData: number;
+  /** @minimum 0 */
+  applicationsWithInterviewSummary: number;
+  /** @minimum 0 */
+  interviewSummaryAllowed: number;
+  /** @minimum 0 */
+  interviewSummaryAbandoned: number;
+  /** @minimum 0 */
+  interviewSummaryOther: number;
+  /** @minimum 0 */
+  applicationsWithoutInterviewSummary: number;
+  /** @minimum 0 */
+  noSummaryAllowed: number;
+  /** @minimum 0 */
+  noSummaryAbandoned: number;
+  /** @minimum 0 */
+  noSummaryOther: number;
 };
 
 export interface PublicExaminerAnalysis {
@@ -223,6 +248,7 @@ export interface PublicExaminerAnalysis {
   topExaminers: PublicExaminerBreakdown[];
   allowanceBenchmarks?: PublicExaminerAnalysisAllowanceBenchmarks;
   officeActionAnalytics?: PublicExaminerAnalysisOfficeActionAnalytics;
+  interviewAnalytics?: PublicExaminerAnalysisInterviewAnalytics;
   calculationNote: string;
   coverage: PublicDataCoverage;
 }

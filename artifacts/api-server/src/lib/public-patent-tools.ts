@@ -270,6 +270,16 @@ function dispositionCounts(facets: Record<string, FacetEntry[]>) {
   };
 }
 
+function isAllowedStatus(statusInput: string) {
+  const status = statusInput.toLocaleLowerCase();
+  return status.includes("patented case") ||
+    status.includes("patent expired") ||
+    status.includes("notice of allowance") ||
+    status.includes("allowed") ||
+    status.includes("issue fee payment verified") ||
+    status.includes("issue fee payment received");
+}
+
 export async function analyzePortfolio(companyNameInput: string, selectedApplicantNames?: string[]) {
   const companyName = companyNameInput.trim().replace(/\s+/g, " ");
   const normalizedCompany = normalizeOrganization(companyName);
@@ -530,7 +540,7 @@ function normalizeApplicationNumber(input: string) {
 function isAllowed(record: JsonRecord) {
   const meta = metadata(record);
   const status = text(meta.applicationStatusDescriptionText)?.toLocaleLowerCase() ?? "";
-  if (isGranted(meta) || status.includes("issue fee") || status.includes("allowance")) return true;
+  if (isGranted(meta) || isAllowedStatus(status)) return true;
   return events(record).some((event) => (text(event.eventDescriptionText)?.toLocaleLowerCase() ?? "").includes("notice of allowance"));
 }
 
@@ -640,6 +650,14 @@ async function analyzeExaminerProfile(queryInput: string, selectedExaminerName?:
       const months = filingDate && firstActionDate ? monthsBetween(filingDate, firstActionDate) : null;
       return months === null ? [] : [months];
     });
+    const interviewGroups = { withSummary: { total: 0, allowed: 0, abandoned: 0 }, withoutSummary: { total: 0, allowed: 0, abandoned: 0 } };
+    for (const record of recordsWithEventData) {
+      const hasInterviewSummary = events(record).some((event) => ["EXIN", "EXAT", "EXET"].includes(text(event.eventCode) ?? ""));
+      const group = hasInterviewSummary ? interviewGroups.withSummary : interviewGroups.withoutSummary;
+      group.total += 1;
+      if (isAllowed(record)) group.allowed += 1;
+      else if (isAbandoned(metadata(record))) group.abandoned += 1;
+    }
 
     return {
       query: queryInput.trim(),
@@ -665,6 +683,8 @@ async function analyzeExaminerProfile(queryInput: string, selectedExaminerName?:
         technologyCenterAllowanceRate: technologyCenterOutcome?.allowanceRate ?? null,
         artUnit: benchmarkArtUnit,
         technologyCenter,
+        artUnitApplications: artUnitStatusAggregate?.count ?? 0,
+        technologyCenterApplications: technologyCenterStatusAggregate?.count ?? 0,
         artUnitDisposedApplications: artUnitOutcome?.disposed ?? 0,
         technologyCenterDisposedApplications: technologyCenterOutcome?.disposed ?? 0,
         calculationNote: "All rates use USPTO current-status facets and allowed ÷ (allowed + abandoned). Benchmarks include the examiner when present; percentiles are unavailable from the returned USPTO aggregates.",
@@ -677,6 +697,17 @@ async function analyzeExaminerProfile(queryInput: string, selectedExaminerName?:
         averageNonFinalActionsPerApplication: round(officeActionCounts.reduce((sum, item) => sum + item.nonFinal, 0) / recordsWithEventData.length),
         averageFinalActionsPerApplication: round(officeActionCounts.reduce((sum, item) => sum + item.final, 0) / recordsWithEventData.length),
         medianMonthsFilingToFirstAction: median(firstActionMonths),
+      } : undefined,
+      interviewAnalytics: recordsWithEventData.length ? {
+        applicationsWithEventData: recordsWithEventData.length,
+        applicationsWithInterviewSummary: interviewGroups.withSummary.total,
+        interviewSummaryAllowed: interviewGroups.withSummary.allowed,
+        interviewSummaryAbandoned: interviewGroups.withSummary.abandoned,
+        interviewSummaryOther: interviewGroups.withSummary.total - interviewGroups.withSummary.allowed - interviewGroups.withSummary.abandoned,
+        applicationsWithoutInterviewSummary: interviewGroups.withoutSummary.total,
+        noSummaryAllowed: interviewGroups.withoutSummary.allowed,
+        noSummaryAbandoned: interviewGroups.withoutSummary.abandoned,
+        noSummaryOther: interviewGroups.withoutSummary.total - interviewGroups.withoutSummary.allowed - interviewGroups.withoutSummary.abandoned,
       } : undefined,
       calculationNote: primaryOutcome?.hasStatusData
         ? "Allowance rate uses complete USPTO current-status facets: allowed ÷ (allowed + abandoned). Pending applications are excluded. Event-history metrics use the retrieved records shown in coverage."

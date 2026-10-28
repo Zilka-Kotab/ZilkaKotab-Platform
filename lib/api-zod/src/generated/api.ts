@@ -158,6 +158,10 @@ export const analyzePublicExaminerResponseAllowanceBenchmarksArtUnitAllowanceRat
 export const analyzePublicExaminerResponseAllowanceBenchmarksTechnologyCenterAllowanceRateMin = 0;
 export const analyzePublicExaminerResponseAllowanceBenchmarksTechnologyCenterAllowanceRateMax = 100;
 
+export const analyzePublicExaminerResponseAllowanceBenchmarksArtUnitApplicationsMin = 0;
+
+export const analyzePublicExaminerResponseAllowanceBenchmarksTechnologyCenterApplicationsMin = 0;
+
 export const analyzePublicExaminerResponseAllowanceBenchmarksArtUnitDisposedApplicationsMin = 0;
 
 export const analyzePublicExaminerResponseAllowanceBenchmarksTechnologyCenterDisposedApplicationsMin = 0;
@@ -175,6 +179,24 @@ export const analyzePublicExaminerResponseOfficeActionAnalyticsAverageNonFinalAc
 export const analyzePublicExaminerResponseOfficeActionAnalyticsAverageFinalActionsPerApplicationMin = 0;
 
 export const analyzePublicExaminerResponseOfficeActionAnalyticsMedianMonthsFilingToFirstActionMin = 0;
+
+export const analyzePublicExaminerResponseInterviewAnalyticsApplicationsWithEventDataMin = 0;
+
+export const analyzePublicExaminerResponseInterviewAnalyticsApplicationsWithInterviewSummaryMin = 0;
+
+export const analyzePublicExaminerResponseInterviewAnalyticsInterviewSummaryAllowedMin = 0;
+
+export const analyzePublicExaminerResponseInterviewAnalyticsInterviewSummaryAbandonedMin = 0;
+
+export const analyzePublicExaminerResponseInterviewAnalyticsInterviewSummaryOtherMin = 0;
+
+export const analyzePublicExaminerResponseInterviewAnalyticsApplicationsWithoutInterviewSummaryMin = 0;
+
+export const analyzePublicExaminerResponseInterviewAnalyticsNoSummaryAllowedMin = 0;
+
+export const analyzePublicExaminerResponseInterviewAnalyticsNoSummaryAbandonedMin = 0;
+
+export const analyzePublicExaminerResponseInterviewAnalyticsNoSummaryOtherMin = 0;
 
 export const analyzePublicExaminerResponseCoverageTotalMatchesReportedMin = 0;
 
@@ -210,6 +232,8 @@ export const AnalyzePublicExaminerResponse = zod.object({
   "technologyCenterAllowanceRate": zod.number().min(analyzePublicExaminerResponseAllowanceBenchmarksTechnologyCenterAllowanceRateMin).max(analyzePublicExaminerResponseAllowanceBenchmarksTechnologyCenterAllowanceRateMax).nullable(),
   "artUnit": zod.string().nullable(),
   "technologyCenter": zod.string().nullable(),
+  "artUnitApplications": zod.number().min(analyzePublicExaminerResponseAllowanceBenchmarksArtUnitApplicationsMin),
+  "technologyCenterApplications": zod.number().min(analyzePublicExaminerResponseAllowanceBenchmarksTechnologyCenterApplicationsMin),
   "artUnitDisposedApplications": zod.number().min(analyzePublicExaminerResponseAllowanceBenchmarksArtUnitDisposedApplicationsMin),
   "technologyCenterDisposedApplications": zod.number().min(analyzePublicExaminerResponseAllowanceBenchmarksTechnologyCenterDisposedApplicationsMin),
   "calculationNote": zod.string()
@@ -222,6 +246,17 @@ export const AnalyzePublicExaminerResponse = zod.object({
   "averageNonFinalActionsPerApplication": zod.number().min(analyzePublicExaminerResponseOfficeActionAnalyticsAverageNonFinalActionsPerApplicationMin),
   "averageFinalActionsPerApplication": zod.number().min(analyzePublicExaminerResponseOfficeActionAnalyticsAverageFinalActionsPerApplicationMin),
   "medianMonthsFilingToFirstAction": zod.number().min(analyzePublicExaminerResponseOfficeActionAnalyticsMedianMonthsFilingToFirstActionMin).nullable()
+}).optional(),
+  "interviewAnalytics": zod.object({
+  "applicationsWithEventData": zod.number().min(analyzePublicExaminerResponseInterviewAnalyticsApplicationsWithEventDataMin),
+  "applicationsWithInterviewSummary": zod.number().min(analyzePublicExaminerResponseInterviewAnalyticsApplicationsWithInterviewSummaryMin),
+  "interviewSummaryAllowed": zod.number().min(analyzePublicExaminerResponseInterviewAnalyticsInterviewSummaryAllowedMin),
+  "interviewSummaryAbandoned": zod.number().min(analyzePublicExaminerResponseInterviewAnalyticsInterviewSummaryAbandonedMin),
+  "interviewSummaryOther": zod.number().min(analyzePublicExaminerResponseInterviewAnalyticsInterviewSummaryOtherMin),
+  "applicationsWithoutInterviewSummary": zod.number().min(analyzePublicExaminerResponseInterviewAnalyticsApplicationsWithoutInterviewSummaryMin),
+  "noSummaryAllowed": zod.number().min(analyzePublicExaminerResponseInterviewAnalyticsNoSummaryAllowedMin),
+  "noSummaryAbandoned": zod.number().min(analyzePublicExaminerResponseInterviewAnalyticsNoSummaryAbandonedMin),
+  "noSummaryOther": zod.number().min(analyzePublicExaminerResponseInterviewAnalyticsNoSummaryOtherMin)
 }).optional(),
   "calculationNote": zod.string(),
   "coverage": zod.object({

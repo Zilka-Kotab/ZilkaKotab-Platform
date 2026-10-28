@@ -72,6 +72,34 @@ function ExaminerResult({ data }: { data: PublicExaminerAnalysis }) {
   const rate = data.estimatedAllowanceRate;
   const maxEx = Math.max(1, ...data.topExaminers.map((e) => e.count));
   const title = data.searchType === 'art-unit' ? `Art Unit ${data.artUnit ?? data.query}` : (data.examinerName ?? data.query);
+  const interviewRows = data.interviewAnalytics ? [
+    {
+      label: 'Interview summary found',
+      applications: data.interviewAnalytics.applicationsWithInterviewSummary,
+      allowed: data.interviewAnalytics.interviewSummaryAllowed,
+      abandoned: data.interviewAnalytics.interviewSummaryAbandoned,
+      disposed: data.interviewAnalytics.interviewSummaryAllowed + data.interviewAnalytics.interviewSummaryAbandoned,
+      other: data.interviewAnalytics.interviewSummaryOther,
+    },
+    {
+      label: 'No interview summary located',
+      applications: data.interviewAnalytics.applicationsWithoutInterviewSummary,
+      allowed: data.interviewAnalytics.noSummaryAllowed,
+      abandoned: data.interviewAnalytics.noSummaryAbandoned,
+      disposed: data.interviewAnalytics.noSummaryAllowed + data.interviewAnalytics.noSummaryAbandoned,
+      other: data.interviewAnalytics.noSummaryOther,
+    },
+  ] : [];
+  const withSummary = interviewRows[0];
+  const withoutSummary = interviewRows[1];
+  const withSummaryAllowanceRate = withSummary && withSummary.disposed > 0 ? (withSummary.allowed / withSummary.disposed) * 100 : null;
+  const withoutSummaryAllowanceRate = withoutSummary && withoutSummary.disposed > 0 ? (withoutSummary.allowed / withoutSummary.disposed) * 100 : null;
+  const allowanceRateDifference = withSummaryAllowanceRate !== null && withoutSummaryAllowanceRate !== null
+    ? withSummaryAllowanceRate - withoutSummaryAllowanceRate
+    : null;
+  const relativeAllowanceRateIncrease = withSummaryAllowanceRate !== null && withoutSummaryAllowanceRate !== null && withoutSummaryAllowanceRate > 0
+    ? ((withSummaryAllowanceRate / withoutSummaryAllowanceRate) - 1) * 100
+    : null;
 
   return (
     <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }} className="space-y-8" data-testid="result-examiner">
@@ -79,7 +107,26 @@ function ExaminerResult({ data }: { data: PublicExaminerAnalysis }) {
         <div className="zk-eyebrow">{data.searchType === 'art-unit' ? 'Art unit profile' : 'Examiner profile'}</div>
         <h3 className="mt-1 font-display text-3xl font-semibold" data-testid="text-examiner-title">{title}</h3>
         {data.applicationNumberContext && <p className="mt-2 text-sm text-muted-foreground">Profile opened from application <span className="font-mono">{data.applicationNumberContext}</span>. The profile reflects the examiner currently listed; earlier prosecution may have involved another examiner.</p>}
-        {data.searchType === 'examiner' && data.artUnit && <p className="mt-1 text-sm text-muted-foreground">Most common art unit in analyzed records: <span className="font-mono">{data.artUnit}</span></p>}
+        {data.artUnit && data.allowanceBenchmarks && (
+          <section className="mt-5 border-l-4 border-[hsl(var(--zk-brass))] bg-muted/50 p-4 sm:p-5" data-testid="art-unit-overview">
+            <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+              <div>
+                <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">{data.searchType === 'art-unit' ? 'Art unit' : 'Most common art unit'}</div>
+                <div className="mt-1 font-display text-4xl font-semibold text-primary">{data.artUnit}</div>
+              </div>
+              <div className="min-w-0 flex-1 sm:border-l sm:pl-5">
+                <div className="text-sm font-medium">Technology Center {data.allowanceBenchmarks.technologyCenter ?? 'not identified'}</div>
+                <p className="mt-1 text-xs leading-relaxed text-muted-foreground">An art unit is a USPTO examination group organized within a technology center. This record set contains {fmtNum(data.allowanceBenchmarks.artUnitApplications)} applications for the art unit and {fmtNum(data.allowanceBenchmarks.artUnitDisposedApplications)} with allowed or abandoned outcomes.</p>
+              </div>
+            </div>
+          </section>
+        )}
+        {data.searchType === 'examiner' && (
+          <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-xs text-muted-foreground">
+            <span>Years at USPTO: <strong className="font-medium text-foreground">Not reported in these public records</strong></span>
+            <span>Primary examiner status: <strong className="font-medium text-foreground">Not reported in these public records</strong></span>
+          </div>
+        )}
       </header>
 
       <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
@@ -103,7 +150,7 @@ function ExaminerResult({ data }: { data: PublicExaminerAnalysis }) {
         <div className="grid grid-cols-2 gap-px overflow-hidden rounded-sm border bg-border md:grid-cols-3">
           <Metric label="Identified" value={data.identifiedApplications} testId="metric-identified" />
           <Metric label="Disposed" value={data.disposedApplications} testId="metric-disposed" />
-          <Metric emphasis label="Allowed" value={data.allowedApplications} testId="metric-allowed" />
+          <Metric label="Allowed" value={data.allowedApplications} testId="metric-allowed" />
           <Metric label="Abandoned" value={data.abandonedApplications} testId="metric-abandoned" />
           <Metric label="Avg. prosecution, months" value={data.averageProsecutionDurationMonths === null ? null : data.averageProsecutionDurationMonths.toFixed(1)} testId="metric-duration" />
         </div>
@@ -160,6 +207,33 @@ function ExaminerResult({ data }: { data: PublicExaminerAnalysis }) {
             <Metric label="Median filing to first action, months" value={data.officeActionAnalytics.medianMonthsFilingToFirstAction?.toFixed(1) ?? null} testId="metric-first-action-time" />
           </div>
           <p className="mt-2 text-xs text-muted-foreground">Counts use USPTO prosecution event codes for non-final actions, final actions, and restriction requirements; mailed notices are not double-counted.</p>
+        </section>
+      )}
+
+      {data.interviewAnalytics && (
+        <section className="rounded-sm border bg-white p-4 sm:p-5" data-testid="section-interview-analytics">
+          <h4 className="zk-h4">Examiner Interview Records</h4>
+          <p className="mt-1 text-xs text-muted-foreground">The comparison uses {fmtNum(data.interviewAnalytics.applicationsWithEventData)} analyzed applications with event histories{data.coverage.truncated ? ' in the retrieved sample' : ''}.</p>
+          <div className="mt-4 grid gap-px overflow-hidden rounded-sm border bg-border sm:grid-cols-2 lg:grid-cols-3">
+            <Metric label="Applications with summary found" value={withSummary?.applications ?? null} note={withSummary ? `${fmtNum(withSummary.allowed)} allowed · ${fmtNum(withSummary.abandoned)} abandoned · ${fmtNum(withSummary.other)} other / unresolved` : undefined} testId="metric-interview-summary-found" />
+            <Metric label="Disposed with summary found" value={withSummary?.disposed ?? null} note="Allowed or abandoned applications only" testId="metric-interview-summary-disposed" />
+            <Metric label="Allowance rate with summary found" value={withSummaryAllowanceRate === null ? null : `${withSummaryAllowanceRate.toFixed(1)}%`} note={withSummary ? `${fmtNum(withSummary.allowed)} allowed of ${fmtNum(withSummary.disposed)} disposed` : undefined} testId="metric-interview-summary-allowance-rate" />
+            <Metric label="Applications without summary located" value={withoutSummary?.applications ?? null} note={withoutSummary ? `${fmtNum(withoutSummary.allowed)} allowed · ${fmtNum(withoutSummary.abandoned)} abandoned · ${fmtNum(withoutSummary.other)} other / unresolved` : undefined} testId="metric-no-interview-summary" />
+            <Metric label="Disposed without summary located" value={withoutSummary?.disposed ?? null} note="Allowed or abandoned applications only" testId="metric-no-summary-disposed" />
+            <Metric label="Allowance rate without summary" value={withoutSummaryAllowanceRate === null ? null : `${withoutSummaryAllowanceRate.toFixed(1)}%`} note={withoutSummary ? `${fmtNum(withoutSummary.allowed)} allowed of ${fmtNum(withoutSummary.disposed)} disposed` : undefined} testId="metric-no-summary-allowance-rate" />
+          </div>
+          <div className="mt-4 rounded-sm border border-border bg-white p-4" data-testid="interview-allowance-conclusion">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Observed comparison</div>
+            {allowanceRateDifference === null ? (
+              <p className="mt-2 text-sm text-muted-foreground">There are not enough disposed applications in both groups to calculate an allowance-rate comparison.</p>
+            ) : (
+              <p className="mt-2 text-sm leading-relaxed">
+                The allowance rate was <strong>{withSummaryAllowanceRate!.toFixed(1)}%</strong> when an interview summary was found and <strong>{withoutSummaryAllowanceRate!.toFixed(1)}%</strong> when none was located: a difference of <strong>{allowanceRateDifference >= 0 ? '+' : ''}{allowanceRateDifference.toFixed(1)} percentage points</strong>
+                {relativeAllowanceRateIncrease !== null && <> ({relativeAllowanceRateIncrease >= 0 ? '+' : ''}{relativeAllowanceRateIncrease.toFixed(1)}% relative).</>}
+              </p>
+            )}
+            <p className="mt-2 text-xs leading-relaxed text-muted-foreground">This is a historical association in these records, not evidence that an interview caused an allowance or that an examiner prefers interviews. No summary located does not prove no interview occurred.</p>
+          </div>
         </section>
       )}
 

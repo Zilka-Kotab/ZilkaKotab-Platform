@@ -7,6 +7,7 @@
  */
 import type { PublicDataCoverage } from './publicDataCoverage';
 import type { PublicExaminerAnalysisAllowanceBenchmarks } from './publicExaminerAnalysisAllowanceBenchmarks';
+import type { PublicExaminerAnalysisInterviewAnalytics } from './publicExaminerAnalysisInterviewAnalytics';
 import type { PublicExaminerAnalysisOfficeActionAnalytics } from './publicExaminerAnalysisOfficeActionAnalytics';
 import type { PublicExaminerAnalysisSearchType } from './publicExaminerAnalysisSearchType';
 import type { PublicExaminerBreakdown } from './publicExaminerBreakdown';
@@ -43,6 +44,7 @@ export interface PublicExaminerAnalysis {
   topExaminers: PublicExaminerBreakdown[];
   allowanceBenchmarks?: PublicExaminerAnalysisAllowanceBenchmarks;
   officeActionAnalytics?: PublicExaminerAnalysisOfficeActionAnalytics;
+  interviewAnalytics?: PublicExaminerAnalysisInterviewAnalytics;
   calculationNote: string;
   coverage: PublicDataCoverage;
 }

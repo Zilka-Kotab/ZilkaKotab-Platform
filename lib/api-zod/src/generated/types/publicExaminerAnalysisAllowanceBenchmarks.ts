@@ -30,6 +30,10 @@ export type PublicExaminerAnalysisAllowanceBenchmarks = {
   /** @nullable */
   technologyCenter: string | null;
   /** @minimum 0 */
+  artUnitApplications: number;
+  /** @minimum 0 */
+  technologyCenterApplications: number;
+  /** @minimum 0 */
   artUnitDisposedApplications: number;
   /** @minimum 0 */
   technologyCenterDisposedApplications: number;
