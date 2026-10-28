@@ -91,3 +91,45 @@ mtime_ms = 1793160153841
 storage_uri = "gcs://replit-rams-assets-reed/rams/assets/repl:d8317486-6b11-41c5-bec6-74c880ade2f7/f9bfab41-ac6a-4eac-916a-ef9c438a0b73/7df67f05-d87e-4a36-a17a-7f761685d156"
 storage_version_token = "1793160164525650"
 content_type = "application/pdf"
+
+[[outputs]]
+id = "zDBjGtWi8PHYqqZMBABxK"
+uri = "file://generated-artifacts/portfolio-snapshot-grand-header.pdf"
+type = "pdf"
+title = "Portfolio PDF with updated header"
+description = "Larger serif company-and-snapshot title, the requested source/retrieval line, and three-line complimentary intelligence attribution on the right. The approved lower artwork is unchanged."
+logical_id = "b4a54cb8-9c03-4fe6-9153-a77631dd6c60"
+content_hash = "sha256:0142d3b7862039bca123a2796b60701aa95871d148ace57d1957f80bd66aa399"
+size = 144651
+mtime_ms = 1793160392364
+storage_uri = "gcs://replit-rams-assets-reed/rams/assets/repl:d8317486-6b11-41c5-bec6-74c880ade2f7/b4a54cb8-9c03-4fe6-9153-a77631dd6c60/25c0940e-6bd9-469b-91a4-fbd293d128c5"
+storage_version_token = "1793160420648190"
+content_type = "application/pdf"
+
+[[outputs]]
+id = "dVPuZUrWBJf_4xpDO6f9d"
+uri = "file://generated-artifacts/portfolio-snapshot-two-line-captions.pdf"
+type = "pdf"
+title = "PDF with matching two-line captions"
+description = "All four prosecution metric descriptions are centered on the first line, with their sample sizes centered on the second line at identical spacing."
+logical_id = "6f180a0a-6d41-4c1b-98d1-36a84ea26868"
+content_hash = "sha256:5d721603b788ca13e7897e7bea4b7865f7da5f89ad4d489925dc1b056087cd21"
+size = 144753
+mtime_ms = 1793160443832
+storage_uri = "gcs://replit-rams-assets-reed/rams/assets/repl:d8317486-6b11-41c5-bec6-74c880ade2f7/6f180a0a-6d41-4c1b-98d1-36a84ea26868/f988c870-de86-4b64-ac19-1df927b72052"
+storage_version_token = "1793160460731359"
+content_type = "application/pdf"
+
+[[outputs]]
+id = "6u4ok3liab4Q-nQ4aHvKl"
+uri = "file://generated-artifacts/portfolio-snapshot-separated-notes.pdf"
+type = "pdf"
+title = "PDF with separated Scope notes"
+description = "A thin gray divider and added padding now separate the portfolio metrics from the continuous Scope/disclaimer footnote."
+logical_id = "3d3bd47d-383e-42f1-bd74-5947264e8e26"
+content_hash = "sha256:8aa4401d50d7f70d7757223c254b873d3310d069919b5172e57cc806abe221e4"
+size = 144800
+mtime_ms = 1793160502680
+storage_uri = "gcs://replit-rams-assets-reed/rams/assets/repl:d8317486-6b11-41c5-bec6-74c880ade2f7/3d3bd47d-383e-42f1-bd74-5947264e8e26/2c8529cd-b2cb-4b2b-a267-38ce1c9192a3"
+storage_version_token = "1793160519637588"
+content_type = "application/pdf"

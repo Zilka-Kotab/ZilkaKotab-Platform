@@ -52,12 +52,34 @@ export async function createPortfolioSnapshotBlob(
   // No event branding, portfolio-specific advice, or outside-counsel content.
   pdf.setFillColor(...NAVY); pdf.rect(0, 0, 612, 70, 'F');
   pdf.setFillColor(...GOLD); pdf.rect(0, 70, 612, 2, 'F');
-  pdf.setFont('times', 'normal'); pdf.setFontSize(23); pdf.setTextColor(255, 255, 255);
-  const company = fit(portfolio.companyName, 540, 23);
-  pdf.text(company, 36, 30);
-  write('PATENT PORTFOLIO SNAPSHOT', 36, 48, 8, [255, 255, 255], true);
+  const title = `${clean(portfolio.companyName)} - Patent Portfolio Snapshot`;
+  const titleWidth = 365;
+  let titleSize = 23;
+  pdf.setFont('times', 'normal'); pdf.setFontSize(titleSize); pdf.setTextColor(255, 255, 255);
+  while (pdf.getTextWidth(title) > titleWidth && titleSize > 16) {
+    titleSize -= 0.5;
+    pdf.setFontSize(titleSize);
+  }
+  let sourceY = 52;
+  if (pdf.getTextWidth(title) <= titleWidth) {
+    pdf.text(title, 36, 32);
+  } else {
+    // Long legal names retain a prominent serif title without entering the
+    // right-hand attribution block or shrinking to unreadable type.
+    pdf.setFontSize(18);
+    pdf.text(fit(`${portfolio.companyName} -`, titleWidth, 18), 36, 25);
+    pdf.text('Patent Portfolio Snapshot', 36, 44);
+    sourceY = 60;
+  }
   const date = new Date(portfolio.coverage.retrievedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
-  write(`USPTO Open Data Portal  |  Retrieved ${date}`, 36, 61, 7, [204, 213, 223]);
+  write(`SOURCE: USPTO Open Data Portal | RETRIEVED: ${date}`, 36, sourceY, 7, [204, 213, 223]);
+  pdf.setDrawColor(73, 88, 106); pdf.setLineWidth(0.5); pdf.line(414, 17, 414, 55);
+  pdf.setFont('helvetica', 'bold'); pdf.setFontSize(7.8); pdf.setTextColor(...GOLD);
+  pdf.text('Complimentary Patent Intelligence', 576, 25, { align: 'right' });
+  pdf.setFont('helvetica', 'normal'); pdf.setFontSize(7.4); pdf.setTextColor(225, 231, 238);
+  pdf.text('Provided by Zilka-Kotab, PC', 576, 38, { align: 'right' });
+  pdf.setFont('times', 'italic'); pdf.setFontSize(8); pdf.setTextColor(255, 255, 255);
+  pdf.text('Patents Engineered for Absolute Precision.', 576, 51, { align: 'right' });
   [
     ['Granted - status unverified', number(portfolio.identifiedGrantedPatents)],
     ['Identified pending', number(portfolio.identifiedPendingApplications)],
@@ -94,8 +116,9 @@ export async function createPortfolioSnapshotBlob(
     pdf.setFont('helvetica', 'bold'); pdf.setFontSize(12); pdf.setTextColor(...NAVY);
     pdf.text(gauge.value, x, 188, { align: 'center' });
     pdf.setFont('helvetica', 'normal'); pdf.setFontSize(7); pdf.setTextColor(...GRAY);
-    const caption = clean(`${gauge.label} (n=${number(gauge.sample)})`);
-    pdf.text(pdf.splitTextToSize(caption, 124), x, 216, { align: 'center', lineHeightFactor: 1.25 });
+    pdf.text([clean(gauge.label), `(n=${number(gauge.sample)})`], x, 216, {
+      align: 'center', lineHeightFactor: 1.25,
+    });
   });
   rule(246);
 
@@ -137,11 +160,12 @@ export async function createPortfolioSnapshotBlob(
     write(sample, x, 389, 6.3, GRAY);
     if (index) { pdf.setDrawColor(...LIGHT); pdf.line(x - 12, 353, x - 12, 390); }
   });
+  rule(395);
   const filingRange = efficiency?.filingDateStart && efficiency.filingDateEnd
     ? ` History filing range: ${efficiency.filingDateStart} to ${efficiency.filingDateEnd}.` : '';
   wrapped(
     `Scope: ${portfolio.matchedApplicantNames.join('; ') || portfolio.companyName}. Snapshot sample: ${number(portfolio.coverage.recordsAnalyzed)} / ${number(portfolio.coverage.totalMatchesReported)} matching records.${advanced ? ` Advanced sample: ${number(advanced.coverage.recordsAnalyzed)}${advanced.coverage.truncated ? ' (capped)' : ''}.` : ''}${filingRange} Granted does not confirm in-force status. Filing trends undercount unpublished applications; CPC counts are classification occurrences, not unique patents. Informational only, not a legal opinion.`,
-    36, 400, 540, 6.3, GRAY, 4,
+    36, 404, 540, 6.3, GRAY, 4,
   );
 
   // Preserve the supplied lower section verbatim: questions, circular portrait,
