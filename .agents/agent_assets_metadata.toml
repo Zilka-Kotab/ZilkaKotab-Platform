@@ -63,3 +63,31 @@ mtime_ms = 1793159942725
 storage_uri = "gcs://replit-rams-assets-reed/rams/assets/repl:d8317486-6b11-41c5-bec6-74c880ade2f7/bf8a941b-06ad-4945-bc6c-69b21586fd4d/90ac6220-3759-4705-9b46-2bd3dff4bbd9"
 storage_version_token = "1793159985470535"
 content_type = "application/pdf"
+
+[[outputs]]
+id = "iMRMytT3t1LQNVgL1vDYv"
+uri = "file://generated-artifacts/portfolio-snapshot-centered-captions.pdf"
+type = "pdf"
+title = "Updated portfolio PDF"
+description = "Centered captions with parenthesized sample sizes, consistent navy section labels, and the revised Portfolio Composition & Docket Concentration heading."
+logical_id = "24a180af-3b92-4d78-b7c4-a1fa79e7e79d"
+content_hash = "sha256:fc0534565cc3e16c4f7cd878f3fc184ebd301cf8a8c243542acd38c40e75091a"
+size = 144335
+mtime_ms = 1793160068524
+storage_uri = "gcs://replit-rams-assets-reed/rams/assets/repl:d8317486-6b11-41c5-bec6-74c880ade2f7/24a180af-3b92-4d78-b7c4-a1fa79e7e79d/9f733621-4db8-47f9-87c8-911c48f58ffd"
+storage_version_token = "1793160105463497"
+content_type = "application/pdf"
+
+[[outputs]]
+id = "AULzu911_V4XSyO-zaybN"
+uri = "file://generated-artifacts/portfolio-snapshot-continuous-footnote.pdf"
+type = "pdf"
+title = "Updated portfolio PDF"
+description = "Scope information and disclaimers now flow together as one continuous footnote, without a forced paragraph break."
+logical_id = "f9bfab41-ac6a-4eac-916a-ef9c438a0b73"
+content_hash = "sha256:02db234b43346bf69bf46d2819bc65de05ac115536f59e4050761b50c9e84b5f"
+size = 144279
+mtime_ms = 1793160153841
+storage_uri = "gcs://replit-rams-assets-reed/rams/assets/repl:d8317486-6b11-41c5-bec6-74c880ade2f7/f9bfab41-ac6a-4eac-916a-ef9c438a0b73/7df67f05-d87e-4a36-a17a-7f761685d156"
+storage_version_token = "1793160164525650"
+content_type = "application/pdf"

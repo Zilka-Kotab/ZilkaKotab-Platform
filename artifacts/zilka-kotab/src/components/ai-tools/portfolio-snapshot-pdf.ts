@@ -65,11 +65,11 @@ export async function createPortfolioSnapshotBlob(
     ['Grants in last 12 months', number(portfolio.recentGrantCount)],
   ].forEach(([label, value], index) => metric(label, value, 36 + index * 138, 87, 126));
 
-  write('PORTFOLIO COMPOSITION & PROSECUTION', 36, 135, 9.5, NAVY, true);
+  write('PORTFOLIO COMPOSITION & DOCKET CONCENTRATION', 36, 135, 9.5, NAVY, true);
   rule(142);
   const efficiency = advanced?.prosecutionEfficiency;
-  write('PROSECUTION EFFICIENCY', 36, 156, 6.8, GRAY, true);
-  write(advanced ? `Histories n=${number(efficiency?.applicationsWithHistories)}` : 'Advanced data not available at export time', 347, 156, 6.8, GRAY);
+  write('PROSECUTION EFFICIENCY', 36, 156, 6.8, NAVY, true);
+  if (!advanced) write('Advanced data not available at export time', 347, 156, 6.8, GRAY);
   const gauges = [
     { value: efficiency?.averageOfficeActionsPerGrantedPatent?.toFixed(2) ?? 'N/A', label: 'Avg. office actions per granted patent', rate: undefined, sample: efficiency?.officeActionDenominator },
     { value: percent(efficiency?.rceRate), label: 'Applications with an RCE', rate: efficiency?.rceRate, sample: efficiency?.rceDenominator },
@@ -93,8 +93,9 @@ export async function createPortfolioSnapshotBlob(
     }
     pdf.setFont('helvetica', 'bold'); pdf.setFontSize(12); pdf.setTextColor(...NAVY);
     pdf.text(gauge.value, x, 188, { align: 'center' });
-    wrapped(gauge.label, x - 52, 216, 110, 7, GRAY, 2);
-    write(`n=${number(gauge.sample)}`, x - 52, 239, 6.3, GRAY);
+    pdf.setFont('helvetica', 'normal'); pdf.setFontSize(7); pdf.setTextColor(...GRAY);
+    const caption = clean(`${gauge.label} (n=${number(gauge.sample)})`);
+    pdf.text(pdf.splitTextToSize(caption, 124), x, 216, { align: 'center', lineHeightFactor: 1.25 });
   });
   rule(246);
 
@@ -131,7 +132,7 @@ export async function createPortfolioSnapshotBlob(
     ['Average pending age', insights?.averagePendingAgeYears == null ? 'N/A' : `${insights.averagePendingAgeYears.toFixed(1)} yrs`, `Pending n=${number(insights?.pendingAgeSampleSize)}`],
   ].forEach(([label, value, sample], index) => {
     const x = 36 + index * 184;
-    write(label.toUpperCase(), x, 359, 6.3, GRAY, true);
+    write(label.toUpperCase(), x, 359, 6.3, NAVY, true);
     write(value, x, 377, 16, NAVY, true);
     write(sample, x, 389, 6.3, GRAY);
     if (index) { pdf.setDrawColor(...LIGHT); pdf.line(x - 12, 353, x - 12, 390); }
@@ -139,10 +140,9 @@ export async function createPortfolioSnapshotBlob(
   const filingRange = efficiency?.filingDateStart && efficiency.filingDateEnd
     ? ` History filing range: ${efficiency.filingDateStart} to ${efficiency.filingDateEnd}.` : '';
   wrapped(
-    `Scope: ${portfolio.matchedApplicantNames.join('; ') || portfolio.companyName}. Snapshot sample: ${number(portfolio.coverage.recordsAnalyzed)} / ${number(portfolio.coverage.totalMatchesReported)} matching records.${advanced ? ` Advanced sample: ${number(advanced.coverage.recordsAnalyzed)}${advanced.coverage.truncated ? ' (capped)' : ''}.` : ''}${filingRange}`,
-    36, 400, 540, 6.3, GRAY, 2,
+    `Scope: ${portfolio.matchedApplicantNames.join('; ') || portfolio.companyName}. Snapshot sample: ${number(portfolio.coverage.recordsAnalyzed)} / ${number(portfolio.coverage.totalMatchesReported)} matching records.${advanced ? ` Advanced sample: ${number(advanced.coverage.recordsAnalyzed)}${advanced.coverage.truncated ? ' (capped)' : ''}.` : ''}${filingRange} Granted does not confirm in-force status. Filing trends undercount unpublished applications; CPC counts are classification occurrences, not unique patents. Informational only, not a legal opinion.`,
+    36, 400, 540, 6.3, GRAY, 4,
   );
-  wrapped('Granted does not confirm in-force status. Filing trends undercount unpublished applications; CPC counts are classification occurrences, not unique patents. Informational only, not a legal opinion.', 36, 416, 540, 6.3, GRAY, 2);
 
   // Preserve the supplied lower section verbatim: questions, circular portrait,
   // QR code, original icons, typography and firm claims. Never stretch/recreate it.
