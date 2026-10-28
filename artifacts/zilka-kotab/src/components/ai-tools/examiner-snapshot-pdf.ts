@@ -2,6 +2,7 @@ import type { PublicExaminerAnalysis } from '@workspace/api-client-react';
 import { drawPortfolioPdfHeader } from './portfolio-pdf-header';
 import { examinerActivitySpan } from './examiner-activity';
 import { EXAMINER_QUESTIONS } from './snapshot-questions';
+import { finishSnapshotWithVectorFooter } from './vector-handout-footer';
 
 const NAVY: [number, number, number] = [11, 31, 53];
 const GOLD: [number, number, number] = [191, 154, 37];
@@ -36,9 +37,7 @@ export function examinerInterviewComparison(interview?: PublicExaminerAnalysis['
 /** Branded one-page handout; outcome benchmarks and event cohorts remain distinct. */
 export async function createExaminerSnapshotBlob(
   data: PublicExaminerAnalysis,
-  footerImageData: string,
 ): Promise<Blob> {
-  if (!footerImageData) throw new Error('The approved handout artwork is required to export this PDF.');
   if (data.selectionRequired) throw new Error('Select a specific examiner before exporting.');
   if (!data.identifiedApplications) throw new Error('No examiner results are available to export.');
   const { jsPDF } = await import('jspdf');
@@ -210,18 +209,6 @@ export async function createExaminerSnapshotBlob(
   if (lines.length > 4) throw new Error('The report notes are too long for the one-page snapshot.');
   const baseline = (395 + artworkY) / 2 + notesSize * (1.075 - 0.299) / 2 - (lines.length - 1) * notesSize * 1.25 / 2;
   pdf.text(lines, 36, baseline, { lineHeightFactor: 1.25 });
-  pdf.addImage(footerImageData, 'PNG', 0, artworkY, 612, artworkHeight, 'approved-handout-footer', 'FAST');
-  // Replace only the question text. Keep the approved heading, question-mark
-  // icons and all firm artwork intact; the portfolio uses the unmodified image.
-  const artworkScale = 612 / 934;
-  pdf.setFillColor(255, 255, 255);
-  pdf.rect(84 * artworkScale, artworkY + 43 * artworkScale,
-    830 * artworkScale, 134 * artworkScale, 'F');
-  pdf.setFont('helvetica', 'normal'); pdf.setFontSize(8); pdf.setTextColor(12, 24, 34);
-  EXAMINER_SNAPSHOT_QUESTIONS.forEach((question, index) => {
-    pdf.text(question, 87 * artworkScale, artworkY + (62 + index * 25) * artworkScale);
-  });
-  pdf.link(406, artworkY + 173, 102, 9, { url: 'mailto:britten@zilkakotab.com' });
   pdf.setProperties({ title: `${title} - Intelligence Snapshot`, author: 'Zilka-Kotab PC', subject: 'USPTO examiner and art unit statistics' });
-  return pdf.output('blob');
+  return finishSnapshotWithVectorFooter(pdf, EXAMINER_SNAPSHOT_QUESTIONS);
 }

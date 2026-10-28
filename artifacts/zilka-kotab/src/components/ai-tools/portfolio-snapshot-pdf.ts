@@ -1,5 +1,6 @@
 import type { PublicPortfolioAnalysis, PublicPortfolioAdvancedAnalysis } from '@workspace/api-client-react';
 import { drawPortfolioPdfHeader } from './portfolio-pdf-header';
+import { finishSnapshotWithVectorFooter } from './vector-handout-footer';
 
 const NAVY: [number, number, number] = [11, 31, 53];
 const GOLD: [number, number, number] = [191, 154, 37];
@@ -10,9 +11,7 @@ const LIGHT: [number, number, number] = [226, 229, 230];
 export async function createPortfolioSnapshotBlob(
   portfolio: PublicPortfolioAnalysis,
   advanced: PublicPortfolioAdvancedAnalysis | undefined,
-  footerImageData: string,
 ): Promise<Blob> {
-  if (!footerImageData) throw new Error('The approved handout artwork is required to export this PDF.');
   const { jsPDF } = await import('jspdf');
   const pdf = new jsPDF({ unit: 'pt', format: 'letter' });
   const clean = (s: string) => s.replace(/[–—]/g, '-').replace(/[≤]/g, '<=')
@@ -153,10 +152,6 @@ export async function createPortfolioSnapshotBlob(
     36, (notesTop + artworkY) / 2, 540, 6.3, GRAY, 4, true,
   );
 
-  // Preserve the supplied lower section verbatim: questions, circular portrait,
-  // QR code, original icons, typography and firm claims. Never stretch/recreate it.
-  pdf.addImage(footerImageData, 'PNG', 0, artworkY, 612, artworkHeight, 'approved-handout-footer', 'FAST');
-  pdf.link(406, artworkY + 173, 102, 9, { url: 'mailto:britten@zilkakotab.com' });
   pdf.setProperties({ title: `${portfolio.companyName} - Patent Portfolio Snapshot`, author: 'Zilka-Kotab PC', subject: 'USPTO portfolio data snapshot' });
-  return pdf.output('blob');
+  return finishSnapshotWithVectorFooter(pdf);
 }
