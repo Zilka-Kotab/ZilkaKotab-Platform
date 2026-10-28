@@ -18,7 +18,7 @@ export default function AiTools() {
 
   return (
     <>
-      <SEO title="Patent Intelligence Tools" url="/ai-tools"
+      <SEO title="AI Tools" url="/ai-tools"
         description="Free public tools from Zilka-Kotab PC: analyze a company's U.S. patent portfolio or an examiner's allowance history using USPTO data, with sources and limits shown." />
       <main className="zk-tools flex-1 w-full">
         <section className="relative overflow-hidden">
