@@ -1,3 +1,5 @@
+import { jsPDF } from 'jspdf';
+
 export type PdfMetric = { label: string; value: string; detail?: string };
 export type PdfSection =
   | { type: 'metrics'; title: string; items: PdfMetric[]; note?: string }
@@ -14,7 +16,6 @@ export type PdfReport = {
 };
 
 export async function createPdfReportBlob(report: PdfReport): Promise<Blob> {
-  const { jsPDF } = await import('jspdf');
   const pdf = new jsPDF({ unit: 'pt', format: 'a4' });
   const pageWidth = pdf.internal.pageSize.getWidth();
   const pageHeight = pdf.internal.pageSize.getHeight();

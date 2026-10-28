@@ -1,6 +1,6 @@
 import type { jsPDF } from 'jspdf';
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
-const footerPdfUrl = new URL('../../assets/firm-handout-footer.pdf', import.meta.url).href;
+import footerPdfUrl from '../../assets/firm-handout-footer.pdf?inline';
 
 const PORTFOLIO_PDF_QUESTIONS = [
   'If AI freed attorney capacity, where would those hours create the most value?',

@@ -1,4 +1,5 @@
 import type { PublicPortfolioAnalysis, PublicPortfolioAdvancedAnalysis } from '@workspace/api-client-react';
+import { jsPDF } from 'jspdf';
 import { drawPortfolioPdfHeader } from './portfolio-pdf-header';
 import { finishSnapshotWithVectorFooter } from './vector-handout-footer';
 import { benchmarkValue, findLine, hasLines } from './firm-benchmark';
@@ -13,7 +14,6 @@ export async function createPortfolioSnapshotBlob(
   portfolio: PublicPortfolioAnalysis,
   advanced: PublicPortfolioAdvancedAnalysis | undefined,
 ): Promise<Blob> {
-  const { jsPDF } = await import('jspdf');
   const pdf = new jsPDF({ unit: 'pt', format: 'letter' });
   const clean = (s: string) => s.replace(/[–—]/g, '-').replace(/[≤]/g, '<=')
     .replace(/[“”]/g, '"').replace(/[’]/g, "'").replace(/\s+/g, ' ').trim();

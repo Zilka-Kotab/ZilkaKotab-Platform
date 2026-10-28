@@ -1,4 +1,5 @@
 import type { PublicExaminerAnalysis } from '@workspace/api-client-react';
+import { jsPDF } from 'jspdf';
 import { drawPortfolioPdfHeader } from './portfolio-pdf-header';
 import { examinerActivitySpan } from './examiner-activity';
 import { EXAMINER_QUESTIONS } from './snapshot-questions';
@@ -40,7 +41,6 @@ export async function createExaminerSnapshotBlob(
 ): Promise<Blob> {
   if (data.selectionRequired) throw new Error('Select a specific examiner before exporting.');
   if (!data.identifiedApplications) throw new Error('No examiner results are available to export.');
-  const { jsPDF } = await import('jspdf');
   const pdf = new jsPDF({ unit: 'pt', format: 'letter' });
   const write = (text: string, x: number, y: number, size = 8, color = NAVY, bold = false) => {
     pdf.setFont('helvetica', bold ? 'bold' : 'normal'); pdf.setFontSize(size);

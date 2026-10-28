@@ -20,3 +20,9 @@ Remove source-page company metrics and event text before cropping a reusable vec
 **Why:** A comparison export looked correctly scoped but text extraction also returned the original handout company's hidden header and counts. This can contaminate indexing, accessibility, and automated checks.
 
 **How to apply:** Redact unwanted source content, not just its visible bounds. Verify exported text contains only the selected company's metrics while confirming the QR image remains byte-for-byte unchanged.
+
+Keep essential PDF generation code and the approved footer available to an already-loaded app across publishes; do not require a late fetch of replaceable, hashed export assets.
+
+**Why:** Both tools failed to export when an open tab referenced an older PDF-library chunk removed by a newer publish. The missing JavaScript URL returned the SPA's HTML with HTTP 200, so a successful HTTP status alone did not establish asset availability.
+
+**How to apply:** Preserve the eager PDF dependency and bundled footer unless another explicit asset-retention strategy is provided. This trades some initial bundle size for reliable downloads without forcing a reload that would discard the user's analysis.
