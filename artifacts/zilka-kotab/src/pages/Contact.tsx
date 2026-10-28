@@ -5,6 +5,11 @@ import { FadeIn } from '@/components/FadeIn';
 import { AlertCircle, Check, Clock, MapPin, Phone, Send } from 'lucide-react';
 
 const emptyContactForm = { name: '', email: '', phone: '', subject: '', message: '', website: '' };
+const getCsrfToken = () => {
+  const cookie = document.cookie.split('; ').find((item) => item.startsWith('zk_csrf='));
+  const token = cookie?.slice('zk_csrf='.length);
+  return token ? decodeURIComponent(token) : undefined;
+};
 
 const contactItems = [
   {
@@ -105,13 +110,23 @@ function ContactForm() {
     setStatus('sending');
     setFeedback('');
     try {
+      const csrf = getCsrfToken();
       const response = await fetch('/api/contact', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(csrf ? { 'x-csrf-token': csrf } : {}),
+        },
         body: JSON.stringify({ ...form, consent }),
       });
       const result = await response.json().catch(() => ({})) as { error?: string };
-      if (!response.ok) throw new Error(result.error || 'We could not send your message. Please try again.');
+      if (!response.ok) {
+        const errorMessage = result.error === 'Invalid CSRF token.'
+          ? 'Your security token expired. Refresh the page and try again.'
+          : result.error || 'We could not send your message. Please try again.';
+        throw new Error(errorMessage);
+      }
       setStatus('success');
     } catch (error) {
       setStatus('error');
