@@ -1,5 +1,4 @@
 import { Router } from "express";
-import nodemailer from "nodemailer";
 import { logger } from "../lib/logger";
 import { deliverMail, MailDeliveryTimeoutError } from "../lib/mail-delivery";
 
@@ -51,38 +50,13 @@ router.post("/contact", async (req, res): Promise<void> => {
     return;
   }
 
-  const smtpHost = process.env["SMTP_HOST"];
-  const smtpPort = Number(process.env["SMTP_PORT"] ?? 587);
-  const smtpUser = process.env["SMTP_USER"];
-  const smtpPass = process.env["SMTP_PASS"];
   const toEmail = process.env["CONTACT_EMAIL"] ?? "britten@zilkakotab.com";
-  const fromEmail = process.env["SMTP_FROM_EMAIL"]?.trim() || smtpUser;
 
-  if (!smtpHost || !smtpUser || !smtpPass || !Number.isInteger(smtpPort) || smtpPort < 1 || smtpPort > 65535 ||
-    !fromEmail || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(fromEmail) || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(toEmail)) {
-    logger.error("SMTP environment variables not configured");
+  if (!process.env["CONTACT_OUTLOOK_CONNECTION_ID"] || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(toEmail)) {
+    logger.error({ code: "OUTLOOK_NOT_CONFIGURED" }, "Contact email service is not configured");
     res.status(500).json({ error: "Email service is not configured." });
     return;
   }
-
-  const transporter = nodemailer.createTransport({
-    pool: true,
-    maxConnections: 1,
-    maxMessages: 1,
-    host: smtpHost,
-    port: smtpPort,
-    secure: smtpPort === 465,
-    requireTLS: smtpPort !== 465,
-    dnsTimeout: 5_000,
-    connectionTimeout: 8_000,
-    greetingTimeout: 8_000,
-    socketTimeout: 10_000,
-    auth: {
-      type: "login",
-      user: smtpUser,
-      pass: smtpPass,
-    },
-  });
 
   const safeName = escapeHtml(name);
   const safeEmail = escapeHtml(email);
@@ -105,30 +79,29 @@ router.post("/contact", async (req, res): Promise<void> => {
   `;
 
   try {
-    await deliverMail(transporter, {
-      from: `"Zilka-Kotab Website" <${fromEmail}>`,
+    const acceptance = await deliverMail({
       to: toEmail,
-      replyTo: `"${name.replace(/["\r\n]/g, "")}" <${email}>`,
+      replyTo: { name: name.replace(/[\r\n]/g, " "), address: email },
       subject: subject
         ? `Website Inquiry: ${subject.replace(/[\r\n]/g, " ")}`
         : `Website Inquiry from ${name.replace(/[\r\n]/g, " ")}`,
       html,
     });
 
-    logger.info("Contact form email sent");
+    logger.info(acceptance, "Contact form accepted by Microsoft 365");
     res.json({ success: true });
   } catch (err) {
-    const failure = err as { code?: string; command?: string; responseCode?: number };
+    const failure = err as { code?: string; providerStatus?: number; providerRequestId?: string };
     logger.error({
       code: failure?.code,
-      command: failure?.command,
-      responseCode: failure?.responseCode,
+      providerStatus: failure?.providerStatus,
+      providerRequestId: failure?.providerRequestId,
     }, "Failed to send contact form email");
-    const timedOut = err instanceof MailDeliveryTimeoutError || failure?.code === "ETIMEDOUT";
+    const timedOut = err instanceof MailDeliveryTimeoutError;
     res.status(timedOut ? 504 : 502).json({
       success: false,
       error: timedOut
-        ? "The mail server did not confirm delivery in time. We cannot confirm your message was sent. Please call us at (408) 971-2573 rather than submitting it repeatedly."
+        ? "Microsoft 365 did not confirm acceptance in time. We cannot confirm your message was sent. Please call us at (408) 971-2573 rather than submitting it repeatedly."
         : "We could not send your message. Your entries have been kept. Please try again later or call (408) 971-2573.",
     });
   }

@@ -49,3 +49,17 @@ mtime_ms = 1793153180164
 storage_uri = "gcs://replit-rams-assets-reed/rams/assets/repl:d8317486-6b11-41c5-bec6-74c880ade2f7/685d2774-710e-4f9c-ac19-7b3d03b6bce8/a55e93a7-6d05-48df-be9f-f662d30c7ead"
 storage_version_token = "1793153251326353"
 content_type = "application/pdf"
+
+[[outputs]]
+id = "-LHH__plvkg902WCqjP_7"
+uri = "file://generated-artifacts/portfolio-snapshot-exact-footer.pdf"
+type = "pdf"
+title = "Updated portfolio snapshot PDF"
+description = "Single-page snapshot with the supplied Questions Worth Asking and firm footer reproduced exactly, including the original portrait, QR code, icons, and wording."
+logical_id = "bf8a941b-06ad-4945-bc6c-69b21586fd4d"
+content_hash = "sha256:a9b32bc3ea8a2139189560a6ebc3d1bd3fe6c14d0f8a381b2ccada0990a6e1d7"
+size = 144627
+mtime_ms = 1793159942725
+storage_uri = "gcs://replit-rams-assets-reed/rams/assets/repl:d8317486-6b11-41c5-bec6-74c880ade2f7/bf8a941b-06ad-4945-bc6c-69b21586fd4d/90ac6220-3759-4705-9b46-2bd3dff4bbd9"
+storage_version_token = "1793159985470535"
+content_type = "application/pdf"

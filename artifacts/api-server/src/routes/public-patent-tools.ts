@@ -1,5 +1,5 @@
 import { Router, type IRouter, type NextFunction, type Request, type Response } from "express";
-import nodemailer from "nodemailer";
+import { deliverMail, MailDeliveryTimeoutError } from "../lib/mail-delivery";
 import {
   AnalyzePublicExaminerBody,
   AnalyzePublicExaminerResponse,
@@ -103,13 +103,9 @@ router.post("/public-tools/inquiry", rateLimit("inquiry", 5, INQUIRY_WINDOW_MS),
     return;
   }
 
-  const smtpHost = process.env.SMTP_HOST;
-  const smtpPort = Number(process.env.SMTP_PORT ?? 587);
-  const smtpUser = process.env.SMTP_USER;
-  const smtpPass = process.env.SMTP_PASS;
   const toEmail = process.env.PUBLIC_TOOLS_CONTACT_EMAIL ?? process.env.CONTACT_EMAIL ?? "britten@zilkakotab.com";
-  if (!smtpHost || !smtpUser || !smtpPass) {
-    req.log.error("SMTP environment variables not configured for public tool inquiry");
+  if (!process.env.CONTACT_OUTLOOK_CONNECTION_ID || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(toEmail)) {
+    req.log.error({ code: "OUTLOOK_NOT_CONFIGURED" }, "Public tool email service is not configured");
     res.status(500).json({ error: "Inquiry delivery is not configured." });
     return;
   }
@@ -122,18 +118,9 @@ router.post("/public-tools/inquiry", rateLimit("inquiry", 5, INQUIRY_WINDOW_MS),
     message: escapeHtml(parsed.data.message ?? ""),
   };
   try {
-    const transporter = nodemailer.createTransport({
-      host: smtpHost,
-      port: smtpPort,
-      secure: smtpPort === 465,
-      requireTLS: smtpPort !== 465,
-      auth: { type: "login", user: smtpUser, pass: smtpPass },
-      tls: { rejectUnauthorized: false },
-    });
-    await transporter.sendMail({
-      from: `"Zilka-Kotab Website" <${smtpUser}>`,
+    const acceptance = await deliverMail({
       to: toEmail,
-      replyTo: `"${safe.name}" <${parsed.data.email}>`,
+      replyTo: { name: parsed.data.name.replace(/[\r\n]/g, " "), address: parsed.data.email },
       subject: `Patent Intelligence Inquiry — ${toolName}`,
       html: `<div style="font-family:sans-serif;max-width:640px">
         <h2>New ${escapeHtml(toolName)} inquiry</h2>
@@ -143,11 +130,17 @@ router.post("/public-tools/inquiry", rateLimit("inquiry", 5, INQUIRY_WINDOW_MS),
         ${safe.message ? `<p><strong>Message:</strong><br>${safe.message.replace(/\n/g, "<br>")}</p>` : ""}
       </div>`,
     });
-    req.log.info({ tool: parsed.data.tool }, "Public patent tool inquiry sent");
+    req.log.info({ ...acceptance, tool: parsed.data.tool }, "Public patent tool inquiry accepted by Microsoft 365");
     res.json(SubmitPublicToolInquiryResponse.parse({ success: true }));
   } catch (error) {
-    req.log.error({ err: error, tool: parsed.data.tool }, "Failed to send public patent tool inquiry");
-    res.status(500).json({ error: "We could not send your request. Please try again later." });
+    const failure = error as { code?: string; providerStatus?: number; providerRequestId?: string };
+    req.log.error({
+      code: failure?.code, providerStatus: failure?.providerStatus,
+      providerRequestId: failure?.providerRequestId, tool: parsed.data.tool,
+    }, "Failed to send public patent tool inquiry");
+    res.status(error instanceof MailDeliveryTimeoutError ? 504 : 502).json({
+      error: "We could not confirm your request was sent. Please call (408) 971-2573 rather than submitting it repeatedly.",
+    });
   }
 });
 

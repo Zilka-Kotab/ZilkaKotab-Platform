@@ -8,5 +8,5 @@
 - [Portfolio metric evidence](portfolio-metric-evidence.md) — disclose sample sizes/date ranges and never infer counsel or family relationships from unstructured text.
 - [Examiner intelligence scope](examiner-intelligence.md) — the public examiner tool serves patent prosecution attorneys; prioritize transparent, reproducible metrics over speculative recommendations.
 - [Internal workflow data boundaries](internal-workflow-data-boundaries.md) — AppColl owns docket fields; internal assignments and billing stay separate in the authenticated portal.
-- [Contact delivery environments](contact-delivery-environments.md) — development SMTP acceptance is not proof of live-site delivery; investigate production independently.
-- [Portfolio handout design](portfolio-handout-design.md) — one-page branded snapshot; bottom two-fifths firm copy, no event content, strategic comments, or outside counsel.
+- [Contact delivery environments](contact-delivery-environments.md) — use Microsoft 365 HTTPS mail, not SMTP fallback; distinguish acceptance, inbox receipt, and live-site verification.
+- [Portfolio handout design](portfolio-handout-design.md) — reproduce approved questions and firm/QR footer exactly; retain one page and exclude events, portfolio advice, and counsel.

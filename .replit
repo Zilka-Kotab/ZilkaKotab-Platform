@@ -23,6 +23,7 @@ timeoutMs = 20000
 
 [userenv.shared]
 CONTACT_EMAIL = "britten@zilkakotab.com"
+CONTACT_OUTLOOK_CONNECTION_ID = "conn_outlook_01M60A2FWGGJ43KB8ZV8C8TYEJ"
 
 [userenv.production]
 INITIAL_ADMIN_EMAIL = "managezk@zilkakotab.com"
