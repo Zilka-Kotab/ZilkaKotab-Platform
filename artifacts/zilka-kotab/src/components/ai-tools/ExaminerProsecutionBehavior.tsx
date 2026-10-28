@@ -23,8 +23,8 @@ function Tip({ label, children }: { label: string; children: ReactNode }) {
 function Cell({ label, value, sub, tip, testId, sample }: { label: string; value: string | null; sub?: ReactNode; tip: ReactNode; testId: string; sample?: boolean }) {
   return (
     <div className="min-w-0 bg-white p-3 sm:p-4" data-testid={testId}>
-      <div className="flex items-start justify-between gap-2">
-        <div className="text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground">{label}</div>
+      <div className="flex min-h-[2.5rem] items-start justify-between gap-2">
+        <div className="text-[11px] font-medium uppercase leading-[1.25rem] tracking-[0.12em] text-muted-foreground">{label}</div>
         <Tip label={label}>{tip}</Tip>
       </div>
       {value === null
@@ -62,13 +62,12 @@ export function ExaminerProsecutionBehavior({ data }: { data: PublicExaminerAnal
 
   return (
     <TooltipProvider delayDuration={150}>
-      <section className="rounded-sm border bg-white p-4 sm:p-5" data-testid="section-prosecution-behavior">
+      <section className="@container rounded-sm border bg-white p-4 sm:p-5" data-testid="section-prosecution-behavior">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           <h4 className="zk-h4">Examiner Prosecution Behavior</h4>
           <span className="text-xs tabular-nums text-muted-foreground" data-testid="text-prosecution-analyzed">{fmtNum(n)} applications analyzed{data.coverage.truncated ? ' (sample)' : ''}</span>
         </div>
-        <div className="mt-4 grid gap-3 lg:grid-cols-4 lg:grid-rows-2">
-          <div className="grid grid-cols-1 gap-px overflow-hidden rounded-sm border bg-border sm:grid-cols-2 lg:col-span-3 lg:row-span-2 lg:auto-rows-fr lg:grid-cols-3">
+        <div className="mt-4 grid grid-cols-1 gap-px overflow-hidden rounded-sm border bg-border sm:grid-cols-2 @3xl:grid-cols-4 @3xl:grid-rows-[auto_auto]">
             {oa ? <>
               <Cell label="Median Time to First Action" testId="metric-first-action-time"
                 value={oa.medianMonthsFilingToFirstAction === null ? null : oa.medianMonthsFilingToFirstAction.toFixed(1)}
@@ -86,21 +85,20 @@ export function ExaminerProsecutionBehavior({ data }: { data: PublicExaminerAnal
                 tip={`Average non-final and final actions per application across ${fmtNum(oa.applicationsWithEventData)} applications with event histories. Mailed notices are not double-counted.`} />
               <RceContinuationCard jobId={data.searchType === 'examiner' ? data.rceContinuationJobId : undefined} artUnit={data.searchType === 'art-unit'} />
               {behavior(oa.quarterEndConcentration, '38.5%', 'Quarter-End Action Concentration', 'metric-quarter-end', 'Share of qualifying examiner-issued actions mailed in the final 14 days of March, June, September, or December.')}
-            </> : <div className="bg-white p-4 text-sm text-muted-foreground sm:col-span-2 lg:col-span-3">Office action event data unavailable for this result.</div>}
-          </div>
-          <div className="rounded-sm border bg-white p-3 sm:p-4 lg:col-start-4 lg:row-span-2" data-testid="panel-interview-impact">
-            <div className="flex items-center justify-between gap-2">
-              <div className="text-sm font-semibold">Interview Impact</div>
+            </> : <div className="bg-white p-4 text-sm text-muted-foreground sm:col-span-2 @3xl:col-span-3 @3xl:row-span-2">Office action event data unavailable for this result.</div>}
+          <div className="min-w-0 bg-white p-3 outline outline-2 -outline-offset-2 outline-[hsl(var(--primary))] sm:col-span-2 sm:p-4 @3xl:col-span-1 @3xl:col-start-4 @3xl:row-span-2 @3xl:row-start-1" data-testid="panel-interview-impact">
+            <div className="flex min-h-[2.5rem] items-start justify-between gap-2">
+              <div className="text-sm font-semibold leading-[1.25rem]">Interview Impact</div>
               <Tip label="Interview Impact">Groups are based on located interview summaries, not necessarily all interviews held. Rates use disposed applications only (allowed ÷ allowed + abandoned). The comparison is a correlation, not evidence of causation.</Tip>
             </div>
-            {ia ? <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-1">
+            {ia ? <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 @3xl:grid-cols-1">
               {[
                 { l: 'Allowance With Interview', r: withRate, a: wAllowed, d: wDisposed, apps: ia.applicationsWithInterviewSummary, o: ia.interviewSummaryOther, t: 'metric-interview-summary-allowance-rate' },
                 { l: 'Allowance Without Interview', r: withoutRate, a: nAllowed, d: nDisposed, apps: ia.applicationsWithoutInterviewSummary, o: ia.noSummaryOther, t: 'metric-no-summary-allowance-rate' },
               ].map((x) => (
-                <div key={x.t} className="border-t pt-2 first:border-t-0 first:pt-0" data-testid={x.t}>
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground">{x.l}</div>
+                <div key={x.t} className="border-t pt-2 first:border-t-0 first:pt-0 sm:border-t-0 sm:pt-0 @3xl:border-t @3xl:pt-2" data-testid={x.t}>
+                  <div className="flex min-h-[2.5rem] items-start justify-between gap-2">
+                    <div className="text-[11px] font-medium uppercase leading-[1.25rem] tracking-[0.12em] text-muted-foreground">{x.l}</div>
                     <Tip label={x.l}>{`${fmtNum(x.apps)} applications in group: ${fmtNum(x.a)} allowed, ${fmtNum(x.d - x.a)} abandoned, ${fmtNum(x.o)} pending/other (excluded). Based on located interview summaries; correlation, not causation.`}</Tip>
                   </div>
                   {x.r === null ? <div className="mt-1.5 font-display text-lg italic text-muted-foreground/80">Unavailable</div>
@@ -108,14 +106,14 @@ export function ExaminerProsecutionBehavior({ data }: { data: PublicExaminerAnal
                   <div className="text-xs text-muted-foreground">{fmtNum(x.a)} of {fmtNum(x.d)} disposed</div>
                 </div>
               ))}
-            </div> : <p className="mt-3 text-sm text-muted-foreground">Interview records unavailable.</p>}
-          </div>
-        </div>
-        <div className="mt-3 space-y-1 text-xs leading-relaxed text-muted-foreground">
-          {ia && <p data-testid="interview-allowance-conclusion">
+            </div> : <p className="text-sm text-muted-foreground">Interview records unavailable.</p>}
+            {ia && <p className="mt-3 border-t pt-2 text-xs leading-relaxed text-muted-foreground" data-testid="interview-allowance-conclusion">
             {diff === null ? 'Not enough disposed applications in both groups for an allowance-rate comparison.'
               : <>Observed: <strong className="text-foreground">{diff >= 0 ? '+' : ''}{diff.toFixed(1)} percentage points</strong>{rel !== null && <> ({rel >= 0 ? '+' : ''}{rel.toFixed(1)}% relative)</>} allowance with a located interview summary. A historical association, not evidence that interviews cause allowance; no summary located does not prove no interview occurred.</>}
           </p>}
+          </div>
+        </div>
+        <div className="mt-3 space-y-1 text-xs leading-relaxed text-muted-foreground">
           <p>Event-code metrics use USPTO prosecution events{data.coverage.truncated ? ' in the retrieved sample' : ''}; pending applications remain in office-action counts but are excluded from allowance rates. Cards marked Illustrative are placeholders, not USPTO data.</p>
         </div>
       </section>

@@ -50,3 +50,9 @@ PatEx's examiner field describes assignment at the snapshot date for pending cas
 **Why:** The official PatEx technical documentation explicitly describes snapshot/disposal assignment and notes that modern releases no longer provide numeric examiner IDs.
 
 **How to apply:** Use PatEx to discover historical candidates, then corroborate dated activity and identity. A historical index is needed before career-wide metrics can be reliable. Documentation: https://www.uspto.gov/sites/default/files/documents/PatEx-2019-Technical-Doc.pdf.
+
+RCE rate measures **filed requests**, not accepted requests. A verified request document marked “Not Entered” still establishes filing; administrative workflow markers alone do not. Continuation rate is independently the share of eligible parents with an expressly classified CON child, excluding DIV, CIP, provisional and foreign relationships.
+
+**Why:** The user requires separate evidence-backed RCE and continuation percentages, and explicitly prohibits treating missing data or API failures as negatives. Unresolved workflow markers can otherwise keep the entire requested statistic unavailable.
+
+**How to apply:** Preserve the common mature cohort and full denominator. Resolve ambiguous histories with complete document evidence rather than inventing negatives or silently switching to a resolved-only subset. Explain filing versus acceptance in the evidence notes and keep genuinely incomplete outcomes unknown.

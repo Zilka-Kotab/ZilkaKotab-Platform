@@ -31,7 +31,10 @@ function Rate({ label, def, m, job, reason, testId }: { label: string; def: stri
   const live = m != null && m.rate !== null;
   return (
     <div className="min-w-0" data-testid={testId}>
-      <div className="flex items-center gap-1">
+      {live
+        ? <div className="mt-1 font-display text-2xl font-semibold tabular-nums text-foreground" data-testid={`${testId}-value`}>{m!.rate!.toFixed(1)}%</div>
+        : <div className="mt-1 font-display text-2xl font-semibold text-muted-foreground/70" data-testid={`${testId}-value`}>N/A</div>}
+      <div className="flex h-5 items-center gap-1">
         <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">{label}</span>
         <Tip label={`${label} rate`}>
           <span className="block">{def}</span>
@@ -44,10 +47,7 @@ function Rate({ label, def, m, job, reason, testId }: { label: string; def: stri
           {job && <span className="mt-1 block text-[11px] opacity-80">Cohort: filed on/after 2001 and on/before {job.cohortCutoff}; {fmtNum(job.excludedApplications)} excluded. Version {job.calculationVersion}.{job.note ? ` ${job.note}` : ''}</span>}
         </Tip>
       </div>
-      {live
-        ? <div className="mt-0.5 font-display text-2xl font-semibold tabular-nums text-foreground" data-testid={`${testId}-value`}>{m!.rate!.toFixed(1)}%</div>
-        : <div className="mt-0.5 font-display text-2xl font-semibold text-muted-foreground/70" data-testid={`${testId}-value`}>N/A</div>}
-      <div className="truncate text-xs tabular-nums text-muted-foreground">{live ? `${fmtNum(m!.numerator)} of ${fmtNum(m!.denominator)}` : '—'}</div>
+      <div className="text-xs tabular-nums text-muted-foreground">{live ? `${fmtNum(m!.numerator)} of ${fmtNum(m!.denominator)}` : '—'}</div>
     </div>
   );
 }
@@ -57,12 +57,12 @@ export function RceContinuationCard({ jobId, artUnit = false }: { jobId?: string
   const q = useGetPublicExaminerRceContinuation(id, {
     query: {
       enabled: !!jobId,
-      retry: false,
+      retry: 2,
       queryKey: ['/api/public-tools/examiner/rce-continuation', id],
       refetchInterval: (query) => {
         const s = query.state.data?.state;
         if (query.state.status === 'error') return false;
-        return s === 'complete' || s === 'partial' ? false : 3000;
+        return s === 'complete' ? false : s === 'partial' ? 30000 : 3000;
       },
     },
   });
@@ -91,10 +91,10 @@ export function RceContinuationCard({ jobId, artUnit = false }: { jobId?: string
 
   return (
     <div className="min-w-0 bg-white p-3 sm:p-4" data-testid="metric-rce-vs-continuation">
-      <div className="text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground">RCE vs. Continuation Rate</div>
-      <div className="mt-1.5 grid grid-cols-2 gap-3 divide-x">
-        <Rate label="RCE" def={RCE_DEF} m={job?.rce} job={job} reason={reason} testId="metric-rce-rate" />
-        <div className="pl-3"><Rate label="Continuation" def={CON_DEF} m={job?.continuation} job={job} reason={reason} testId="metric-continuation-rate" /></div>
+      <div className="min-h-10 text-[11px] font-medium uppercase leading-5 tracking-[0.12em] text-muted-foreground">RCE vs. Continuation Rate</div>
+      <div className="grid grid-cols-2 divide-x">
+        <div className="pr-2"><Rate label="RCE" def={RCE_DEF} m={job?.rce} job={job} reason={reason} testId="metric-rce-rate" /></div>
+        <div className="pl-2"><Rate label="Continuation" def={CON_DEF} m={job?.continuation} job={job} reason={reason} testId="metric-continuation-rate" /></div>
       </div>
       <div className="mt-1.5 flex items-center gap-2 text-[11px] text-muted-foreground">
         {pending && <span className="h-1.5 w-1.5 shrink-0 animate-pulse rounded-full bg-[hsl(var(--zk-brass))]" aria-hidden />}

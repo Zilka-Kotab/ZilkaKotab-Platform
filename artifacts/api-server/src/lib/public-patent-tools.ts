@@ -4,6 +4,7 @@ import { queueExaminerRateJob } from "./examiner-rce-store";
 import { RCE_CALCULATION_VERSION } from "./examiner-rce-evidence";
 import { discoverCompanyNames, uniqueCompanyNames, explicitOrganizationNames, applicantNameMatches, applicantScopeQuery, organizationNameKey } from "./company-name-discovery";
 import { usptoSearchBody } from "./uspto-search-body";
+import { analyzePortfolioCounsel, COUNSEL_SEARCH_FIELDS } from "./portfolio-counsel";
 import { logger } from "./logger";
 import { metricApplication, calculatePortfolioMetrics } from "./portfolio-metrics";
 import { computeFirmBenchmark } from "./firm-benchmark-math";
@@ -130,23 +131,6 @@ function recordsFrom(value: unknown) {
     const record = asRecord(item);
     return record ? [record] : [];
   }) : [];
-}
-
-function normalizedCounselName(value: string) {
-  return value.normalize("NFKD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLocaleLowerCase()
-    .replace(/&/g, " and ")
-    .replace(/[^a-z0-9]+/g, " ")
-    .trim()
-    .replace(/\s+/g, " ");
-}
-
-function isStructuredLawFirmName(value: string) {
-  const normalized = normalizedCounselName(value);
-  return /(?:^| )(?:llp|pllc|pc|pa|law offices?|law firm|patent attorneys?)$/i.test(normalized) ||
-    (/(?:^| )(?:llc|inc|incorporated|corp|corporation)$/i.test(normalized) &&
-      /\b(?:ip|intellectual property|patent|law|legal)\b/i.test(normalized));
 }
 
 function escapeQuery(value: string) {
@@ -616,13 +600,13 @@ export async function analyzePortfolioAdvanced(selectedApplicantNames: string[])
   }
   const selectedKey = JSON.stringify(names.slice().sort());
   const snapshot = await firmSnapshot();
-  return cached(`portfolio-advanced-full-range-v2:${snapshot.updatedAt ?? "none"}:${selectedKey}`, async () => {
+  return cached(`portfolio-advanced-full-range-counsel-v3:${snapshot.updatedAt ?? "none"}:${selectedKey}`, async () => {
     const applicantQuery = applicantScopeQuery(names);
     const query = `(${applicantQuery}) AND applicationMetaData.applicationTypeCategory:REGULAR`;
     const aggregate = await requestAggregate(query, { facets: [STATUS_FACET, "applicationMetaData.groupArtUnitNumber"] });
     const sample = await requestSearch(
         query,
-        "applicationNumberText,applicationMetaData,attorneyBag,correspondenceAddressBag,eventDataBag",
+        `applicationNumberText,applicationMetaData,${COUNSEL_SEARCH_FIELDS},eventDataBag`,
         { total: aggregate.count },
     );
     const sampleByApplication = new Map<string, JsonRecord>();
@@ -633,68 +617,7 @@ export async function analyzePortfolioAdvanced(selectedApplicantNames: string[])
     const records = [...sampleByApplication.values()];
     const normalizedRecords = records.map(metricApplication);
     const sharedMetrics = calculatePortfolioMetrics(normalizedRecords);
-    const firmApplications = new Map<string, { name: string; applications: Set<string> }>();
-    const attorneyApplications = new Map<string, { name: string; applications: Set<string> }>();
-    const counselApplications = new Set<string>();
-    for (const record of records) {
-      const appNumber = text(record.applicationNumberText);
-      if (!appNumber) continue;
-      const meta = metadata(record);
-      const applicants = new Set([
-        text(meta.firstApplicantName),
-        ...recordsFrom(meta.applicantBag).map((item) => text(item.applicantNameText) ?? text(item.organizationName)),
-      ].filter((name): name is string => Boolean(name)).map(normalizedCounselName));
-      const attorneys = [...recordsFrom(record.attorneyBag), ...recordsFrom(meta.attorneyBag)];
-      const firmAddresses = [...recordsFrom(record.correspondenceAddressBag), ...recordsFrom(meta.correspondenceAddressBag)];
-      if (attorneys.length) counselApplications.add(appNumber);
-      for (const attorney of attorneys) {
-        const name = [
-          text(attorney.firstName),
-          text(attorney.middleName),
-          text(attorney.lastName),
-          text(attorney.nameSuffix),
-        ].filter(Boolean).join(" ");
-        if (name) {
-          const key = normalizedCounselName(name);
-          if (key) {
-            const entry = attorneyApplications.get(key) ?? { name, applications: new Set<string>() };
-            entry.applications.add(appNumber);
-            attorneyApplications.set(key, entry);
-          }
-        }
-        firmAddresses.push(...recordsFrom(attorney.attorneyAddressBag));
-      }
-      for (const address of firmAddresses) {
-        const lines = [text(address.nameLineOneText), text(address.nameLineTwoText)]
-          .filter((line): line is string => Boolean(line));
-        for (const rawFirmName of lines) {
-          const firmName = rawFirmName.replace(/^c\/o\s+/i, "").trim();
-          const key = normalizedCounselName(firmName);
-          if (!key || !isStructuredLawFirmName(firmName) || applicants.has(key)) continue;
-          const entry = firmApplications.get(key) ?? { name: firmName, applications: new Set<string>() };
-          entry.applications.add(appNumber);
-          firmApplications.set(key, entry);
-          counselApplications.add(appNumber);
-        }
-      }
-    }
-    const useLawFirms = firmApplications.size > 0;
-    const counselCounts = useLawFirms ? firmApplications : attorneyApplications;
-    const counselEntries = [...counselCounts.values()]
-      .map((entry) => ({
-        name: entry.name,
-        applicationCount: entry.applications.size,
-        portfolioSharePercent: records.length ? round((entry.applications.size / records.length) * 100, 1) : 0,
-      }))
-      .sort((left, right) => right.applicationCount - left.applicationCount || left.name.localeCompare(right.name))
-      .slice(0, 5);
-    const outsideCounselAvailable = counselEntries.length > 0;
-    const outsideCounselLabel = useLawFirms
-      ? "Top Outside Patent Counsel"
-      : outsideCounselAvailable ? "Top Attorneys of Record" : "Outside Counsel Unavailable";
-    const outsideCounselNote = outsideCounselAvailable
-      ? `Based on structured USPTO attorney-address and correspondence-name records that explicitly identify a law firm, or on named practitioners of record when no firm is available. Counts are distinct applications among ${records.length.toLocaleString()} analyzed records (n=${counselApplications.size.toLocaleString()} with identified counsel); a listed record does not establish who performed all prosecution work or a current engagement.`
-      : "No identifiable law firm or named practitioner was available in the structured USPTO records returned for this application sample.";
+    const outsideCounsel = analyzePortfolioCounsel(records, names);
     const recordsWithHistory = records.filter((record) => metricApplication(record).hasHistory);
     const historyStartDates = normalizedRecords
       .map(record => record.filingDate)
@@ -792,13 +715,7 @@ export async function analyzePortfolioAdvanced(selectedApplicantNames: string[])
         filingDateEnd: eventDateRange?.end ?? null,
       },
       topArtUnits,
-      outsideCounsel: {
-        available: outsideCounselAvailable,
-        label: outsideCounselLabel,
-        note: outsideCounselNote,
-        sampleSize: records.length,
-        entries: counselEntries,
-      },
+      outsideCounsel,
       portfolioInsights: {
         overallAllowanceRate: sharedMetrics.allowanceRate.value === null ? null : round(sharedMetrics.allowanceRate.value),
         knownFinalOutcomes: sharedMetrics.allowanceRate.denominator,

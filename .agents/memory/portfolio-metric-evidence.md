@@ -26,3 +26,9 @@ Company searches should seek all associated legal, former and DBA/trading names,
 **Why:** The user expects inclusive company-name coverage; silently omitting rare names understates a portfolio, while combining similarly named but unrelated entities can be equally misleading. Public name sources are incomplete.
 
 **How to apply:** Show discovered names, sources and gaps; allow known additional names and explicit applicant-scope confirmation. Carry the same accepted scope through base statistics, advanced statistics, comparisons and exports, deduplicating applications instead of summing overlapping alias counts.
+
+Attorney-directory associations do not establish which firm served a particular application. Treat actual application correspondence as the association evidence; directory organization names can corroborate identity, not attribute every listed firm to the case.
+
+**Why:** Live USPTO records can list in-house practitioners and practitioners at many different firms together. Current employment/contact details do not prove historical prosecution work. Conversely, a firm brand without a legal suffix is not evidence that no correspondence contact exists.
+
+**How to apply:** Exclude identifiable applicant/in-house contacts, count distinct applications, and distinguish identified firms from unverified correspondence contacts. Preserve meaningful structured contacts under an accurate label instead of declaring all counsel data unavailable.
