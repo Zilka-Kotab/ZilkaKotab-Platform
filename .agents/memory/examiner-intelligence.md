@@ -23,6 +23,12 @@ Use **Years of Observed Examination Activity**, never years employed. Withhold n
 
 **How to apply:** Cite dated examiner-attributed documents. Treat name variants as discovery candidates, not automatic identity merges; check duplicate names and reassignment. Distinguish observed assistant/primary records from a verified promotion date and sampled named-role counts from distinct applications actually examined over a career. Preserve missing-history states.
 
+A corroborated historical activity span may be shown as a conservative **lower bound**, without requiring an exhaustive career history. Base it on the interval between verified older and newer dated examiner-role documents, not the interval from an application filing date to today. Clearly distinguish confidence in those attributed dates from confidence in complete career coverage.
+
+**Why:** Requiring complete career-wide evidence for every numeric display made the requested Years of Activity metric permanently unavailable, even when substantially older examiner-named grants were verifiable. The user repeatedly requested an evidence-backed rough year count, not an employment-tenure estimate.
+
+**How to apply:** Search independently for older grant candidates beyond the newest current-docket sample and verify the actual named role in grant XML. Omitted middle initials need canonical same-application corroboration and a name-family conflict check; do not simply drop initials or merge fuzzy names. Display the verified span conservatively (for example, `18+ years`) and cite the oldest dated document. Keep years unavailable if attribution fails or only a short recent sample is supported; do not infer career totals or a promotion date.
+
 PatEx's examiner field describes assignment at the snapshot date for pending cases or at disposal for disposed cases. It cannot be joined to every earlier transaction as proof of that examiner's authorship.
 
 **Why:** The official PatEx technical documentation explicitly describes snapshot/disposal assignment and notes that modern releases no longer provide numeric examiner IDs.

@@ -2,7 +2,7 @@ import { db, pool, firmBenchmarkApplicationsTable, firmBenchmarkRefreshTable } f
 import { eq } from "drizzle-orm";
 import { logger } from "./logger";
 import { FIRM_CUSTOMER_NUMBERS } from "./firm-benchmark-math";
-import { metricApplication, type MetricApplication } from "./portfolio-metrics";
+import { metricApplication, PORTFOLIO_METRIC_VERSION, type MetricApplication } from "./portfolio-metrics";
 
 const WEEK = 7 * 86400000;
 let cached: { expires: number; records: MetricApplication[]; updatedAt: string | null } | null = null;
@@ -11,7 +11,9 @@ export async function firmSnapshot() {
   const snapshot = await db.transaction(async tx => {
     const [status] = await tx.select().from(firmBenchmarkRefreshTable).where(eq(firmBenchmarkRefreshTable.id, 1));
     const rows = status?.completedAt ? await tx.select().from(firmBenchmarkApplicationsTable) : [];
-    return { records: rows.map(r => r.record as MetricApplication), updatedAt: status?.completedAt?.toISOString() ?? null };
+    const records = rows.map(r => r.record as MetricApplication);
+    const compatible = records.every(r => r.metricVersion === PORTFOLIO_METRIC_VERSION);
+    return { records: compatible ? records : [], updatedAt: compatible ? status?.completedAt?.toISOString() ?? null : null };
   }, { isolationLevel: "repeatable read", accessMode: "read only" });
   cached = { expires: Date.now() + 60000, ...snapshot };
   return cached;
@@ -93,8 +95,9 @@ export function scheduleFirmRefresh() {
   const check = async () => {
     try {
       const s = await firmRefreshStatus();
-      if (s.completedAt && Date.now() - +new Date(s.completedAt) < WEEK) return;
-      if (s.startedAt && Date.now() - +new Date(s.startedAt) < 3600000) return;
+      const snapshot = await firmSnapshot();
+      if (s.completedAt && snapshot.updatedAt && Date.now() - +new Date(s.completedAt) < WEEK) return;
+      if (s.state !== "ready" && s.startedAt && Date.now() - +new Date(s.startedAt) < 3600000) return;
       await startFirmRefresh();
     } catch (err) { logger.error({ err }, "Could not schedule firm benchmark refresh"); }
   };

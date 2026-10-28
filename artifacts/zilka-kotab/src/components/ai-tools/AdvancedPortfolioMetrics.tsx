@@ -34,6 +34,7 @@ export function AdvancedPortfolioMetrics({ applicantNames, request }: {
           Based on {fmtNum(e.applicationsWithHistories)} applications with prosecution histories
           {coverage.truncated ? ` in a ${fmtNum(coverage.recordsAnalyzed)}-record sample` : ''}.
           {e.filingDateStart && e.filingDateEnd ? ` Filing dates: ${e.filingDateStart} to ${e.filingDateEnd}.` : ''}
+          {coverage.truncated ? ' Systematic sampling spans the full search result range, not only the newest filings.' : ''}
         </p>
       </header>
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">

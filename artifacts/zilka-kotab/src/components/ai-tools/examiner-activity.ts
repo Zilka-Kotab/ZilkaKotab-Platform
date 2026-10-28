@@ -1,9 +1,9 @@
 import type { PublicExaminerAnalysis } from '@workspace/api-client-react';
 
-/** Never promote sparse grant evidence into a career-wide experience estimate. */
+/** Historical dated roles support a lower-bound activity span, never employment. */
 export function examinerActivitySpan(data: Pick<PublicExaminerAnalysis, 'roleEvidence' | 'coverage'>): string | null {
   const history = data.roleEvidence?.history;
-  if (history?.coverageStatus !== 'historical' || history.confidence !== 'high'
+  if (history?.coverageStatus !== 'historical' || !['medium', 'high'].includes(history.confidence)
     || history.yearsObserved == null || !Number.isFinite(history.yearsObserved) || history.yearsObserved < 0) return null;
   const date = data.roleEvidence?.earliestActivity?.issueDate;
   if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return null;
@@ -23,5 +23,15 @@ export function examinerActivitySpan(data: Pick<PublicExaminerAnalysis, 'roleEvi
   next.setUTCFullYear(start.getUTCFullYear() + years + 1);
   const elapsed = Math.floor((years + (end.getTime() - anniversary.getTime()) / (next.getTime() - anniversary.getTime())) * 10) / 10;
   const supported = Math.min(elapsed, Math.floor(history.yearsObserved * 10) / 10);
+  if (history.confidence === 'medium') {
+    const evidence = history.evidence ?? [];
+    const dates = evidence.map(item => item.issueDate).sort();
+    if (new Set(evidence.map(item => item.applicationNumber)).size < 2 || dates[0] !== date) return null;
+    const last = new Date(`${dates.at(-1)}T00:00:00Z`);
+    if (!Number.isFinite(last.getTime()) || last > end || last.toISOString().slice(0, 10) !== dates.at(-1)) return null;
+    const verifiedSpan = (last.getTime() - start.getTime()) / (365.2425 * 86400000);
+    const lowerBound = Math.floor(Math.min(supported, verifiedSpan));
+    return lowerBound >= 1 ? `${lowerBound}+ years` : null;
+  }
   return supported < 1 ? 'Less than 1 year' : `${supported.toFixed(1)} years`;
 }

@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { motion } from 'framer-motion';
-import { ArrowRight, ExternalLink, GitCompareArrows, Search, X } from 'lucide-react';
+import { ArrowRight, GitCompareArrows, Search, X } from 'lucide-react';
 import { useAnalyzePublicPortfolio, useAnalyzePublicPortfolioAdvanced } from '@workspace/api-client-react';
 import type { PublicPortfolioAnalysis } from '@workspace/api-client-react';
 import { AdvancedPortfolioMetrics } from './AdvancedPortfolioMetrics';
 import { PortfolioSnapshotPdfButton } from './PortfolioSnapshotPdfButton';
 import { SnapshotPdfChooser } from './SnapshotPdfChooser';
+import { RecentPortfolioRecords } from './RecentPortfolioRecords';
 import { CompareCompanyDialog } from './CompareCompanyDialog';
 import { PortfolioComparison } from './PortfolioComparison';
 import { advancedFor } from './portfolio-compare-utils';
@@ -87,7 +88,6 @@ function ApplicantDialog({ candidates, selected, onChange, onCancel, onContinue 
 }
 
 function PortfolioResult({ data }: { data: PublicPortfolioAnalysis }) {
-  const [showMoreGrants, setShowMoreGrants] = useState(false);
   const [selectedTechnology, setSelectedTechnology] = useState<PublicPortfolioAnalysis['topTechnologyAreas'][number] | null>(null);
   const advanced = useAnalyzePublicPortfolioAdvanced();
   const namesKey = data.matchedApplicantNames.slice().sort().join('|');
@@ -193,62 +193,7 @@ function PortfolioResult({ data }: { data: PublicPortfolioAnalysis }) {
 
       <AdvancedPortfolioMetrics applicantNames={data.matchedApplicantNames} request={advanced} />
 
-      <section>
-        <h4 className="zk-h4">Recent applications</h4>
-        {data.recentApplications.length === 0 ? <p className="mt-3 text-sm text-muted-foreground">No recent applications in the analyzed records.</p> : (
-          <div className="mt-3 overflow-x-auto border rounded-sm">
-            <table className="w-full min-w-[640px] text-sm">
-              <thead className="bg-muted/60 text-left text-[11px] uppercase tracking-[0.12em] text-muted-foreground">
-                <tr><th className="px-4 py-2.5 font-medium">Application</th><th className="px-4 py-2.5 font-medium">Title</th><th className="px-4 py-2.5 font-medium">Filed</th><th className="px-4 py-2.5 font-medium">USPTO status</th></tr>
-              </thead>
-              <tbody>
-                {data.recentApplications.map((a) => (
-                  <tr key={a.applicationNumber} className="border-t transition-colors hover:bg-[hsl(var(--zk-brass)/0.06)]" data-testid={`row-application-${a.applicationNumber}`}>
-                    <td className="px-4 py-3 font-mono text-xs whitespace-nowrap">
-                      <a href={a.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-primary hover:underline" data-testid={`link-application-${a.applicationNumber}`}>{a.applicationNumber}<ExternalLink className="h-3 w-3" /></a>
-                      {a.publicationNumber && <div className="mt-0.5 text-muted-foreground">{a.publicationNumber}</div>}
-                    </td>
-                    <td className="px-4 py-3">{a.title}</td>
-                    <td className="px-4 py-3 whitespace-nowrap tabular-nums">{fmtDate(a.filingDate)}</td>
-                    <td className="px-4 py-3 text-muted-foreground">{a.status}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
-
-      <section>
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <h4 className="zk-h4">Recent Patent Grants</h4>
-            <p className="mt-1 text-xs text-muted-foreground">Most recent grants in the last 12 months. Links open the corresponding USPTO application record.</p>
-          </div>
-          {data.recentGrants.length > 5 && (
-            <button type="button" className="text-sm text-primary underline underline-offset-4" onClick={() => setShowMoreGrants((value) => !value)}>
-              {showMoreGrants ? 'Show fewer' : 'View more'}
-            </button>
-          )}
-        </div>
-        {data.recentGrants.length === 0 ? <p className="mt-3 text-sm text-muted-foreground">No recent grants found in this period.</p> : (
-          <div className="mt-3 overflow-x-auto rounded-sm border">
-            <table className="w-full min-w-[620px] text-sm">
-              <thead className="bg-muted/60 text-left text-[11px] uppercase tracking-[0.12em] text-muted-foreground">
-                <tr><th className="px-4 py-2.5 font-medium">Patent number</th><th className="px-4 py-2.5 font-medium">Title</th><th className="px-4 py-2.5 font-medium">Grant date</th><th className="px-4 py-2.5 font-medium">Technology category</th></tr>
-              </thead>
-              <tbody>{data.recentGrants.slice(0, showMoreGrants ? 20 : 5).map((grant) => (
-                <tr key={grant.patentNumber} className="border-t">
-                  <td className="px-4 py-3 font-mono text-xs"><a href={grant.url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{grant.patentNumber}<ExternalLink className="ml-1 inline h-3 w-3" /></a></td>
-                  <td className="px-4 py-3">{grant.title}</td>
-                  <td className="px-4 py-3 whitespace-nowrap tabular-nums">{fmtDate(grant.grantDate)}</td>
-                  <td className="px-4 py-3">{grant.technologyArea}</td>
-                </tr>
-              ))}</tbody>
-            </table>
-          </div>
-        )}
-      </section>
+      <RecentPortfolioRecords applications={data.recentApplications} grants={data.recentGrants} />
 
       {selectedTechnology && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setSelectedTechnology(null); }}>

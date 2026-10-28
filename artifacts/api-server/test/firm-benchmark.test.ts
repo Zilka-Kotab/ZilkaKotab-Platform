@@ -5,6 +5,7 @@ import { computeFirmBenchmark } from "../src/lib/firm-benchmark-math";
 const date = "2026-10-28T12:00:00Z";
 function apps(prefix: string, n: number, changes: Partial<MetricApplication> = {}): MetricApplication[] {
   return Array.from({ length: n }, (_, i) => ({
+    metricVersion: 2,
     applicationNumber: `${prefix}-${i}`, filingDate: "2020-01-01", grantDate: "2023-01-01", category: "REGULAR",
     artUnit: "1723", technologyCenter: "17", status: "Patented Case", applicant: prefix, customerNumbers: [],
     hasHistory: true, officeActions: 3, rce: true, interview: false,
@@ -67,4 +68,16 @@ test("same filing window, category restriction, missing dates and missing datase
   assert.equal(computeFirmBenchmark(company, apps("Firm", 20), null, ["Company"]).lines.length, 0);
   company[0].filingDate = null;
   assert.equal(benchmark(company, apps("Firm", 20)).lines.length, 0);
+});
+test("empty and missing event histories are excluded rather than counted as zero actions", () => {
+  const raw = { applicationMetaData: { patentNumber: "9", applicationStatusDescriptionText: "Patented Case" } };
+  const empty = metricApplication({ ...raw, eventDataBag: [] });
+  const missing = metricApplication(raw);
+  assert.equal(empty.hasHistory, false); assert.equal(missing.hasHistory, false);
+  assert.equal(metricApplication({ ...raw, eventDataBag: [null, {}] }).hasHistory, false);
+  const metrics = calculatePortfolioMetrics(Array.from({ length: 10 }, () => empty));
+  assert.equal(metrics.officeActionsPerPatent.value, null); assert.equal(metrics.officeActionsPerPatent.denominator, 0);
+  assert.equal(metrics.allowedWithTwoActionsRate.value, null);
+  const firstActionAllowance = metricApplication({ ...raw, eventDataBag: [{ eventCode: "NOA", eventDescriptionText: "Notice of Allowance" }] });
+  assert.equal(calculatePortfolioMetrics(Array.from({ length: 10 }, () => firstActionAllowance)).officeActionsPerPatent.value, 0);
 });

@@ -171,7 +171,7 @@ export async function createPortfolioSnapshotBlob(
   const filingRange = efficiency?.filingDateStart && efficiency.filingDateEnd
     ? ` History filing range: ${efficiency.filingDateStart} to ${efficiency.filingDateEnd}.` : '';
   wrapped(
-    `Scope: ${portfolio.matchedApplicantNames.join('; ') || portfolio.companyName}. Snapshot sample: ${number(portfolio.coverage.recordsAnalyzed)} / ${number(portfolio.coverage.totalMatchesReported)} matching records.${advanced ? ` Advanced sample: ${number(advanced.coverage.recordsAnalyzed)}${advanced.coverage.truncated ? ' (capped)' : ''}.` : ''}${filingRange}${fb && fb.excludedApplications > 0 ? ' Firm count: correspondence numbers in analyzed sample, not proof of all work.' : ''} Granted does not confirm in-force status. Filing trends undercount unpublished applications; CPC counts are classification occurrences, not unique patents. Informational only, not a legal opinion.`,
+    `Scope: ${portfolio.matchedApplicantNames.join('; ') || portfolio.companyName}. Snapshot sample: ${number(portfolio.coverage.recordsAnalyzed)} / ${number(portfolio.coverage.totalMatchesReported)} matching records.${advanced ? ` Advanced sample: ${number(advanced.coverage.recordsAnalyzed)}${advanced.coverage.truncated ? ' (systematic full-range sample)' : ''}.` : ''}${filingRange}${fb && fb.excludedApplications > 0 ? ' Firm count: correspondence numbers in analyzed sample, not proof of all work.' : ''} Granted does not confirm in-force status. Filing trends undercount unpublished applications; CPC counts are classification occurrences, not unique patents. Informational only, not a legal opinion.`,
     36, (notesTop + artworkY) / 2, 540, 6.3, GRAY, 4, true,
   );
 

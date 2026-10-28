@@ -2,6 +2,7 @@ import { findExaminerRole } from "./examiner-role-evidence";
 import { metricApplication, calculatePortfolioMetrics } from "./portfolio-metrics";
 import { computeFirmBenchmark } from "./firm-benchmark-math";
 import { firmSnapshot } from "./firm-benchmark-store";
+import { portfolioSamplePages } from "./portfolio-sampling";
 
 const USPTO_API_BASE = "https://api.uspto.gov";
 const SEARCH_PATH = "/api/v1/patent/applications/search";
@@ -176,14 +177,16 @@ function median(values: number[]) {
   return round(sorted.length % 2 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2);
 }
 
-async function requestSearch(query: string, fields: string): Promise<SearchResult> {
+async function requestSearch(query: string, fields: string, sampling?: { total: number }): Promise<SearchResult> {
   const records: JsonRecord[] = [];
   let count = 0;
 
-  for (let offset = 0; offset < RESULT_LIMIT; offset += PAGE_SIZE) {
+  const pages = sampling ? portfolioSamplePages(sampling.total, RESULT_LIMIT, PAGE_SIZE)
+    : Array.from({ length: RESULT_LIMIT / PAGE_SIZE }, (_, i) => ({ offset: i * PAGE_SIZE, limit: PAGE_SIZE }));
+  for (const { offset, limit } of pages) {
     const url = new URL(`${USPTO_API_BASE}${SEARCH_PATH}`);
     url.searchParams.set("q", query);
-    url.searchParams.set("limit", String(PAGE_SIZE));
+    url.searchParams.set("limit", String(limit));
     url.searchParams.set("offset", String(offset));
     url.searchParams.set("fields", fields);
     const response = await requestUspto(url);
@@ -194,7 +197,10 @@ async function requestSearch(query: string, fields: string): Promise<SearchResul
     } catch {
       body = {};
     }
-    if (response.status === 404) return { count: 0, records: [], truncated: false };
+    if (response.status === 404) {
+      if (sampling?.total) throw new PublicPatentToolError("USPTO results changed while retrieving the prosecution sample. Please run the search again.");
+      return { count: 0, records: [], truncated: false };
+    }
     if (!response.ok) {
       const detail = text(body.detailedMessage) ?? text(body.message);
       const status = response.status === 429 ? 502 : response.status >= 400 && response.status < 500 ? 400 : 502;
@@ -202,13 +208,21 @@ async function requestSearch(query: string, fields: string): Promise<SearchResul
     }
 
     count = numberValue(body.count);
+    if (sampling && count !== sampling.total) throw new PublicPatentToolError("USPTO result counts changed during sampling. Please run the search again.");
     const page = Array.isArray(body.patentFileWrapperDataBag)
       ? body.patentFileWrapperDataBag.filter((item): item is JsonRecord => Boolean(asRecord(item)))
       : [];
+    if (sampling && page.length !== limit) throw new PublicPatentToolError("USPTO returned an incomplete prosecution sample. Please run the search again.");
     records.push(...page);
-    if (page.length < PAGE_SIZE || records.length >= count) break;
+    if (page.length < limit || records.length >= count) break;
   }
-
+  if (sampling) {
+    count = sampling.total;
+    const uniqueApplications = new Set(records.map(r => text(r.applicationNumberText)));
+    if (uniqueApplications.has(null) || uniqueApplications.size !== records.length) {
+      throw new PublicPatentToolError("USPTO pagination repeated or omitted application identifiers. Please run the search again.");
+    }
+  }
   return { count, records, truncated: count > records.length };
 }
 
@@ -571,18 +585,17 @@ export async function analyzePortfolioAdvanced(selectedApplicantNames: string[])
   }
   const selectedKey = names.slice().sort().join("|");
   const snapshot = await firmSnapshot();
-  return cached(`portfolio-advanced-firm-v1:${snapshot.updatedAt ?? "none"}:${selectedKey}`, async () => {
+  return cached(`portfolio-advanced-full-range-v2:${snapshot.updatedAt ?? "none"}:${selectedKey}`, async () => {
     const applicantQuery = names
       .map((name) => `applicationMetaData.firstApplicantName:"${escapeQuery(name)}"`)
       .join(" OR ");
     const query = `(${applicantQuery}) AND applicationMetaData.applicationTypeCategory:REGULAR`;
-    const [aggregate, sample] = await Promise.all([
-      requestAggregate(query, { facets: [STATUS_FACET, "applicationMetaData.groupArtUnitNumber"] }),
-      requestSearch(
+    const aggregate = await requestAggregate(query, { facets: [STATUS_FACET, "applicationMetaData.groupArtUnitNumber"] });
+    const sample = await requestSearch(
         query,
         "applicationNumberText,applicationMetaData,attorneyBag,correspondenceAddressBag,eventDataBag",
-      ),
-    ]);
+        { total: aggregate.count },
+    );
     const sampleByApplication = new Map<string, JsonRecord>();
     for (const record of sample.records) {
       const applicationNumber = text(record.applicationNumberText);
@@ -653,7 +666,7 @@ export async function analyzePortfolioAdvanced(selectedApplicantNames: string[])
     const outsideCounselNote = outsideCounselAvailable
       ? `Based on structured USPTO attorney-address and correspondence-name records that explicitly identify a law firm, or on named practitioners of record when no firm is available. Counts are distinct applications among ${records.length.toLocaleString()} analyzed records (n=${counselApplications.size.toLocaleString()} with identified counsel); a listed record does not establish who performed all prosecution work or a current engagement.`
       : "No identifiable law firm or named practitioner was available in the structured USPTO records returned for this application sample.";
-    const recordsWithHistory = records.filter((record) => Array.isArray(record.eventDataBag));
+    const recordsWithHistory = records.filter((record) => metricApplication(record).hasHistory);
     const historyStartDates = normalizedRecords
       .map(record => record.filingDate)
       .filter((date): date is string => Boolean(date))
@@ -662,24 +675,7 @@ export async function analyzePortfolioAdvanced(selectedApplicantNames: string[])
       ? { start: historyStartDates[0], end: historyStartDates.at(-1)! }
       : null;
 
-    const uniqueSubstantiveActions = (record: JsonRecord) => metricApplication(record).officeActions;
-    const grantedWithHistory = recordsWithHistory.filter((record) => isGranted(metadata(record)));
-    const officeActionCounts = grantedWithHistory.map(uniqueSubstantiveActions);
     const averageOfficeActions = sharedMetrics.officeActionsPerPatent.value === null ? null : round(sharedMetrics.officeActionsPerPatent.value, 2);
-    const rceApplications = recordsWithHistory.filter((record) =>
-      events(record).some((event) => text(event.eventCode) === "RCEX"),
-    ).length;
-    const interviewApplications = recordsWithHistory.filter((record) =>
-      events(record).some((event) => ["EXIN", "EXAT", "EXET"].includes(text(event.eventCode) ?? "")),
-    ).length;
-    const allowedWithHistory = recordsWithHistory.filter(isAllowed);
-    const allowedWithTwoOrFewer = allowedWithHistory.filter((record) => uniqueSubstantiveActions(record) <= 2);
-    const rate = (numerator: number, denominator: number) => denominator >= 10 ? round((numerator / denominator) * 100) : null;
-    const grantDurations = grantedWithHistory.flatMap((record) => {
-      const meta = metadata(record);
-      const duration = monthsBetween(text(meta.filingDate) ?? "", text(meta.grantDate) ?? "");
-      return duration === null ? [] : [duration];
-    });
 
     const terminalMarkers = [
       "abandon", "expired", "patented case", "terminated", "withdrawn", "cancel",
@@ -743,7 +739,6 @@ export async function analyzePortfolioAdvanced(selectedApplicantNames: string[])
         applicationCount: facet.count,
         portfolioSharePercent: aggregate.count ? round((facet.count / aggregate.count) * 100) : 0,
       }));
-    const outcomes = dispositionCounts(aggregate.facets);
     const samplePendingAges = pendingAgeBuckets.map((bucket) => ({
       ...bucket,
       sharePercent: pendingWithDates.length ? round((bucket.count / pendingWithDates.length) * 100) : 0,
@@ -793,7 +788,7 @@ export async function analyzePortfolioAdvanced(selectedApplicantNames: string[])
         recordsAnalyzed: records.length,
         resultLimit: RESULT_LIMIT,
         truncated: sample.truncated,
-        note: `Advanced prosecution metrics use ${recordsWithHistory.length} of ${records.length} distinct application records with event-history data${sample.truncated ? ` from a capped ${RESULT_LIMIT.toLocaleString()}-record sample of ${sample.count.toLocaleString()}` : ""}. Filing date range: ${eventDateRange ? `${eventDateRange.start} to ${eventDateRange.end}` : "unavailable"}.`,
+        note: `Advanced prosecution metrics use ${recordsWithHistory.length} of ${records.length} distinct application records with non-empty event histories${sample.truncated ? ` from a capped ${RESULT_LIMIT.toLocaleString()}-record systematic block sample spread across all ${sample.count.toLocaleString()} returned results, not just the newest filings. This is not a random sample` : "; all matching records were retrieved"}. Empty or missing histories are excluded from event-based denominators. Filing date range: ${eventDateRange ? `${eventDateRange.start} to ${eventDateRange.end}` : "unavailable"}.`,
       },
     };
   });
@@ -844,7 +839,7 @@ async function analyzeExaminerProfile(queryInput: string, selectedExaminerName?:
     throw new PublicPatentToolError("Enter an examiner's full name or a four-digit art unit.", 400);
   }
 
-  return cached(`examiner-history-v3:${parsed.searchType}:${parsed.value}:${selectedExaminerName ?? ""}`, async () => {
+  return cached(`examiner-history-v4:${parsed.searchType}:${parsed.value}:${selectedExaminerName ?? ""}`, async () => {
     const search = await requestSearch(
       parsed.query,
       "applicationNumberText,applicationMetaData,eventDataBag",
@@ -904,8 +899,8 @@ async function analyzeExaminerProfile(queryInput: string, selectedExaminerName?:
       ? await findExaminerRole(primaryExaminer, search.records.flatMap((record) => {
         const applicationNumber = text(record.applicationNumberText);
         const grantDate = text(metadata(record).grantDate);
-        return applicationNumber && grantDate ? [{ applicationNumber, grantDate }] : [];
-      }), requestUspto)
+        return applicationNumber && grantDate ? [{ applicationNumber, grantDate, examinerName: text(metadata(record).examinerNameText) ?? undefined }] : [];
+      }), requestUspto, { discoverHistorical: true })
       : undefined;
     const benchmarkArtUnit = parsed.searchType === "art-unit" ? parsed.value : primaryArtUnit;
     const technologyCenter = benchmarkArtUnit && /^\d{4}$/.test(benchmarkArtUnit) ? `${benchmarkArtUnit.slice(0, 2)}00` : null;

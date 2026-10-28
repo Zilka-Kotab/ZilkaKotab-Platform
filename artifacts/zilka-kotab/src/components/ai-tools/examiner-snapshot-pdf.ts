@@ -109,7 +109,7 @@ export async function createExaminerSnapshotBlob(
     write('EXAMINATION ACTIVITY', 322, 180, 6, GRAY, true);
     write(examinerActivitySpan(data) ?? 'History incomplete', 322, 195, 10, NAVY, true);
     if (activity) {
-      write(`Sample grant: ${activity.issueDate}`, 322, 207, 6.2, GRAY);
+      write(`Observed since: ${activity.issueDate}`, 322, 207, 6.2, GRAY);
       write(activity.patentNumber, 322, 217, 6.2, GRAY);
       write(`Career confidence: ${evidence?.history?.confidence ?? 'low'}`, 322, 227, 5.8, GRAY);
       pdf.link(322, 210, 106, 10, { url: activity.sourceUrl });

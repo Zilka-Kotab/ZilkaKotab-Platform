@@ -32,3 +32,19 @@ test('the limited six-grant sample cannot be presented as examiner experience', 
   delete limited.roleEvidence!.history;
   assert.equal(examinerActivitySpan(limited), null, 'legacy cached sample evidence is also withheld');
 });
+
+test('corroborated historical dates display an evidence-backed lower bound, not a hire-date estimate', () => {
+  const historical = sample('2008-05-20');
+  const history = historical.roleEvidence!.history!;
+  history.confidence = 'medium';
+  history.yearsObserved = 18.4;
+  history.evidence = [
+    { applicationNumber: '1', patentNumber: 'US1', issueDate: '2008-05-20', role: 'assistant', sourceUrl: 'https://uspto.gov/1' },
+    { applicationNumber: '2', patentNumber: 'US2', issueDate: '2026-10-20', role: 'primary', sourceUrl: 'https://uspto.gov/2' },
+  ];
+  assert.equal(examinerActivitySpan(historical), '18+ years');
+  history.yearsObserved = 100;
+  assert.equal(examinerActivitySpan(historical), '18+ years', 'years cannot exceed the verified dated span');
+  history.evidence = history.evidence.slice(0, 1);
+  assert.equal(examinerActivitySpan(historical), null);
+});

@@ -1,4 +1,6 @@
+export const PORTFOLIO_METRIC_VERSION = 2;
 export type MetricApplication = {
+  metricVersion: number;
   applicationNumber: string; filingDate: string | null; grantDate: string | null;
   artUnit: string | null; technologyCenter: string | null; status: string; applicant: string; category: string;
   customerNumbers: number[]; hasHistory: boolean; officeActions: number; rce: boolean; interview: boolean;
@@ -17,7 +19,7 @@ export const validDate = (v: unknown): string | null => {
 export function metricApplication(record: Raw): MetricApplication {
   const m = obj(record.applicationMetaData);
   const status = str(m.applicationStatusDescriptionText);
-  const events = arr(record.eventDataBag);
+  const events = arr(record.eventDataBag).filter(e => str(e.eventCode));
   const eventCounts = { CTNF: 0, CTFR: 0, RCEX: 0, EXIN: 0, EXAT: 0, EXET: 0 };
   for (const event of events) {
     const code = str(event.eventCode);
@@ -34,9 +36,10 @@ export function metricApplication(record: Raw): MetricApplication {
       return Number.isSafeInteger(n) && n > 0 ? [n] : [];
     }))];
   return {
+    metricVersion: PORTFOLIO_METRIC_VERSION,
     applicationNumber: str(record.applicationNumberText), filingDate: validDate(m.filingDate), grantDate: validDate(m.grantDate),
     artUnit, technologyCenter: artUnit && /^\d{4}$/.test(artUnit) ? artUnit.slice(0, 2) : null,
-    status, applicant: str(m.firstApplicantName), category: str(m.applicationTypeCategory), customerNumbers, hasHistory: Array.isArray(record.eventDataBag),
+    status, applicant: str(m.firstApplicantName), category: str(m.applicationTypeCategory), customerNumbers, hasHistory: events.length > 0,
     officeActions: new Set(events.filter(e => ["CTNF", "CTFR"].includes(str(e.eventCode)))
       .map(e => `${str(e.eventCode)}|${str(e.eventDate)}|${str(e.eventDescriptionText)}`)).size,
     rce: eventCounts.RCEX > 0, interview: eventCounts.EXIN + eventCounts.EXAT + eventCounts.EXET > 0,

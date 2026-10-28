@@ -57,7 +57,7 @@ test('portfolio and examiner handouts use the same one-page native vector footer
         overallAllowanceRate: 75, knownFinalOutcomes: 150, averageTimeToGrantMonths: 37,
         grantDurationSampleSize: 100, averagePendingAgeYears: 2.5, pendingAgeSampleSize: 50,
       },
-      coverage: { recordsAnalyzed: 200, truncated: false },
+      coverage: { recordsAnalyzed: 200, truncated: true },
       firmBenchmark: {
         lines: [
           { metric: 'officeActionsPerPatent', value: 1.4, unit: 'count', denominator: 212, companyDenominator: 100, coverage: 0.8 },

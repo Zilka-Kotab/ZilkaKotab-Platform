@@ -160,7 +160,7 @@ function ExaminerResult({ data }: { data: PublicExaminerAnalysis }) {
           <Metric label="Abandoned" value={data.abandonedApplications} testId="metric-abandoned" />
           <Metric label="Avg. prosecution, months" value={data.averageProsecutionDurationMonths === null ? null : data.averageProsecutionDurationMonths.toFixed(1)} testId="metric-duration" />
           {data.searchType === 'examiner' && <Metric label="Years of Activity"
-            value={examinerActivitySpan(data) ? `≈ ${examinerActivitySpan(data)}` : null}
+            value={examinerActivitySpan(data)}
             testId="metric-examiner-years" className="md:col-start-3 md:row-start-2" />}
         </div>
       </div>
@@ -250,14 +250,14 @@ function ExaminerResult({ data }: { data: PublicExaminerAnalysis }) {
       <CoverageLedger coverage={data.coverage} testId="coverage-examiner"
         extra={<>
           {data.searchType === 'examiner' && <div className="mt-3 space-y-2 text-xs leading-relaxed text-muted-foreground">
-            <p>Examiner Role reflects the dated public document, not necessarily the examiner’s current role. “Supervised” denotes a documented assistant examiner. Years of Activity means observed examination activity, not years employed; incomplete historical coverage cannot establish career length, so an unsupported estimate is withheld. Filing dates and unassigned transaction dates are not attributed to the examiner.</p>
+            <p>Examiner Role reflects the dated public document, not necessarily the examiner’s current role. “Supervised” denotes a documented assistant examiner. Years of Activity is a lower-bound span between verified dated examiner roles, not years employed or continuous service. A separate historical grant search checks beyond the current docket; earlier activity and gaps may exist. Unsupported spans are withheld. Filing dates and unassigned transaction dates are not attributed to the examiner.</p>
             <p>{data.roleEvidence?.note}</p>
             <details className="border-t pt-3">
               <summary className="cursor-pointer font-medium text-foreground">Historical evidence and confidence</summary>
               <div className="mt-3 space-y-2">
-                <p>Source: {data.roleEvidence?.history?.source ?? 'USPTO ODP grant XML'}. Career-wide confidence: {data.roleEvidence?.history?.confidence ?? 'low'}.</p>
+                <p>Source: {data.roleEvidence?.history?.source ?? 'USPTO ODP grant XML'}. Observed-activity confidence: {data.roleEvidence?.history?.confidence ?? 'low'}; complete career coverage is not established.</p>
                 <p>{data.roleEvidence?.history?.confidenceNote}</p>
-                <p>Earliest grant verified in checked sample: {data.roleEvidence?.earliestActivity?.issueDate ?? 'Not established'}. Earliest primary record in checked sample: {data.roleEvidence?.history?.earliestPrimary?.issueDate ?? 'Not established'}; this is not a promotion date.</p>
+                <p>Earliest grant verified in checked records: {data.roleEvidence?.earliestActivity?.issueDate ?? 'Not established'}. Earliest primary record in checked records: {data.roleEvidence?.history?.earliestPrimary?.issueDate ?? 'Not established'}; this is not a promotion date.</p>
                 <p>Distinct applications with a named grant role in checked sample: {data.roleEvidence?.history?.distinctApplicationsVerified ?? 'Not verified'}. Total historically examined: {data.roleEvidence?.history?.totalHistoricallyExamined ?? 'Unavailable — historical coverage incomplete'}. Current assignments are not career examination counts.</p>
                 <p>Assistant-to-primary sequence: {data.roleEvidence?.history?.transitionStatus === 'observed_sequence'
                   ? `Assistant record ${data.roleEvidence.history.earliestAssistant?.issueDate}; primary record ${data.roleEvidence.history.earliestPrimary?.issueDate}. These observations do not establish a promotion date.`
