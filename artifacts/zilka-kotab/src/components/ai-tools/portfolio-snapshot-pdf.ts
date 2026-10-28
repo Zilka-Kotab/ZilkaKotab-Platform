@@ -65,12 +65,15 @@ export async function createPortfolioSnapshotBlob(
     titleSize -= 0.5;
     pdf.setFontSize(titleSize);
   }
-  pdf.text(fit(title, titleWidth, titleSize), 36, 26);
+  // Center the complete left-hand block using Times' ascender/descender,
+  // accounting for company names whose font size is reduced to fit.
+  const headerOffset = 35 - ((26 - titleSize * 1.053) + (46 + 18 * 0.281)) / 2;
+  pdf.text(fit(title, titleWidth, titleSize), 36, 26 + headerOffset);
   pdf.setFontSize(18);
-  pdf.text('Patent Portfolio Snapshot', 36, 46);
+  pdf.text('Patent Portfolio Snapshot', 36, 46 + headerOffset);
   const date = new Date(portfolio.coverage.retrievedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
   pdf.setFont('helvetica', 'normal'); pdf.setFontSize(6); pdf.setTextColor(204, 213, 223);
-  pdf.text(`SOURCE: USPTO Open Data Portal | RETRIEVED: ${date}`, 402, 46, { align: 'right' });
+  pdf.text(`SOURCE: USPTO Open Data Portal | RETRIEVED: ${date}`, 402, 46 + headerOffset, { align: 'right' });
   pdf.setDrawColor(73, 88, 106); pdf.setLineWidth(0.5); pdf.line(414, 17, 414, 55);
   pdf.setFont('helvetica', 'bold'); pdf.setFontSize(7.8); pdf.setTextColor(...GOLD);
   pdf.text('Complimentary Patent Intelligence', 576, 25, { align: 'right' });
@@ -91,8 +94,8 @@ export async function createPortfolioSnapshotBlob(
   if (!advanced) write('Advanced data not available at export time', 347, 156, 6.8, GRAY);
   const gauges = [
     { value: efficiency?.averageOfficeActionsPerGrantedPatent?.toFixed(2) ?? 'N/A', label: 'Avg. office actions per granted patent', rate: undefined, sample: efficiency?.officeActionDenominator },
-    { value: percent(efficiency?.rceRate), label: 'Applications with an RCE', rate: efficiency?.rceRate, sample: efficiency?.rceDenominator },
-    { value: percent(efficiency?.examinerInterviewRate), label: 'Documented interview rate', rate: efficiency?.examinerInterviewRate, sample: efficiency?.interviewDenominator },
+    { value: percent(efficiency?.rceRate), label: 'RCE Rate', rate: efficiency?.rceRate, sample: efficiency?.rceDenominator },
+    { value: percent(efficiency?.examinerInterviewRate), label: 'Examiner Interview Rate', rate: efficiency?.examinerInterviewRate, sample: efficiency?.interviewDenominator },
     { value: percent(efficiency?.allowedWithTwoOrFewerActionsRate), label: 'Allowed with <=2 office actions', rate: efficiency?.allowedWithTwoOrFewerActionsRate, sample: efficiency?.allowedWithHistory },
   ];
   gauges.forEach((gauge, index) => {

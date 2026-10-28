@@ -189,3 +189,31 @@ mtime_ms = 1793160748556
 storage_uri = "gcs://replit-rams-assets-reed/rams/assets/repl:d8317486-6b11-41c5-bec6-74c880ade2f7/1cdf8314-c635-490e-a055-4d2989094924/a3f2c85b-0d95-4fa0-a64c-777b03c0181e"
 storage_version_token = "1793160758756393"
 content_type = "application/pdf"
+
+[[outputs]]
+id = "hq2Jg55IVNvU6kVKH_hm5"
+uri = "file://generated-artifacts/portfolio-snapshot-updated-rate-labels.pdf"
+type = "pdf"
+title = "PDF with updated rate labels"
+description = "The captions now read RCE Rate and Examiner Interview Rate, with sample sizes and two-line formatting preserved."
+logical_id = "429276a1-dc1f-49de-b27f-b529c9d50a2a"
+content_hash = "sha256:e3fc2a71bb8664317d7b80880124207b6475c810e6893883e0f581759e7ecc95"
+size = 144877
+mtime_ms = 1793160805484
+storage_uri = "gcs://replit-rams-assets-reed/rams/assets/repl:d8317486-6b11-41c5-bec6-74c880ade2f7/429276a1-dc1f-49de-b27f-b529c9d50a2a/0665ef42-df6b-45c7-bf8d-3c96fd614cb5"
+storage_version_token = "1793160812511275"
+content_type = "application/pdf"
+
+[[outputs]]
+id = "zBQhaBaKzSV0cVwt1kXK4"
+uri = "file://generated-artifacts/portfolio-snapshot-centered-header.pdf"
+type = "pdf"
+title = "PDF with vertically centered header"
+description = "The company name, Snapshot title, and source line are now centered together within the navy header, with equal space above and below."
+logical_id = "7dc4bc34-0dec-4ab3-a836-1565539851bf"
+content_hash = "sha256:9ccbaa18ef5c7f3cd9f9455636b022c8e02428f4f9081a2b766751b4fd8eb379"
+size = 144925
+mtime_ms = 1793160845608
+storage_uri = "gcs://replit-rams-assets-reed/rams/assets/repl:d8317486-6b11-41c5-bec6-74c880ade2f7/7dc4bc34-0dec-4ab3-a836-1565539851bf/a3d3b25f-7a7a-4491-a928-c090e7e0ab90"
+storage_version_token = "1793160856229385"
+content_type = "application/pdf"
