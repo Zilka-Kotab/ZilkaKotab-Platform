@@ -1,4 +1,5 @@
-import type { PublicExaminerRoleEvidence } from "@workspace/api-zod";
+import type { PublicExaminerHistoricalEvidence, PublicExaminerRoleEvidence } from "@workspace/api-zod";
+import { createHash } from "node:crypto";
 
 type Candidate = { applicationNumber: string; grantDate: string };
 const normalize = (name: string) => name.normalize("NFKD").replace(/[\u0300-\u036f]/g, "")
@@ -82,7 +83,34 @@ async function downloadGrant(location: string, signal: AbortSignal) {
   throw new Error("Too many grant document redirects.");
 }
 
+const historyCache = new Map<string, { expiresAt: number; value: PublicExaminerRoleEvidence }>();
+const historyRequests = new Map<string, Promise<PublicExaminerRoleEvidence>>();
+
+/** Cache verified evidence only; a failed lookup is not negative career evidence. */
 export async function findExaminerRole(
+  examinerName: string, candidates: Candidate[],
+  getMetadata: (url: URL, signal: AbortSignal) => Promise<Response>,
+): Promise<PublicExaminerRoleEvidence> {
+  const key = createHash("sha256").update(JSON.stringify([normalize(examinerName),
+    [...candidates].sort((a, b) => a.applicationNumber.localeCompare(b.applicationNumber))])).digest("hex");
+  const entry = historyCache.get(key);
+  if (entry && entry.expiresAt > Date.now()) return structuredClone(entry.value);
+  const pending = historyRequests.get(key);
+  if (pending) return structuredClone(await pending);
+  const request = lookupExaminerRole(examinerName, candidates, getMetadata);
+  historyRequests.set(key, request);
+  try {
+    const value = await request;
+    if (value.role) {
+      const partial = value.earliestActivity?.note.includes("failed") ?? false;
+      historyCache.set(key, { value: structuredClone(value), expiresAt: Date.now() + (partial ? 300_000 : 7 * 24 * 60 * 60 * 1000) });
+      if (historyCache.size > 256) historyCache.delete(historyCache.keys().next().value!);
+    }
+    return value;
+  } finally { historyRequests.delete(key); }
+}
+
+async function lookupExaminerRole(
   examinerName: string, candidates: Candidate[],
   getMetadata: (url: URL, signal: AbortSignal) => Promise<Response>,
 ): Promise<PublicExaminerRoleEvidence> {
@@ -99,6 +127,7 @@ export async function findExaminerRole(
   let failures = 0;
   let checked = 0;
   const matches: PublicExaminerRoleEvidence[] = [];
+  const attributed: PublicExaminerHistoricalEvidence[] = [];
   for (const candidate of selected) {
     if (signal.aborted) { failures++; break; }
     checked++;
@@ -113,14 +142,32 @@ export async function findExaminerRole(
         // Link to the actual patent, not the application or a temporary download URL.
         evidence.sourceUrl = `https://image-ppubs.uspto.gov/dirsearch-public/print/downloadPdf/${evidence.patentNumber!.replace(/^US/, "")}`;
         matches.push(evidence);
+        attributed.push({ role: evidence.role!, applicationNumber: candidate.applicationNumber,
+          patentNumber: evidence.patentNumber!, issueDate: evidence.issueDate!, sourceUrl: evidence.sourceUrl! });
       }
     } catch { failures++; }
   }
   if (matches.length) {
     matches.sort((a, b) => b.issueDate!.localeCompare(a.issueDate!));
     const earliest = matches.at(-1)!;
+    const chronological = attributed.sort((a, b) => a.issueDate.localeCompare(b.issueDate));
+    const earliestPrimary = chronological.find(item => item.role === "primary");
+    const earliestAssistant = chronological.find(item => item.role === "assistant");
     return {
       ...matches[0],
+      history: {
+        coverageStatus: "sampled", confidence: "low",
+        confidenceNote: "Low confidence for career-wide metrics: exact-name grant evidence does not resolve duplicate people, name changes, earlier assignments, or missing historical records.",
+        source: "USPTO ODP associated grant XML",
+        yearsObserved: null,
+        distinctApplicationsVerified: new Set(attributed.map(item => item.applicationNumber.replace(/\D/g, ""))).size,
+        totalHistoricallyExamined: null,
+        earliestPrimary, earliestAssistant,
+        transitionStatus: earliestPrimary && earliestAssistant && earliestAssistant.issueDate < earliestPrimary.issueDate
+          ? "observed_sequence" : "not_established",
+        note: `Checked ${checked} oldest/newest grant candidates from the retrieved current-assignment sample${failures ? "; some checks failed or timed out" : ""}. Counts cover named grant roles, not personally signed examination actions. Career-wide years, totals and promotion dates are withheld. PatEx historical data has not been indexed or identity-resolved; snapshot examiner names cannot be joined to all earlier events as proof of authorship.`,
+        evidence: chronological,
+      },
       earliestActivity: {
         patentNumber: earliest.patentNumber!, issueDate: earliest.issueDate!, sourceUrl: earliest.sourceUrl!,
         note: `Elapsed time since the earliest exact-name grant verified among ${checked} checked grant candidates from the retrieved application sample. Not a hire date, continuous service, or a complete career history.${failures ? " Some document checks failed or timed out; earlier evidence may be missing." : " Earlier examiner activity may exist outside these records."}`,

@@ -108,15 +108,16 @@ export async function createExaminerSnapshotBlob(
   });
   if (individual) {
     pdf.setDrawColor(...LIGHT); pdf.setLineWidth(0.5); pdf.line(303, 151, 303, 228);
-    write('DOCUMENTED EXPERIENCE', 322, 156, 6.8, NAVY, true);
+    write('OBSERVED EXAMINATION HISTORY', 322, 156, 6.8, NAVY, true);
     const evidence = data.roleEvidence;
     const activity = evidence?.earliestActivity;
-    write('DOCUMENTED ACTIVITY', 322, 177, 6.5, GRAY, true);
-    write(examinerActivitySpan(data) ?? 'Not verified', 322, 195, 12, NAVY, true);
+    write('YEARS OF OBSERVED', 322, 172, 6, GRAY, true);
+    write('EXAMINATION ACTIVITY', 322, 180, 6, GRAY, true);
+    write(examinerActivitySpan(data) ?? 'History incomplete', 322, 195, 10, NAVY, true);
     if (activity) {
-      write(`Since ${activity.issueDate}`, 322, 207, 6.2, GRAY);
+      write(`Sample grant: ${activity.issueDate}`, 322, 207, 6.2, GRAY);
       write(activity.patentNumber, 322, 217, 6.2, GRAY);
-      write('Sample-based; not years of service.', 322, 227, 5.8, GRAY);
+      write(`Career confidence: ${evidence?.history?.confidence ?? 'low'}`, 322, 227, 5.8, GRAY);
       pdf.link(322, 210, 106, 10, { url: activity.sourceUrl });
     } else {
       wrap('No dated examiner activity verified.', 322, 212, 106, 6.2);
@@ -202,7 +203,7 @@ export async function createExaminerSnapshotBlob(
   const artworkHeight = 612 * 553 / 934;
   const artworkY = 792 - artworkHeight;
   rule(395);
-  const scope = `Scope: ${title}${data.searchType === 'examiner' && artUnit ? `; Art Unit ${artUnit}` : ''}. Snapshot: ${num(data.coverage.recordsAnalyzed)} / ${num(data.coverage.totalMatchesReported)} matching records${data.coverage.truncated ? ' (capped)' : ''}.${data.applicationNumberContext ? ` Opened from application ${data.applicationNumberContext}.` : ''} Outcome rates exclude unresolved cases; facet and event cohorts may differ. Interview differences are observational, not causal; no summary found does not prove no interview occurred. Current assignment is not career history.${individual ? ' Activity/role lookup checks up to 6 oldest/newest grants in this sample; earlier activity may exist. Elapsed span is not continuous service or hire date; GS grade unverified.' : ''} Informational only, not a legal opinion.`;
+  const scope = `Scope: ${title}${data.searchType === 'examiner' && artUnit ? `; Art Unit ${artUnit}` : ''}. Snapshot: ${num(data.coverage.recordsAnalyzed)} / ${num(data.coverage.totalMatchesReported)} matching records${data.coverage.truncated ? ' (capped)' : ''}.${data.applicationNumberContext ? ` Opened from application ${data.applicationNumberContext}.` : ''} Outcome rates exclude unresolved cases; facet and event cohorts may differ. Interview differences are observational, not causal; no summary found does not prove no interview occurred. Current assignment is not career history.${individual ? ` Grant-role evidence: ${num(data.roleEvidence?.history?.distinctApplicationsVerified)} distinct sampled applications; not a career examination total. Up to 6 grants checked; low career-wide confidence. Historical years/totals and promotion dates withheld; PatEx not indexed. See online evidence.` : ''} Informational only, not a legal opinion.`;
   pdf.setFont('helvetica', 'normal'); pdf.setFontSize(6.3); pdf.setTextColor(...GRAY);
   // Fit all disclosures rather than truncate important evidence limitations.
   let notesSize = 6.3;

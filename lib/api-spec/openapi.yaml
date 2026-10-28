@@ -517,6 +517,54 @@ components:
         count:
           type: integer
           minimum: 0
+    PublicExaminerHistoricalEvidence:
+      type: object
+      required: [role, applicationNumber, patentNumber, issueDate, sourceUrl]
+      properties:
+        role:
+          type: string
+          enum: [primary, assistant]
+        applicationNumber:
+          type: string
+        patentNumber:
+          type: string
+        issueDate:
+          type: string
+        sourceUrl:
+          type: string
+    PublicExaminerHistorySummary:
+      type: object
+      required: [coverageStatus, confidence, confidenceNote, source, yearsObserved, distinctApplicationsVerified, totalHistoricallyExamined, transitionStatus, note, evidence]
+      properties:
+        coverageStatus:
+          type: string
+          enum: [sampled, historical]
+        confidence:
+          type: string
+          enum: [low, medium, high]
+        confidenceNote:
+          type: string
+        source:
+          type: string
+        yearsObserved:
+          type: ["number", "null"]
+        distinctApplicationsVerified:
+          type: integer
+        totalHistoricallyExamined:
+          type: ["integer", "null"]
+        transitionStatus:
+          type: string
+          enum: [observed_sequence, not_established]
+        note:
+          type: string
+        earliestPrimary:
+          $ref: "#/components/schemas/PublicExaminerHistoricalEvidence"
+        earliestAssistant:
+          $ref: "#/components/schemas/PublicExaminerHistoricalEvidence"
+        evidence:
+          type: array
+          items:
+            $ref: "#/components/schemas/PublicExaminerHistoricalEvidence"
     PublicExaminerActivityEvidence:
       type: object
       required: [patentNumber, issueDate, sourceUrl, note]
@@ -546,6 +594,8 @@ components:
           type: string
         earliestActivity:
           $ref: "#/components/schemas/PublicExaminerActivityEvidence"
+        history:
+          $ref: "#/components/schemas/PublicExaminerHistorySummary"
     PublicExaminerAnalysis:
       type: object
       additionalProperties: false

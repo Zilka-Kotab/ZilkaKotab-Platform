@@ -79,6 +79,29 @@ test("earliest activity uses an exact-name grant issue date, while role uses the
     assert.equal(evidence.earliestActivity?.issueDate, "2011-10-25");
     assert.match(evidence.earliestActivity!.note, /Not a hire date, continuous service/);
     assert.match(evidence.earliestActivity!.note, /2 checked/);
+    assert.equal(evidence.history?.yearsObserved, null);
+    assert.equal(evidence.history?.totalHistoricallyExamined, null);
+    assert.equal(evidence.history?.confidence, "low");
+    assert.equal(evidence.history?.transitionStatus, "not_established");
+    assert.equal(evidence.history?.earliestPrimary?.issueDate, "2011-10-25");
+    assert.equal(evidence.history?.evidence.length, 2);
+  } finally { globalThis.fetch = original; }
+});
+
+test("verified history is reused without issuing the same USPTO requests again", async () => {
+  const original = globalThis.fetch;
+  let calls = 0;
+  globalThis.fetch = (async () => new Response(grant())) as typeof fetch;
+  try {
+    const candidates = [{ applicationNumber: "98765432", grantDate: "2025-10-21" }];
+    const getMetadata = async () => { calls++; return Response.json({
+      grantDocumentMetaData: { fileLocationURI: "https://data.uspto.gov/cache-test.xml" },
+    }); };
+    const first = await findExaminerRole("SUN, YULIN", candidates, getMetadata);
+    assert.equal(first.role, "primary");
+    const second = await findExaminerRole("SUN, YULIN", candidates, getMetadata);
+    assert.deepEqual(second, first);
+    assert.equal(calls, 1);
   } finally { globalThis.fetch = original; }
 });
 

@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { PublicExaminerActivityEvidence } from './publicExaminerActivityEvidence';
+import type { PublicExaminerHistorySummary } from './publicExaminerHistorySummary';
 import type { PublicExaminerRoleEvidenceRole } from './publicExaminerRoleEvidenceRole';
 
 export interface PublicExaminerRoleEvidence {
@@ -19,4 +20,5 @@ export interface PublicExaminerRoleEvidence {
   sourceUrl: string | null;
   note: string;
   earliestActivity?: PublicExaminerActivityEvidence;
+  history?: PublicExaminerHistorySummary;
 }

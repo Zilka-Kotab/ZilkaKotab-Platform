@@ -129,24 +129,43 @@ function ExaminerResult({ data }: { data: PublicExaminerAnalysis }) {
           </section>
         )}
         {data.searchType === 'examiner' && (
-          <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-xs text-muted-foreground">
-            <div>
-              <span>Documented activity span: <strong className="font-medium text-foreground">
-                {examinerActivitySpan(data) ?? 'Not verified'}
+          <div className="mt-3 grid gap-x-5 gap-y-3 text-xs text-muted-foreground md:grid-cols-2">
+            <div className="order-1">
+              <span>Years of Observed Examination Activity: <strong className="font-medium text-foreground">
+                {examinerActivitySpan(data) ?? 'History incomplete — estimate withheld'}
               </strong></span>
               {data.roleEvidence?.earliestActivity && (
-                <span className="ml-2">
-                  Since {data.roleEvidence.earliestActivity.issueDate}{' · '}
+                <div className="mt-1">
+                  Earliest grant verified in checked sample: {data.roleEvidence.earliestActivity.issueDate}{' · '}
                   <a className="underline underline-offset-2" href={data.roleEvidence.earliestActivity.sourceUrl} target="_blank" rel="noopener noreferrer">
                     {data.roleEvidence.earliestActivity.patentNumber}
                   </a>
-                </span>
+                </div>
               )}
               <p className="mt-1 max-w-md leading-relaxed">
-                {data.roleEvidence?.earliestActivity?.note ?? 'No dated, examiner-attributed activity has been verified. Application filing dates are not used as employment dates.'}
+                Sparse grant dates do not establish career length. Application filing dates and unassigned event histories are not used as examiner activity dates.
               </p>
             </div>
-            <div>
+            <details className="order-3 md:col-span-2 border-t pt-3">
+              <summary className="cursor-pointer font-medium text-foreground">Historical evidence and confidence</summary>
+              <div className="mt-3 space-y-2 leading-relaxed">
+                <p>Source: {data.roleEvidence?.history?.source ?? 'USPTO ODP grant XML'}. Career-wide confidence: <strong>{data.roleEvidence?.history?.confidence ?? 'low'}</strong>.</p>
+                <p>{data.roleEvidence?.history?.confidenceNote ?? 'Historical coverage and examiner identity have not been established.'}</p>
+                <p>Distinct applications with a named grant role in the checked sample: <strong>{data.roleEvidence?.history?.distinctApplicationsVerified ?? 'Not verified'}</strong>. Total distinct applications historically examined: <strong>{data.roleEvidence?.history?.totalHistoricallyExamined ?? 'Unavailable — historical coverage incomplete'}</strong>. Current assignment counts elsewhere are not career examination counts.</p>
+                <p>Earliest primary-examiner record in checked sample: <strong>{data.roleEvidence?.history?.earliestPrimary?.issueDate ?? 'Not established'}</strong>. This is not a promotion date.</p>
+                <p>Assistant-to-primary history: {data.roleEvidence?.history?.transitionStatus === 'observed_sequence'
+                  ? `An assistant record dated ${data.roleEvidence.history.earliestAssistant?.issueDate} precedes a primary record dated ${data.roleEvidence.history.earliestPrimary?.issueDate}. These observations do not establish a promotion date or resolve duplicate identities.`
+                  : 'Not established from the checked records. Missing assistant records do not establish that the examiner was never an assistant.'}</p>
+                <p>{data.roleEvidence?.history?.note ?? 'Historical datasets have not been indexed. No reliable career-wide estimate is available.'}</p>
+                {data.roleEvidence?.history?.evidence.map(item => (
+                  <div key={`${item.applicationNumber}-${item.role}`}>
+                    <a className="underline underline-offset-2" href={item.sourceUrl} target="_blank" rel="noopener noreferrer">{item.patentNumber}</a>
+                    {' · '}{item.issueDate}{' · '}{item.role} examiner{' · Application '}{item.applicationNumber}
+                  </div>
+                ))}
+              </div>
+            </details>
+            <div className="order-2">
               <span>Documented examiner role: <strong className="font-medium text-foreground">
                 {data.roleEvidence?.role === 'primary' ? 'Primary examiner documented'
                   : data.roleEvidence?.role === 'assistant' ? 'Assistant examiner documented' : 'Not verified'}

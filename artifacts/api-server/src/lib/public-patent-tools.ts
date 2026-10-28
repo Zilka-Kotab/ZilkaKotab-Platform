@@ -834,7 +834,7 @@ async function analyzeExaminerProfile(queryInput: string, selectedExaminerName?:
     throw new PublicPatentToolError("Enter an examiner's full name or a four-digit art unit.", 400);
   }
 
-  return cached(`examiner-activity-v2:${parsed.searchType}:${parsed.value}:${selectedExaminerName ?? ""}`, async () => {
+  return cached(`examiner-history-v3:${parsed.searchType}:${parsed.value}:${selectedExaminerName ?? ""}`, async () => {
     const search = await requestSearch(
       parsed.query,
       "applicationNumberText,applicationMetaData,eventDataBag",

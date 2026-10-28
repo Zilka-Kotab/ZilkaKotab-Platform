@@ -386,6 +386,38 @@ export const AnalyzePublicExaminerResponse = zod.object({
   "issueDate": zod.string(),
   "sourceUrl": zod.string(),
   "note": zod.string()
+}).optional(),
+  "history": zod.object({
+  "coverageStatus": zod.enum(['sampled', 'historical']),
+  "confidence": zod.enum(['low', 'medium', 'high']),
+  "confidenceNote": zod.string(),
+  "source": zod.string(),
+  "yearsObserved": zod.number().nullable(),
+  "distinctApplicationsVerified": zod.number(),
+  "totalHistoricallyExamined": zod.number().nullable(),
+  "transitionStatus": zod.enum(['observed_sequence', 'not_established']),
+  "note": zod.string(),
+  "earliestPrimary": zod.object({
+  "role": zod.enum(['primary', 'assistant']),
+  "applicationNumber": zod.string(),
+  "patentNumber": zod.string(),
+  "issueDate": zod.string(),
+  "sourceUrl": zod.string()
+}).optional(),
+  "earliestAssistant": zod.object({
+  "role": zod.enum(['primary', 'assistant']),
+  "applicationNumber": zod.string(),
+  "patentNumber": zod.string(),
+  "issueDate": zod.string(),
+  "sourceUrl": zod.string()
+}).optional(),
+  "evidence": zod.array(zod.object({
+  "role": zod.enum(['primary', 'assistant']),
+  "applicationNumber": zod.string(),
+  "patentNumber": zod.string(),
+  "issueDate": zod.string(),
+  "sourceUrl": zod.string()
+}))
 }).optional()
 }).optional(),
   "allowanceBenchmarks": zod.object({

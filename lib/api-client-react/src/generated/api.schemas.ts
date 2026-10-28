@@ -276,6 +276,64 @@ export interface PublicExaminerBreakdown {
   count: number;
 }
 
+export type PublicExaminerHistoricalEvidenceRole = typeof PublicExaminerHistoricalEvidenceRole[keyof typeof PublicExaminerHistoricalEvidenceRole];
+
+
+export const PublicExaminerHistoricalEvidenceRole = {
+  primary: 'primary',
+  assistant: 'assistant',
+} as const;
+
+export interface PublicExaminerHistoricalEvidence {
+  role: PublicExaminerHistoricalEvidenceRole;
+  applicationNumber: string;
+  patentNumber: string;
+  issueDate: string;
+  sourceUrl: string;
+}
+
+export type PublicExaminerHistorySummaryCoverageStatus = typeof PublicExaminerHistorySummaryCoverageStatus[keyof typeof PublicExaminerHistorySummaryCoverageStatus];
+
+
+export const PublicExaminerHistorySummaryCoverageStatus = {
+  sampled: 'sampled',
+  historical: 'historical',
+} as const;
+
+export type PublicExaminerHistorySummaryConfidence = typeof PublicExaminerHistorySummaryConfidence[keyof typeof PublicExaminerHistorySummaryConfidence];
+
+
+export const PublicExaminerHistorySummaryConfidence = {
+  low: 'low',
+  medium: 'medium',
+  high: 'high',
+} as const;
+
+export type PublicExaminerHistorySummaryTransitionStatus = typeof PublicExaminerHistorySummaryTransitionStatus[keyof typeof PublicExaminerHistorySummaryTransitionStatus];
+
+
+export const PublicExaminerHistorySummaryTransitionStatus = {
+  observed_sequence: 'observed_sequence',
+  not_established: 'not_established',
+} as const;
+
+export interface PublicExaminerHistorySummary {
+  coverageStatus: PublicExaminerHistorySummaryCoverageStatus;
+  confidence: PublicExaminerHistorySummaryConfidence;
+  confidenceNote: string;
+  source: string;
+  /** @nullable */
+  yearsObserved: number | null;
+  distinctApplicationsVerified: number;
+  /** @nullable */
+  totalHistoricallyExamined: number | null;
+  transitionStatus: PublicExaminerHistorySummaryTransitionStatus;
+  note: string;
+  earliestPrimary?: PublicExaminerHistoricalEvidence;
+  earliestAssistant?: PublicExaminerHistoricalEvidence;
+  evidence: PublicExaminerHistoricalEvidence[];
+}
+
 export interface PublicExaminerActivityEvidence {
   patentNumber: string;
   issueDate: string;
@@ -305,6 +363,7 @@ export interface PublicExaminerRoleEvidence {
   sourceUrl: string | null;
   note: string;
   earliestActivity?: PublicExaminerActivityEvidence;
+  history?: PublicExaminerHistorySummary;
 }
 
 export type PublicExaminerAnalysisSearchType = typeof PublicExaminerAnalysisSearchType[keyof typeof PublicExaminerAnalysisSearchType];

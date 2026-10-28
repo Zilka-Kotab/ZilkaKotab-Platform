@@ -1,7 +1,10 @@
 import type { PublicExaminerAnalysis } from '@workspace/api-client-react';
 
-/** Calendar-year elapsed span, rounded down; never an assertion of continuous employment. */
+/** Never promote sparse grant evidence into a career-wide experience estimate. */
 export function examinerActivitySpan(data: Pick<PublicExaminerAnalysis, 'roleEvidence' | 'coverage'>): string | null {
+  const history = data.roleEvidence?.history;
+  if (history?.coverageStatus !== 'historical' || history.confidence !== 'high'
+    || history.yearsObserved == null || !Number.isFinite(history.yearsObserved) || history.yearsObserved < 0) return null;
   const date = data.roleEvidence?.earliestActivity?.issueDate;
   if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return null;
   const start = new Date(`${date}T00:00:00Z`);
@@ -19,5 +22,6 @@ export function examinerActivitySpan(data: Pick<PublicExaminerAnalysis, 'roleEvi
   const next = new Date(start);
   next.setUTCFullYear(start.getUTCFullYear() + years + 1);
   const elapsed = Math.floor((years + (end.getTime() - anniversary.getTime()) / (next.getTime() - anniversary.getTime())) * 10) / 10;
-  return elapsed < 1 ? 'Less than 1 year' : `${elapsed.toFixed(1)} years`;
+  const supported = Math.min(elapsed, Math.floor(history.yearsObserved * 10) / 10);
+  return supported < 1 ? 'Less than 1 year' : `${supported.toFixed(1)} years`;
 }

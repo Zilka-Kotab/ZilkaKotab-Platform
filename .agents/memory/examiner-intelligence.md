@@ -17,8 +17,14 @@ The USPTO Red Book XML specification explicitly distinguishes primary and assist
 
 **How to apply:** Any future role enrichment should identify a matching examiner and cite the grant and issue date. Label historical role evidence as such; keep tenure and GS grade unavailable unless independently verified. Source: https://www.uspto.gov/sites/default/files/documents/RedBookSpecification_V1_0.pdf, sections 1.56–1.58; associated grant XML metadata: https://data.uspto.gov/apis/patent-file-wrapper/associated-documents.
 
-An experience proxy may be shown beside examiner role as a **documented activity span**, measured from dated records explicitly naming the examiner. Disclose that it covers the checked sample and is neither a hire date nor proof of continuous service.
+Use **Years of Observed Examination Activity**, never years employed. Withhold numeric years when historical coverage or identity resolution is inadequate; a handful of current-docket grants is not a career history, even with a sample disclaimer.
 
-**Why:** The user requested an experience measure based on earliest prosecution activity. Filing dates and unattributed office-action events can predate the examiner's involvement, so those dates alone cannot support the measure.
+**Why:** A sparse grant lookup reported less than a year for an examiner the user identified as having 19 years of experience. Older public records omitted a middle initial, so strict name matching missed them. The user requires underlying evidence, confidence, historical coverage, and separation of assignment from actual examination.
 
-**How to apply:** Cite the earliest verified examiner-attributed document and its date, calculate elapsed time as of retrieval, and disclose incomplete historical coverage. Earlier signed office actions could improve this evidence; do not silently substitute unverified application/event dates.
+**How to apply:** Cite dated examiner-attributed documents. Treat name variants as discovery candidates, not automatic identity merges; check duplicate names and reassignment. Distinguish observed assistant/primary records from a verified promotion date and sampled named-role counts from distinct applications actually examined over a career. Preserve missing-history states.
+
+PatEx's examiner field describes assignment at the snapshot date for pending cases or at disposal for disposed cases. It cannot be joined to every earlier transaction as proof of that examiner's authorship.
+
+**Why:** The official PatEx technical documentation explicitly describes snapshot/disposal assignment and notes that modern releases no longer provide numeric examiner IDs.
+
+**How to apply:** Use PatEx to discover historical candidates, then corroborate dated activity and identity. A historical index is needed before career-wide metrics can be reliable. Documentation: https://www.uspto.gov/sites/default/files/documents/PatEx-2019-Technical-Doc.pdf.
