@@ -133,3 +133,31 @@ mtime_ms = 1793160502680
 storage_uri = "gcs://replit-rams-assets-reed/rams/assets/repl:d8317486-6b11-41c5-bec6-74c880ade2f7/3d3bd47d-383e-42f1-bd74-5947264e8e26/2c8529cd-b2cb-4b2b-a267-38ce1c9192a3"
 storage_version_token = "1793160519637588"
 content_type = "application/pdf"
+
+[[outputs]]
+id = "yP36bSLauGL18veObJrpb"
+uri = "file://generated-artifacts/portfolio-snapshot-stacked-header.pdf"
+type = "pdf"
+title = "PDF with revised header"
+description = "Company name and Patent Portfolio Snapshot now appear on separate lines. The top-right tagline has been removed; the approved footer remains unchanged."
+logical_id = "c2928c49-b496-4ca0-aa89-49cbf98e38ae"
+content_hash = "sha256:252f49568eb331fc38f43170dfcfdf8640c41bd36aa23c1cbecfe701405ca862"
+size = 144739
+mtime_ms = 1793160574248
+storage_uri = "gcs://replit-rams-assets-reed/rams/assets/repl:d8317486-6b11-41c5-bec6-74c880ade2f7/c2928c49-b496-4ca0-aa89-49cbf98e38ae/d2747ced-9512-423f-90e0-6ee652dc7cd4"
+storage_version_token = "1793160585017322"
+content_type = "application/pdf"
+
+[[outputs]]
+id = "BIZIJ_kEoND_kwT29d6jp"
+uri = "file://generated-artifacts/portfolio-snapshot-centered-notes.pdf"
+type = "pdf"
+title = "PDF with vertically centered notes"
+description = "The Scope/disclaimer block is vertically centered between the divider and the approved lower section, with equal padding above and below."
+logical_id = "c95c71e0-c6e3-499e-b571-9e389aa96683"
+content_hash = "sha256:9c01df56a53c6704d8cda81ae6bfa6082e8c41562f43846642eb983a1d636c8b"
+size = 144755
+mtime_ms = 1793160650192
+storage_uri = "gcs://replit-rams-assets-reed/rams/assets/repl:d8317486-6b11-41c5-bec6-74c880ade2f7/c95c71e0-c6e3-499e-b571-9e389aa96683/eb36bf38-7eb8-4be8-9433-389e87f8c173"
+storage_version_token = "1793160660801525"
+content_type = "application/pdf"
