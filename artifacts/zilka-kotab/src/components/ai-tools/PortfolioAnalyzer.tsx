@@ -7,6 +7,7 @@ import { AdvancedPortfolioMetrics } from './AdvancedPortfolioMetrics';
 import { PortfolioSnapshotPdfButton } from './PortfolioSnapshotPdfButton';
 import { SnapshotPdfChooser } from './SnapshotPdfChooser';
 import { RecentPortfolioRecords } from './RecentPortfolioRecords';
+import { MatchedApplicantNames } from './MatchedApplicantNames';
 import { CompareCompanyDialog } from './CompareCompanyDialog';
 import { PortfolioComparison } from './PortfolioComparison';
 import { advancedFor } from './portfolio-compare-utils';
@@ -150,8 +151,7 @@ function PortfolioResult({ data }: { data: PublicPortfolioAnalysis }) {
         </div>
         {data.matchedApplicantNames.length > 0 && (
           <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
-            <span className="text-muted-foreground">Matched applicant names:</span>
-            {data.matchedApplicantNames.map((n, i) => <span key={n} className="zk-chip" data-testid={`text-applicant-${i}`}>{n}</span>)}
+            <MatchedApplicantNames names={data.matchedApplicantNames} />
             {!second && <FirmInvolvementBadge fb={primaryAdvanced?.firmBenchmark} testId="badge-firm-involvement" />}
           </div>
         )}
