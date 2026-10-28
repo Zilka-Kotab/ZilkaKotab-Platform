@@ -287,3 +287,31 @@ mtime_ms = 1793162345176
 storage_uri = "gcs://replit-rams-assets-reed/rams/assets/repl:d8317486-6b11-41c5-bec6-74c880ade2f7/3a7f926a-520b-4279-b59c-b8228970b9f1/24c88e30-06a2-4931-ab8b-6ac5354665d1"
 storage_version_token = "1793162357609056"
 content_type = "application/pdf"
+
+[[outputs]]
+id = "rK78vvQ8F9PFb84CWF_A-"
+uri = "file://generated-artifacts/examiner-role-documented.pdf"
+type = "pdf"
+title = "Updated Patent Examiner Intelligence PDF"
+description = "Verified live example with allowance and abandonment rates, documented examiner role, and supporting patent/date."
+logical_id = "391d9943-914a-4663-b7dc-7bbb12f6c3c3"
+content_hash = "sha256:653c1a421a00e4ab5ae831b99e7e56c57b1b6622fe52e5140510d86026c5d089"
+size = 282578
+mtime_ms = 1793196861416
+storage_uri = "gcs://replit-rams-assets-reed/rams/assets/repl:d8317486-6b11-41c5-bec6-74c880ade2f7/391d9943-914a-4663-b7dc-7bbb12f6c3c3/48bde4b4-601b-40b7-bc96-8c7fe5c22b8e"
+storage_version_token = "1793196904132164"
+content_type = "application/pdf"
+
+[[outputs]]
+id = "fegB4tAGdxP61tXLBB28z"
+uri = "file://generated-artifacts/examiner-activity-documented.pdf"
+type = "pdf"
+title = "Examiner PDF with documented activity span"
+description = "Live example showing 14.9 years since the earliest verified examiner-attributed grant, beside the documented examiner role."
+logical_id = "586e64fb-4e3f-42ad-bc87-e1c2087d11c9"
+content_hash = "sha256:6a7fc7873549e065b8a80c5076af977c04b070391a39421fe84d0af467e5755b"
+size = 283047
+mtime_ms = 1793197064563
+storage_uri = "gcs://replit-rams-assets-reed/rams/assets/repl:d8317486-6b11-41c5-bec6-74c880ade2f7/586e64fb-4e3f-42ad-bc87-e1c2087d11c9/59256cdd-d1fb-46a4-b3ed-20b4ab3e2a90"
+storage_version_token = "1793197094021749"
+content_type = "application/pdf"

@@ -375,6 +375,19 @@ export const AnalyzePublicExaminerResponse = zod.object({
   "examinerName": zod.string(),
   "count": zod.number().min(analyzePublicExaminerResponseTopExaminersItemCountMin)
 })),
+  "roleEvidence": zod.object({
+  "role": zod.union([zod.literal('primary'),zod.literal('assistant'),zod.literal(null)]).nullable(),
+  "patentNumber": zod.string().nullable(),
+  "issueDate": zod.string().nullable(),
+  "sourceUrl": zod.string().nullable(),
+  "note": zod.string(),
+  "earliestActivity": zod.object({
+  "patentNumber": zod.string(),
+  "issueDate": zod.string(),
+  "sourceUrl": zod.string(),
+  "note": zod.string()
+}).optional()
+}).optional(),
   "allowanceBenchmarks": zod.object({
   "examinerAllowanceRate": zod.number().min(analyzePublicExaminerResponseAllowanceBenchmarksExaminerAllowanceRateMin).max(analyzePublicExaminerResponseAllowanceBenchmarksExaminerAllowanceRateMax).nullable(),
   "artUnitAllowanceRate": zod.number().min(analyzePublicExaminerResponseAllowanceBenchmarksArtUnitAllowanceRateMin).max(analyzePublicExaminerResponseAllowanceBenchmarksArtUnitAllowanceRateMax).nullable(),

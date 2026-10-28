@@ -1,3 +1,5 @@
+import { findExaminerRole } from "./examiner-role-evidence";
+
 const USPTO_API_BASE = "https://api.uspto.gov";
 const SEARCH_PATH = "/api/v1/patent/applications/search";
 const RESULT_LIMIT = 2000;
@@ -64,7 +66,7 @@ function delay(milliseconds: number) {
   return new Promise((resolve) => setTimeout(resolve, milliseconds));
 }
 
-async function requestUspto(url: URL) {
+async function requestUspto(url: URL, signal?: AbortSignal) {
   const previous = requestQueue;
   let release = () => {};
   requestQueue = new Promise<void>((resolve) => { release = resolve; });
@@ -77,7 +79,7 @@ async function requestUspto(url: URL) {
   for (let attempt = 0; attempt < 4; attempt += 1) {
     const response = await fetch(url, {
       headers: { Accept: "application/json", "X-API-KEY": apiKey() },
-      signal: AbortSignal.timeout(30_000),
+      signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(30_000)]) : AbortSignal.timeout(30_000),
     });
     if (response.status !== 429 || attempt === 3) return response;
     const retryAfter = Number(response.headers.get("retry-after"));
@@ -832,7 +834,7 @@ async function analyzeExaminerProfile(queryInput: string, selectedExaminerName?:
     throw new PublicPatentToolError("Enter an examiner's full name or a four-digit art unit.", 400);
   }
 
-  return cached(`examiner:${parsed.searchType}:${parsed.value}:${selectedExaminerName ?? ""}`, async () => {
+  return cached(`examiner-activity-v2:${parsed.searchType}:${parsed.value}:${selectedExaminerName ?? ""}`, async () => {
     const search = await requestSearch(
       parsed.query,
       "applicationNumberText,applicationMetaData,eventDataBag",
@@ -888,6 +890,13 @@ async function analyzeExaminerProfile(queryInput: string, selectedExaminerName?:
     }
     const primaryArtUnit = [...artUnitCounts].sort((left, right) => right[1] - left[1])[0]?.[0] ?? null;
     const primaryExaminer = topExaminers[0]?.examinerName ?? null;
+    const roleEvidence = parsed.searchType === "examiner" && primaryExaminer
+      ? await findExaminerRole(primaryExaminer, search.records.flatMap((record) => {
+        const applicationNumber = text(record.applicationNumberText);
+        const grantDate = text(metadata(record).grantDate);
+        return applicationNumber && grantDate ? [{ applicationNumber, grantDate }] : [];
+      }), requestUspto)
+      : undefined;
     const benchmarkArtUnit = parsed.searchType === "art-unit" ? parsed.value : primaryArtUnit;
     const technologyCenter = benchmarkArtUnit && /^\d{4}$/.test(benchmarkArtUnit) ? `${benchmarkArtUnit.slice(0, 2)}00` : null;
     const technologyCenterEnd = technologyCenter ? `${technologyCenter.slice(0, 2)}99` : null;
@@ -953,6 +962,7 @@ async function analyzeExaminerProfile(queryInput: string, selectedExaminerName?:
       selectionRequired: false,
       examinerCandidates: [],
       topExaminers: parsed.searchType === "art-unit" ? topExaminers : [],
+      roleEvidence,
       allowanceBenchmarks: {
         examinerAllowanceRate: (parsed.searchType === "examiner" ? examinerOutcome : artUnitOutcome)?.allowanceRate ?? null,
         artUnitAllowanceRate: artUnitOutcome?.allowanceRate ?? null,

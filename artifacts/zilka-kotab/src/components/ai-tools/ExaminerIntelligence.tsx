@@ -5,6 +5,7 @@ import { useAnalyzePublicExaminer } from '@workspace/api-client-react';
 import type { PublicExaminerAnalysis } from '@workspace/api-client-react';
 import { CoverageLedger, EmptyPanel, ErrorPanel, Metric, ResultSkeleton, errorMessage, fmtNum } from './shared';
 import { ExaminerSnapshotPdfButton } from './ExaminerSnapshotPdfButton';
+import { examinerActivitySpan } from './examiner-activity';
 
 export function ExaminerIntelligence() {
   const [query, setQuery] = useState('');
@@ -129,8 +130,41 @@ function ExaminerResult({ data }: { data: PublicExaminerAnalysis }) {
         )}
         {data.searchType === 'examiner' && (
           <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-xs text-muted-foreground">
-            <span>Years at USPTO: <strong className="font-medium text-foreground">Not reported in these public records</strong></span>
-            <span>Primary examiner status: <strong className="font-medium text-foreground">Not reported in these public records</strong></span>
+            <div>
+              <span>Documented activity span: <strong className="font-medium text-foreground">
+                {examinerActivitySpan(data) ?? 'Not verified'}
+              </strong></span>
+              {data.roleEvidence?.earliestActivity && (
+                <span className="ml-2">
+                  Since {data.roleEvidence.earliestActivity.issueDate}{' · '}
+                  <a className="underline underline-offset-2" href={data.roleEvidence.earliestActivity.sourceUrl} target="_blank" rel="noopener noreferrer">
+                    {data.roleEvidence.earliestActivity.patentNumber}
+                  </a>
+                </span>
+              )}
+              <p className="mt-1 max-w-md leading-relaxed">
+                {data.roleEvidence?.earliestActivity?.note ?? 'No dated, examiner-attributed activity has been verified. Application filing dates are not used as employment dates.'}
+              </p>
+            </div>
+            <div>
+              <span>Documented examiner role: <strong className="font-medium text-foreground">
+                {data.roleEvidence?.role === 'primary' ? 'Primary examiner documented'
+                  : data.roleEvidence?.role === 'assistant' ? 'Assistant examiner documented' : 'Not verified'}
+              </strong></span>
+              {data.roleEvidence?.role && (
+                <span className="ml-2">
+                  {data.roleEvidence.sourceUrl ? (
+                    <a className="underline underline-offset-2" href={data.roleEvidence.sourceUrl} target="_blank" rel="noopener noreferrer">
+                      {data.roleEvidence.patentNumber}
+                    </a>
+                  ) : data.roleEvidence.patentNumber}
+                  {' · Issued '}{data.roleEvidence.issueDate}
+                </span>
+              )}
+              <p className="mt-1 max-w-3xl leading-relaxed">
+                {data.roleEvidence?.note ?? 'Historical role evidence is not available for this result.'}
+              </p>
+            </div>
           </div>
         )}
       </header>

@@ -9,6 +9,7 @@
 export * from './healthStatus';
 export * from './publicApplicantCandidate';
 export * from './publicDataCoverage';
+export * from './publicExaminerActivityEvidence';
 export * from './publicExaminerAnalysis';
 export * from './publicExaminerAnalysisAllowanceBenchmarks';
 export * from './publicExaminerAnalysisInterviewAnalytics';
@@ -16,6 +17,8 @@ export * from './publicExaminerAnalysisOfficeActionAnalytics';
 export * from './publicExaminerAnalysisSearchType';
 export * from './publicExaminerBreakdown';
 export * from './publicExaminerInput';
+export * from './publicExaminerRoleEvidence';
+export * from './publicExaminerRoleEvidenceRole';
 export * from './publicFilingTrend';
 export * from './publicPatentApplication';
 export * from './publicPatentGrant';

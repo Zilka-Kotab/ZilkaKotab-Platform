@@ -276,6 +276,37 @@ export interface PublicExaminerBreakdown {
   count: number;
 }
 
+export interface PublicExaminerActivityEvidence {
+  patentNumber: string;
+  issueDate: string;
+  sourceUrl: string;
+  note: string;
+}
+
+/**
+ * @nullable
+ */
+export type PublicExaminerRoleEvidenceRole = typeof PublicExaminerRoleEvidenceRole[keyof typeof PublicExaminerRoleEvidenceRole] | null;
+
+
+export const PublicExaminerRoleEvidenceRole = {
+  primary: 'primary',
+  assistant: 'assistant',
+} as const;
+
+export interface PublicExaminerRoleEvidence {
+  /** @nullable */
+  role: PublicExaminerRoleEvidenceRole;
+  /** @nullable */
+  patentNumber: string | null;
+  /** @nullable */
+  issueDate: string | null;
+  /** @nullable */
+  sourceUrl: string | null;
+  note: string;
+  earliestActivity?: PublicExaminerActivityEvidence;
+}
+
 export type PublicExaminerAnalysisSearchType = typeof PublicExaminerAnalysisSearchType[keyof typeof PublicExaminerAnalysisSearchType];
 
 
@@ -389,6 +420,7 @@ export interface PublicExaminerAnalysis {
   selectionRequired: boolean;
   examinerCandidates: PublicExaminerBreakdown[];
   topExaminers: PublicExaminerBreakdown[];
+  roleEvidence?: PublicExaminerRoleEvidence;
   allowanceBenchmarks?: PublicExaminerAnalysisAllowanceBenchmarks;
   officeActionAnalytics?: PublicExaminerAnalysisOfficeActionAnalytics;
   interviewAnalytics?: PublicExaminerAnalysisInterviewAnalytics;

@@ -1,5 +1,6 @@
 import type { PublicExaminerAnalysis } from '@workspace/api-client-react';
 import { drawPortfolioPdfHeader } from './portfolio-pdf-header';
+import { examinerActivitySpan } from './examiner-activity';
 
 const NAVY: [number, number, number] = [11, 31, 53];
 const GOLD: [number, number, number] = [191, 154, 37];
@@ -77,23 +78,18 @@ export async function createExaminerSnapshotBlob(
     write(value, x + 10, 105, 22, NAVY, true);
     wrap(label.toUpperCase(), x + 10, 118, 109, 6.5, 2);
   });
-  write('EXAMINATION OUTCOMES & ART UNIT CONTEXT', 36, 135, 9.5, NAVY, true);
+  const individual = data.searchType === 'examiner';
+  write(individual ? 'EXAMINATION OUTCOMES & EXAMINER EXPERIENCE' : 'EXAMINATION OUTCOMES', 36, 135, 9.5, NAVY, true);
   rule(142);
-  write('ALLOWANCE BENCHMARKS & ABANDONMENT', 36, 156, 6.8, NAVY, true);
+  write('OVERALL ALLOWANCE & ABANDONMENT', 36, 156, 6.8, NAVY, true);
   const gauges = [
-    { label: data.searchType === 'art-unit' ? 'Art unit allowance rate' : 'Examiner allowance rate',
+    { label: 'Overall allowance rate',
       rate: data.estimatedAllowanceRate, sample: data.disposedApplications },
-    ...(data.searchType === 'examiner' ? [{
-      label: `Art unit ${artUnit ?? 'N/A'} allowance`, rate: b?.artUnitAllowanceRate,
-      sample: b?.artUnitDisposedApplications,
-    }] : []),
-    { label: `TC ${b?.technologyCenter ?? 'N/A'} allowance`, rate: b?.technologyCenterAllowanceRate,
-      sample: b?.technologyCenterDisposedApplications },
     { label: 'Abandonment rate', rate: share(data.abandonedApplications, data.disposedApplications),
       sample: data.disposedApplications },
   ];
   gauges.forEach((gauge, index) => {
-    const x = 36 + 540 / gauges.length * (index + 0.5);
+    const x = 36 + (individual ? 267 : 540) / gauges.length * (index + 0.5);
     pdf.setDrawColor(...LIGHT); pdf.setLineWidth(5); pdf.circle(x, 184, 22, 'S');
     if (gauge.rate != null) {
       pdf.setDrawColor(...GOLD);
@@ -110,6 +106,32 @@ export async function createExaminerSnapshotBlob(
     pdf.setFont('helvetica', 'normal'); pdf.setFontSize(7); pdf.setTextColor(...GRAY);
     pdf.text([gauge.label, `(n=${num(gauge.sample)})`], x, 216, { align: 'center', lineHeightFactor: 1.25 });
   });
+  if (individual) {
+    pdf.setDrawColor(...LIGHT); pdf.setLineWidth(0.5); pdf.line(303, 151, 303, 228);
+    write('DOCUMENTED EXPERIENCE', 322, 156, 6.8, NAVY, true);
+    const evidence = data.roleEvidence;
+    const activity = evidence?.earliestActivity;
+    write('DOCUMENTED ACTIVITY', 322, 177, 6.5, GRAY, true);
+    write(examinerActivitySpan(data) ?? 'Not verified', 322, 195, 12, NAVY, true);
+    if (activity) {
+      write(`Since ${activity.issueDate}`, 322, 207, 6.2, GRAY);
+      write(activity.patentNumber, 322, 217, 6.2, GRAY);
+      write('Sample-based; not years of service.', 322, 227, 5.8, GRAY);
+      pdf.link(322, 210, 106, 10, { url: activity.sourceUrl });
+    } else {
+      wrap('No dated examiner activity verified.', 322, 212, 106, 6.2);
+    }
+    write('EXAMINER ROLE', 446, 177, 6.5, GRAY, true);
+    write(evidence?.role === 'primary' ? 'Primary documented'
+      : evidence?.role === 'assistant' ? 'Assistant documented' : 'Not verified', 446, 195, 10, NAVY, true);
+    if (evidence?.role) {
+      write(`${evidence.patentNumber} | ${evidence.issueDate}`, 446, 208, 6.2, GRAY);
+      write('Historical role, not current grade.', 446, 220, 6.1, GRAY);
+      if (evidence.sourceUrl) pdf.link(446, 201, 130, 10, { url: evidence.sourceUrl });
+    } else {
+      wrap('No verified role in checked grants; not proof of non-primary status.', 446, 208, 130, 6.2);
+    }
+  }
   rule(238);
   write('OFFICE ACTION BEHAVIOR', 36, 252, 7.2, NAVY, true);
   write('EXAMINER INTERVIEW RECORDS', 322, 252, 7.2, NAVY, true);
@@ -180,7 +202,7 @@ export async function createExaminerSnapshotBlob(
   const artworkHeight = 612 * 553 / 934;
   const artworkY = 792 - artworkHeight;
   rule(395);
-  const scope = `Scope: ${title}${data.searchType === 'examiner' && artUnit ? `; Art Unit ${artUnit}` : ''}. Snapshot: ${num(data.coverage.recordsAnalyzed)} / ${num(data.coverage.totalMatchesReported)} matching records${data.coverage.truncated ? ' (capped)' : ''}.${data.applicationNumberContext ? ` Opened from application ${data.applicationNumberContext}.` : ''} Outcome rates exclude unresolved cases; facet and event cohorts may differ. Benchmarks include the examiner. Interview differences are observational, not causal; no summary found does not prove no interview occurred. Current assignment is not career history. Informational only, not a legal opinion.`;
+  const scope = `Scope: ${title}${data.searchType === 'examiner' && artUnit ? `; Art Unit ${artUnit}` : ''}. Snapshot: ${num(data.coverage.recordsAnalyzed)} / ${num(data.coverage.totalMatchesReported)} matching records${data.coverage.truncated ? ' (capped)' : ''}.${data.applicationNumberContext ? ` Opened from application ${data.applicationNumberContext}.` : ''} Outcome rates exclude unresolved cases; facet and event cohorts may differ. Interview differences are observational, not causal; no summary found does not prove no interview occurred. Current assignment is not career history.${individual ? ' Activity/role lookup checks up to 6 oldest/newest grants in this sample; earlier activity may exist. Elapsed span is not continuous service or hire date; GS grade unverified.' : ''} Informational only, not a legal opinion.`;
   pdf.setFont('helvetica', 'normal'); pdf.setFontSize(6.3); pdf.setTextColor(...GRAY);
   // Fit all disclosures rather than truncate important evidence limitations.
   let notesSize = 6.3;

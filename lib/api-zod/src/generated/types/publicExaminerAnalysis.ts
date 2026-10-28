@@ -11,6 +11,7 @@ import type { PublicExaminerAnalysisInterviewAnalytics } from './publicExaminerA
 import type { PublicExaminerAnalysisOfficeActionAnalytics } from './publicExaminerAnalysisOfficeActionAnalytics';
 import type { PublicExaminerAnalysisSearchType } from './publicExaminerAnalysisSearchType';
 import type { PublicExaminerBreakdown } from './publicExaminerBreakdown';
+import type { PublicExaminerRoleEvidence } from './publicExaminerRoleEvidence';
 
 export interface PublicExaminerAnalysis {
   query: string;
@@ -42,6 +43,7 @@ export interface PublicExaminerAnalysis {
   selectionRequired: boolean;
   examinerCandidates: PublicExaminerBreakdown[];
   topExaminers: PublicExaminerBreakdown[];
+  roleEvidence?: PublicExaminerRoleEvidence;
   allowanceBenchmarks?: PublicExaminerAnalysisAllowanceBenchmarks;
   officeActionAnalytics?: PublicExaminerAnalysisOfficeActionAnalytics;
   interviewAnalytics?: PublicExaminerAnalysisInterviewAnalytics;
