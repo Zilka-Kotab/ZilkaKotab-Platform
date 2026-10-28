@@ -6,7 +6,11 @@ export function PortfolioSnapshotPdfButton({ portfolio, advanced }: {
   portfolio: PublicPortfolioAnalysis;
   advanced?: PublicPortfolioAdvancedAnalysis;
 }) {
-  const download = async () => {
+  return <ExportPdfButton onDownload={() => downloadPortfolioSnapshot(portfolio, advanced)} label="Download snapshot PDF" />;
+}
+
+export async function downloadPortfolioSnapshot(portfolio: PublicPortfolioAnalysis, advanced?: PublicPortfolioAdvancedAnalysis) {
+  {
     const blob = await createPortfolioSnapshotBlob(portfolio, advanced);
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -16,6 +20,5 @@ export function PortfolioSnapshotPdfButton({ portfolio, advanced }: {
     link.click();
     link.remove();
     window.setTimeout(() => URL.revokeObjectURL(url), 1000);
-  };
-  return <ExportPdfButton onDownload={download} label="Download snapshot PDF" />;
+  }
 }

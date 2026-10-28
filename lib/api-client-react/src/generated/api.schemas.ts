@@ -5,6 +5,61 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+export interface FirmBenchmarkStatus {
+  state: string;
+  applicationCount: number;
+  completedCustomerNumbers: number;
+  totalCustomerNumbers: number;
+  /** @nullable */
+  startedAt: string | null;
+  /** @nullable */
+  completedAt: string | null;
+  /** @nullable */
+  error: string | null;
+}
+
+export type PublicFirmBenchmarkLinesItemMetric = typeof PublicFirmBenchmarkLinesItemMetric[keyof typeof PublicFirmBenchmarkLinesItemMetric];
+
+
+export const PublicFirmBenchmarkLinesItemMetric = {
+  allowanceRate: 'allowanceRate',
+  allowedWithTwoActionsRate: 'allowedWithTwoActionsRate',
+  officeActionsPerPatent: 'officeActionsPerPatent',
+  rceRate: 'rceRate',
+  timeToGrantYears: 'timeToGrantYears',
+} as const;
+
+export type PublicFirmBenchmarkLinesItemUnit = typeof PublicFirmBenchmarkLinesItemUnit[keyof typeof PublicFirmBenchmarkLinesItemUnit];
+
+
+export const PublicFirmBenchmarkLinesItemUnit = {
+  percent: 'percent',
+  count: 'count',
+  years: 'years',
+} as const;
+
+export type PublicFirmBenchmarkLinesItem = {
+  metric: PublicFirmBenchmarkLinesItemMetric;
+  value: number;
+  unit: PublicFirmBenchmarkLinesItemUnit;
+  denominator: number;
+  companyDenominator: number;
+  coverage: number;
+};
+
+export interface PublicFirmBenchmark {
+  excludedApplications: number;
+  companyApplications: number;
+  /** @nullable */
+  datasetUpdatedAt: string | null;
+  /** @nullable */
+  filingDateStart: string | null;
+  /** @nullable */
+  filingDateEnd: string | null;
+  footnote: string;
+  lines: PublicFirmBenchmarkLinesItem[];
+}
+
 export interface HealthStatus {
   status: string;
 }
@@ -250,6 +305,7 @@ export type PublicPortfolioAdvancedAnalysisPortfolioInsights = {
 };
 
 export interface PublicPortfolioAdvancedAnalysis {
+  firmBenchmark?: PublicFirmBenchmark;
   prosecutionEfficiency: PublicPortfolioAdvancedAnalysisProsecutionEfficiency;
   topArtUnits: PublicPortfolioArtUnit[];
   outsideCounsel: PublicPortfolioAdvancedAnalysisOutsideCounsel;

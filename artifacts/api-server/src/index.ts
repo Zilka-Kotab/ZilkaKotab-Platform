@@ -1,6 +1,7 @@
 import app from "./app";
 import { pool } from "@workspace/db";
 import { logger } from "./lib/logger";
+import { scheduleFirmRefresh } from "./lib/firm-benchmark-store";
 import { ensureInitialAdminAuthorization, ensurePatentMonitorTool } from "./lib/bootstrap";
 
 const rawPort = process.env["PORT"];
@@ -31,6 +32,7 @@ async function start() {
     }
 
     logger.info({ port }, "Server listening");
+    scheduleFirmRefresh();
   });
 }
 

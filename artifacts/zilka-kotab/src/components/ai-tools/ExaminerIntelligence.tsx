@@ -6,7 +6,7 @@ import type { PublicExaminerAnalysis } from '@workspace/api-client-react';
 import { CoverageLedger, EmptyPanel, ErrorPanel, Metric, ResultSkeleton, errorMessage, fmtNum } from './shared';
 import { ExaminerSnapshotPdfButton } from './ExaminerSnapshotPdfButton';
 import { examinerActivitySpan } from './examiner-activity';
-import { QuestionsWorthAsking } from './QuestionsWorthAsking';
+import { QuestionsWorthAsking, QuestionsContactCTA } from './QuestionsWorthAsking';
 
 export function ExaminerIntelligence() {
   const [query, setQuery] = useState('');
@@ -69,8 +69,9 @@ function ExaminerResult({ data }: { data: PublicExaminerAnalysis }) {
     return <div className="space-y-6">
       <EmptyPanel testId="empty-examiner-results" title={`No applications found for "${data.query}"`}
         body={data.searchType === 'art-unit' ? 'Confirm the art unit number. Some art units have been renumbered or retired.' : 'Try last name only, or the format LAST, FIRST as printed on office actions.'} />
-      <CoverageLedger coverage={data.coverage} testId="coverage-examiner" />
       <QuestionsWorthAsking tool="examiner" />
+      <CoverageLedger coverage={data.coverage} testId="coverage-examiner" />
+      <QuestionsContactCTA />
     </div>;
   }
   const rate = data.estimatedAllowanceRate;
@@ -245,6 +246,7 @@ function ExaminerResult({ data }: { data: PublicExaminerAnalysis }) {
         </section>
       )}
 
+      <QuestionsWorthAsking tool="examiner" />
       <CoverageLedger coverage={data.coverage} testId="coverage-examiner"
         extra={<>
           {data.searchType === 'examiner' && <div className="mt-3 space-y-2 text-xs leading-relaxed text-muted-foreground">
@@ -270,7 +272,7 @@ function ExaminerResult({ data }: { data: PublicExaminerAnalysis }) {
           </div>}
           <p className="mt-3 text-xs leading-relaxed text-muted-foreground"><strong className="font-semibold text-foreground">How this is calculated.</strong> {data.calculationNote}</p>
         </>} />
-      <QuestionsWorthAsking tool="examiner" />
+      <QuestionsContactCTA />
     </motion.div>
   );
 }

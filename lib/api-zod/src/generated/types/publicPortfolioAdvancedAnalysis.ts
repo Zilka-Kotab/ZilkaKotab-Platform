@@ -6,12 +6,14 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { PublicDataCoverage } from './publicDataCoverage';
+import type { PublicFirmBenchmark } from './publicFirmBenchmark';
 import type { PublicPortfolioAdvancedAnalysisOutsideCounsel } from './publicPortfolioAdvancedAnalysisOutsideCounsel';
 import type { PublicPortfolioAdvancedAnalysisPortfolioInsights } from './publicPortfolioAdvancedAnalysisPortfolioInsights';
 import type { PublicPortfolioAdvancedAnalysisProsecutionEfficiency } from './publicPortfolioAdvancedAnalysisProsecutionEfficiency';
 import type { PublicPortfolioArtUnit } from './publicPortfolioArtUnit';
 
 export interface PublicPortfolioAdvancedAnalysis {
+  firmBenchmark?: PublicFirmBenchmark;
   prosecutionEfficiency: PublicPortfolioAdvancedAnalysisProsecutionEfficiency;
   topArtUnits: PublicPortfolioArtUnit[];
   outsideCounsel: PublicPortfolioAdvancedAnalysisOutsideCounsel;

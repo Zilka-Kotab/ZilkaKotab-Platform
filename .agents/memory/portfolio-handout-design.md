@@ -14,3 +14,9 @@ The handout's shared lower section must be rendered as native PDF text and vecto
 **Why:** The user found the required questions and footer copy visibly blurry in downloaded snapshots because the entire section had been inserted as a PNG. Keeping the original approved vector design preserves its appearance while making the text crisp at print size.
 
 **How to apply:** When editing the PDF layouts, use the approved footer's vector content and native text. Do not re-rasterize the lower section or replace the original QR with a regenerated one; keep it identical to the approved handout.
+
+Remove source-page company metrics and event text before cropping a reusable vector footer; clipping alone does not remove them from the PDF's text layer.
+
+**Why:** A comparison export looked correctly scoped but text extraction also returned the original handout company's hidden header and counts. This can contaminate indexing, accessibility, and automated checks.
+
+**How to apply:** Redact unwanted source content, not just its visible bounds. Verify exported text contains only the selected company's metrics while confirming the QR image remains byte-for-byte unchanged.

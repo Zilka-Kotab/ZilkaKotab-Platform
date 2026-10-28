@@ -8,6 +8,28 @@
 import * as zod from 'zod';
 
 
+export const GetFirmBenchmarkStatusResponse = zod.object({
+  "state": zod.string(),
+  "applicationCount": zod.number(),
+  "completedCustomerNumbers": zod.number(),
+  "totalCustomerNumbers": zod.number(),
+  "startedAt": zod.string().nullable(),
+  "completedAt": zod.string().nullable(),
+  "error": zod.string().nullable()
+})
+
+
+export const RefreshFirmBenchmarkResponse = zod.object({
+  "state": zod.string(),
+  "applicationCount": zod.number(),
+  "completedCustomerNumbers": zod.number(),
+  "totalCustomerNumbers": zod.number(),
+  "startedAt": zod.string().nullable(),
+  "completedAt": zod.string().nullable(),
+  "error": zod.string().nullable()
+})
+
+
 /**
  * Returns server health status
  * @summary Health check
@@ -201,6 +223,22 @@ export const analyzePublicPortfolioAdvancedResponseCoverageResultLimitMin = 0;
 
 
 export const AnalyzePublicPortfolioAdvancedResponse = zod.object({
+  "firmBenchmark": zod.object({
+  "excludedApplications": zod.number(),
+  "companyApplications": zod.number(),
+  "datasetUpdatedAt": zod.string().nullable(),
+  "filingDateStart": zod.string().nullable(),
+  "filingDateEnd": zod.string().nullable(),
+  "footnote": zod.string(),
+  "lines": zod.array(zod.object({
+  "metric": zod.enum(['allowanceRate', 'allowedWithTwoActionsRate', 'officeActionsPerPatent', 'rceRate', 'timeToGrantYears']),
+  "value": zod.number(),
+  "unit": zod.enum(['percent', 'count', 'years']),
+  "denominator": zod.number(),
+  "companyDenominator": zod.number(),
+  "coverage": zod.number()
+}))
+}).optional(),
   "prosecutionEfficiency": zod.object({
   "applicationsWithHistories": zod.number().min(analyzePublicPortfolioAdvancedResponseProsecutionEfficiencyApplicationsWithHistoriesMin),
   "averageOfficeActionsPerGrantedPatent": zod.number().min(analyzePublicPortfolioAdvancedResponseProsecutionEfficiencyAverageOfficeActionsPerGrantedPatentMin).nullable(),

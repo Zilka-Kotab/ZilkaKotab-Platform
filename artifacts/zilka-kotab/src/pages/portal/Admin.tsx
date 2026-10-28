@@ -1,7 +1,10 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'wouter';
 import { useAdminUsers, useAdminAudit, useAdminProjects, useAdminToolAccess, useAdminClientTools, usePortalClients, usePortalTools, useCreateAdminUser, useUpdateAdminUser, useCreateAdminClient, useUpdateAdminClient, useUpdateTool, useCreateTool, useSetClientTools, useCreateProject, useUpdateProject } from '@/lib/hooks-portal';
-import { Loader2, Settings, Users, Building2, Wrench, Briefcase, Activity, Plus } from 'lucide-react';
+import { Loader2, Settings, Users, Building2, Wrench, Briefcase, Activity, Plus, Database, RefreshCw } from 'lucide-react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useGetFirmBenchmarkStatus, getGetFirmBenchmarkStatusQueryKey, type FirmBenchmarkStatus } from '@workspace/api-client-react';
+import { fetchPortal } from '@/lib/api-portal';
 import { SEO } from '@/components/SEO';
 import { PortalUser, Role, UserStatus, Client, Tool, Project } from '@/lib/api-portal';
 
@@ -23,6 +26,8 @@ export default function PortalAdmin() {
           <p className="mt-1 text-muted-foreground">Manage users, clients, tools, projects, and access.</p>
         </div>
       </div>
+
+      <FirmDataPanel />
 
       <div className="mb-6 flex space-x-1 rounded-xl bg-muted/50 p-1 w-max border border-border">
         <button
@@ -563,5 +568,70 @@ function AuditAdmin() {
         </tbody>
       </table>
     </div>
+  );
+}
+
+const RUNNING_STATES = new Set(['running', 'queued', 'pending', 'in_progress', 'refreshing']);
+
+function FirmDataPanel() {
+  const queryClient = useQueryClient();
+  const status = useGetFirmBenchmarkStatus({
+    query: {
+      queryKey: getGetFirmBenchmarkStatusQueryKey(),
+      refetchInterval: (query) => (RUNNING_STATES.has(String(query.state.data?.state ?? '').toLowerCase()) ? 10_000 : false),
+    },
+  });
+  const refresh = useMutation({
+    mutationFn: () => fetchPortal<FirmBenchmarkStatus>('/admin/firm-benchmark/refresh', { method: 'POST' }),
+    onSuccess: (next) => {
+      queryClient.setQueryData(getGetFirmBenchmarkStatusQueryKey(), next);
+      queryClient.invalidateQueries({ queryKey: getGetFirmBenchmarkStatusQueryKey() });
+    },
+  });
+  const data = status.data;
+  const running = !!data && RUNNING_STATES.has(data.state.toLowerCase());
+  const fmt = (v: string | null) => (v ? new Date(v).toLocaleString() : 'Never');
+  const pct = data && data.totalCustomerNumbers > 0 ? Math.min(100, (data.completedCustomerNumbers / data.totalCustomerNumbers) * 100) : 0;
+
+  return (
+    <section className="mb-6 rounded-2xl border border-border bg-white p-5 shadow-sm" data-testid="panel-firm-data">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="flex items-start gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10"><Database className="h-5 w-5 text-primary" /></div>
+          <div>
+            <h2 className="text-lg font-semibold text-foreground">Firm data</h2>
+            <p className="text-sm text-muted-foreground">Zilka-Kotab benchmark dataset used by the public portfolio tool. Refresh runs in the background and does not block public analyses.</p>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={() => refresh.mutate()}
+          disabled={running || refresh.isPending || status.isLoading}
+          className="flex h-[38px] items-center gap-2 rounded-md bg-primary px-4 text-sm font-medium text-white hover:bg-primary/90 disabled:opacity-50"
+          data-testid="button-refresh-firm-data"
+        >
+          <RefreshCw className={`h-4 w-4 ${running || refresh.isPending ? 'animate-spin' : ''}`} /> Refresh firm data
+        </button>
+      </div>
+      {status.isLoading && <div className="mt-4 h-10 animate-pulse rounded-md bg-muted" />}
+      {status.isError && <p className="mt-4 text-sm text-destructive" data-testid="text-firm-data-load-error">Firm data status could not be loaded. <button type="button" className="underline" onClick={() => status.refetch()} data-testid="button-retry-firm-data">Retry</button></p>}
+      {refresh.isError && <p className="mt-3 text-sm text-destructive" data-testid="text-firm-data-refresh-error">Refresh could not be started. {refresh.error instanceof Error ? refresh.error.message : ''}</p>}
+      {data && (
+        <div className="mt-4 grid gap-4 text-sm md:grid-cols-4">
+          <div><div className="text-xs uppercase text-muted-foreground">State</div><div className="mt-1 font-medium capitalize" data-testid="status-firm-data">{data.state.replace(/_/g, ' ')}</div></div>
+          <div><div className="text-xs uppercase text-muted-foreground">Applications</div><div className="mt-1 font-medium tabular-nums" data-testid="text-firm-data-applications">{data.applicationCount.toLocaleString()}</div></div>
+          <div>
+            <div className="text-xs uppercase text-muted-foreground">Customer numbers</div>
+            <div className="mt-1 font-medium tabular-nums" data-testid="text-firm-data-progress">{data.completedCustomerNumbers} of {data.totalCustomerNumbers} customers</div>
+            <div className="mt-1.5 h-1.5 rounded bg-muted"><div className="h-full rounded bg-primary transition-all" style={{ width: `${pct}%` }} /></div>
+          </div>
+          <div>
+            <div className="text-xs uppercase text-muted-foreground">{running ? 'Started' : data.error ? 'Last attempt' : 'Last successful refresh'}</div>
+            <div className="mt-1 font-medium" data-testid="text-firm-data-completed">{running ? fmt(data.startedAt) : fmt(data.completedAt)}</div>
+          </div>
+          {data.error && <p className="md:col-span-4 rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs text-destructive" data-testid="text-firm-data-error">Last refresh error: {data.error}</p>}
+        </div>
+      )}
+    </section>
   );
 }

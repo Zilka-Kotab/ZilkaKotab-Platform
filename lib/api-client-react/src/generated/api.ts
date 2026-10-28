@@ -20,6 +20,7 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  FirmBenchmarkStatus,
   HealthStatus,
   PublicExaminerAnalysis,
   PublicExaminerInput,
@@ -57,6 +58,142 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   }
   return result;
 };
+
+export const getGetFirmBenchmarkStatusUrl = () => {
+
+
+
+
+  return `/api/portal/admin/firm-benchmark`
+}
+
+export const getFirmBenchmarkStatus = async ( options?: RequestInit): Promise<FirmBenchmarkStatus> => {
+
+  return customFetch<FirmBenchmarkStatus>(getGetFirmBenchmarkStatusUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetFirmBenchmarkStatusQueryKey = () => {
+    return [
+    `/api/portal/admin/firm-benchmark`
+    ] as const;
+    }
+
+
+export const getGetFirmBenchmarkStatusQueryOptions = <TData = Awaited<ReturnType<typeof getFirmBenchmarkStatus>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getFirmBenchmarkStatus>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetFirmBenchmarkStatusQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getFirmBenchmarkStatus>>> = ({ signal }) => getFirmBenchmarkStatus({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getFirmBenchmarkStatus>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetFirmBenchmarkStatusQueryResult = NonNullable<Awaited<ReturnType<typeof getFirmBenchmarkStatus>>>
+export type GetFirmBenchmarkStatusQueryError = ErrorType<unknown>
+
+
+
+export function useGetFirmBenchmarkStatus<TData = Awaited<ReturnType<typeof getFirmBenchmarkStatus>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getFirmBenchmarkStatus>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetFirmBenchmarkStatusQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getRefreshFirmBenchmarkUrl = () => {
+
+
+
+
+  return `/api/portal/admin/firm-benchmark/refresh`
+}
+
+export const refreshFirmBenchmark = async ( options?: RequestInit): Promise<FirmBenchmarkStatus> => {
+
+  return customFetch<FirmBenchmarkStatus>(getRefreshFirmBenchmarkUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getRefreshFirmBenchmarkMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof refreshFirmBenchmark>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof refreshFirmBenchmark>>, TError,void, TContext> => {
+
+const mutationKey = ['refreshFirmBenchmark'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof refreshFirmBenchmark>>, void> = () => {
+
+
+          return  refreshFirmBenchmark(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RefreshFirmBenchmarkMutationResult = NonNullable<Awaited<ReturnType<typeof refreshFirmBenchmark>>>
+
+    export type RefreshFirmBenchmarkMutationError = ErrorType<unknown>
+
+    export const useRefreshFirmBenchmark = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof refreshFirmBenchmark>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof refreshFirmBenchmark>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getRefreshFirmBenchmarkMutationOptions(options));
+    }
 
 export const getHealthCheckUrl = () => {
 

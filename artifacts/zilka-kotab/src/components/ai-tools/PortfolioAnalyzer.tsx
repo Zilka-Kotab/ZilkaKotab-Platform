@@ -1,23 +1,28 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { motion } from 'framer-motion';
-import { ArrowRight, ExternalLink, Search, X } from 'lucide-react';
+import { ArrowRight, ExternalLink, GitCompareArrows, Search, X } from 'lucide-react';
 import { useAnalyzePublicPortfolio, useAnalyzePublicPortfolioAdvanced } from '@workspace/api-client-react';
 import type { PublicPortfolioAnalysis } from '@workspace/api-client-react';
 import { AdvancedPortfolioMetrics } from './AdvancedPortfolioMetrics';
 import { PortfolioSnapshotPdfButton } from './PortfolioSnapshotPdfButton';
-import { QuestionsWorthAsking } from './QuestionsWorthAsking';
+import { SnapshotPdfChooser } from './SnapshotPdfChooser';
+import { CompareCompanyDialog } from './CompareCompanyDialog';
+import { PortfolioComparison } from './PortfolioComparison';
+import { advancedFor } from './portfolio-compare-utils';
+import { FirmInvolvementBadge } from './firm-benchmark';
+import { QuestionsWorthAsking, QuestionsContactCTA } from './QuestionsWorthAsking';
 import { CoverageLedger, EmptyPanel, ErrorPanel, Metric, ResultSkeleton, errorMessage, fmtDate, fmtNum } from './shared';
 
 export function PortfolioAnalyzer() {
   const [company, setCompany] = useState('');
   const [submitted, setSubmitted] = useState('');
-  const [selectedNames, setSelectedNames] = useState<string[]>([]);
+  const [selectedNames, setSelectedNames] = useState<string[] | null>(null);
   const m = useAnalyzePublicPortfolio();
   const valid = company.trim().length >= 2;
 
   const run = (name: string, names?: string[]) => {
     setSubmitted(name);
-    setSelectedNames(names ?? []);
+    setSelectedNames(names ?? null);
     m.mutate({ data: { companyName: name, ...(names ? { selectedApplicantNames: names } : {}) } });
   };
   const onSubmit = (e: FormEvent) => { e.preventDefault(); if (valid && !m.isPending) run(company.trim()); };
@@ -28,7 +33,7 @@ export function PortfolioAnalyzer() {
         <label htmlFor="portfolio-company" className="zk-query-label">Company or assignee name</label>
         <div className="zk-query-row">
           <Search className="h-5 w-5 shrink-0 text-muted-foreground" />
-          <input id="portfolio-company" value={company} onChange={(e) => { setCompany(e.target.value); setSelectedNames([]); }} maxLength={120}
+          <input id="portfolio-company" value={company} onChange={(e) => { setCompany(e.target.value); setSelectedNames(null); }} maxLength={120}
             placeholder="e.g. Rambus Inc." className="zk-query-input" autoComplete="organization" data-testid="input-portfolio-company" />
           <button type="submit" disabled={!valid || m.isPending} className="zk-btn-primary" data-testid="button-analyze-portfolio">
             {m.isPending ? 'Analyzing' : 'Analyze portfolio'} <ArrowRight className="h-4 w-4" />
@@ -41,8 +46,8 @@ export function PortfolioAnalyzer() {
         {m.isPending && <ResultSkeleton />}
         {m.isError && !m.isPending && <ErrorPanel message={errorMessage(m.error)} onRetry={() => run(submitted)} testId="error-portfolio" />}
         {m.isSuccess && !m.isPending && m.data.selectionRequired && (
-          <ApplicantDialog candidates={m.data.applicantCandidates} selected={selectedNames.length ? selectedNames : m.data.applicantCandidates.map((candidate) => candidate.name)}
-            onChange={setSelectedNames} onCancel={() => m.reset()} onContinue={() => run(submitted, selectedNames.length ? selectedNames : m.data.applicantCandidates.map((candidate) => candidate.name))} />
+          <ApplicantDialog candidates={m.data.applicantCandidates} selected={selectedNames ?? m.data.applicantCandidates.slice(0, 8).map((candidate) => candidate.name)}
+            onChange={setSelectedNames} onCancel={() => m.reset()} onContinue={() => run(submitted, selectedNames ?? m.data.applicantCandidates.slice(0, 8).map((candidate) => candidate.name))} />
         )}
         {m.isSuccess && !m.isPending && !m.data.selectionRequired && <PortfolioResult key={`${m.data.coverage.retrievedAt}:${m.data.matchedApplicantNames.join('|')}`} data={m.data} />}
         {m.isIdle && (
@@ -72,9 +77,10 @@ function ApplicantDialog({ candidates, selected, onChange, onCancel, onContinue 
           <span className="min-w-0 flex-1"><span className="block font-medium">{candidate.name}</span><span className="text-xs text-muted-foreground">{fmtNum(candidate.count)} matching USPTO records</span></span>
         </label>)}
       </div>
+      {selected.length > 8 && <p className="mt-3 text-xs text-destructive" role="alert">Select at most eight applicant names.</p>}
       <div className="mt-6 flex justify-end gap-3">
         <button type="button" className="zk-btn-secondary" onClick={onCancel}>Cancel</button>
-        <button type="button" className="zk-btn-primary" disabled={!selected.length} onClick={onContinue}>Analyze selected</button>
+        <button type="button" className="zk-btn-primary" disabled={!selected.length || selected.length > 8} onClick={onContinue}>Analyze selected</button>
       </div>
     </section>
   </div>;
@@ -89,13 +95,28 @@ function PortfolioResult({ data }: { data: PublicPortfolioAnalysis }) {
     const names = namesKey.split('|').filter(Boolean);
     if (names.length) advanced.mutate({ data: { selectedApplicantNames: names } });
   }, [namesKey]);
+  const [compareOpen, setCompareOpen] = useState(false);
+  const [second, setSecond] = useState<PublicPortfolioAnalysis | null>(null);
+  const secondAdvanced = useAnalyzePublicPortfolioAdvanced();
+  const secondAdvancedRef = useRef(secondAdvanced);
+  secondAdvancedRef.current = secondAdvanced;
+  const secondKey = second ? `${second.coverage.retrievedAt}:${second.matchedApplicantNames.join('|')}` : '';
+  useEffect(() => {
+    const req = secondAdvancedRef.current;
+    req.reset();
+    if (second && second.matchedApplicantNames.length) req.mutate({ data: { selectedApplicantNames: second.matchedApplicantNames } });
+  }, [secondKey]);
+  const primaryAdvanced = advancedFor(advanced, data.matchedApplicantNames);
+  const secondAdvancedData = second ? advancedFor(secondAdvanced, second.matchedApplicantNames) : undefined;
+  const exitComparison = () => { setSecond(null); };
   const total = data.identifiedGrantedPatents + data.identifiedPendingApplications;
   if (total === 0 && data.recentApplications.length === 0) {
     return <div className="space-y-6">
       <EmptyPanel testId="empty-portfolio-results" title={`No USPTO records matched "${data.companyName}"`}
         body="Try the exact legal entity name as it appears on filings, for example including Inc., LLC, or Corporation, or a known former name." />
-      <CoverageLedger coverage={data.coverage} testId="coverage-portfolio" />
       <QuestionsWorthAsking tool="portfolio" />
+      <CoverageLedger coverage={data.coverage} testId="coverage-portfolio" />
+      <QuestionsContactCTA />
     </div>;
   }
   const maxTech = Math.max(1, ...data.topTechnologyAreas.map((t) => t.count));
@@ -106,16 +127,32 @@ function PortfolioResult({ data }: { data: PublicPortfolioAnalysis }) {
         <div className="zk-eyebrow">Portfolio snapshot</div>
         <div className="mt-1 flex flex-wrap items-center justify-between gap-4">
           <h3 className="font-display text-3xl font-semibold" data-testid="text-portfolio-company">{data.companyName}</h3>
-          <PortfolioSnapshotPdfButton portfolio={data} advanced={advanced.data} />
+          <div className="flex flex-wrap items-start gap-3">
+            {second
+              ? <SnapshotPdfChooser options={[
+                  { portfolio: data, advanced: primaryAdvanced, advancedPending: advanced.isPending },
+                  { portfolio: second, advanced: secondAdvancedData, advancedPending: secondAdvanced.isPending },
+                ]} />
+              : <PortfolioSnapshotPdfButton portfolio={data} advanced={primaryAdvanced} />}
+            <button type="button" onClick={() => setCompareOpen(true)} className="zk-btn-primary inline-flex items-center gap-2 shadow-md ring-1 ring-[hsl(var(--zk-brass)/0.5)]" data-testid="button-compare-company">
+              <GitCompareArrows className="h-4 w-4" /> {second ? 'Change comparison company' : 'Compare against another company'}
+            </button>
+          </div>
         </div>
         {data.matchedApplicantNames.length > 0 && (
           <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
             <span className="text-muted-foreground">Matched applicant names:</span>
             {data.matchedApplicantNames.map((n, i) => <span key={n} className="zk-chip" data-testid={`text-applicant-${i}`}>{n}</span>)}
+            {!second && <FirmInvolvementBadge fb={primaryAdvanced?.firmBenchmark} testId="badge-firm-involvement" />}
           </div>
         )}
       </header>
+      <CompareCompanyDialog open={compareOpen} onOpenChange={setCompareOpen} primary={data} onCompare={setSecond} />
 
+      {second ? (
+        <PortfolioComparison a={{ data, advanced: primaryAdvanced, request: advanced }} b={{ data: second, advanced: secondAdvancedData, request: secondAdvanced }}
+          onReplace={() => setCompareOpen(true)} onExit={exitComparison} />
+      ) : <>
       <div className="grid grid-cols-1 gap-px overflow-hidden rounded-sm border bg-border sm:grid-cols-2 xl:grid-cols-4">
         <Metric emphasis label="Granted — status unverified" value={data.identifiedGrantedPatents} note="The USPTO application status does not confirm current in-force status." testId="metric-granted" />
         <Metric label="Identified pending" value={data.identifiedPendingApplications} testId="metric-pending" />
@@ -241,12 +278,14 @@ function PortfolioResult({ data }: { data: PublicPortfolioAnalysis }) {
         </div>
       )}
 
+      <QuestionsWorthAsking tool="portfolio" />
       <CoverageLedger coverage={data.coverage} testId="coverage-portfolio"
         extra={<>
           <p className="mt-3 text-xs leading-relaxed text-muted-foreground"><strong className="font-semibold text-foreground">Record limit.</strong> The limit of five applies to recent application detail rows; the portfolio totals and technology aggregates use the full reported match count.</p>
           <p className="mt-3 text-xs leading-relaxed text-muted-foreground"><strong className="font-semibold text-foreground">Legal status limitation.</strong> USPTO status text reflects prosecution records only. It does not confirm maintenance-fee payment, ownership after assignment, expiration, or enforceability. This is not a legal opinion.</p>
         </>} />
-      <QuestionsWorthAsking tool="portfolio" />
+      <QuestionsContactCTA />
+      </>}
     </motion.div>
   );
 }

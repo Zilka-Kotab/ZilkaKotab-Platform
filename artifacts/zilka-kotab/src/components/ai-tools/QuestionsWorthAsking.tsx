@@ -16,7 +16,13 @@ export function QuestionsWorthAsking({ tool }: { tool: 'examiner' | 'portfolio' 
         ))}
       </ol>
       </div>
-      <div className="relative isolate overflow-hidden border-y-4 border-primary bg-secondary px-6 py-16 text-center text-secondary-foreground sm:px-10 sm:py-20">
+    </section>
+  );
+}
+
+export function QuestionsContactCTA() {
+  return (
+      <section className="relative isolate overflow-hidden border-y-4 border-primary bg-secondary px-6 py-16 text-center text-secondary-foreground sm:px-10 sm:py-20">
         <img
           src={`${import.meta.env.BASE_URL}images/hero-new.jpg`}
           alt=""
@@ -31,7 +37,6 @@ export function QuestionsWorthAsking({ tool }: { tool: 'examiner' | 'portfolio' 
         <Link href="/contact" className="mt-8 inline-flex min-h-14 items-center justify-center rounded-sm bg-primary px-10 py-3 text-lg font-semibold text-white shadow-xl transition-transform hover:scale-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white active:scale-95">
           Contact us
         </Link>
-      </div>
-    </section>
+      </section>
   );
 }

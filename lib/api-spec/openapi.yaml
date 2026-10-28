@@ -13,6 +13,26 @@ tags:
   - name: public-patent-tools
     description: Public USPTO-backed patent intelligence tools
 paths:
+  /portal/admin/firm-benchmark:
+    get:
+      operationId: getFirmBenchmarkStatus
+      responses:
+        "200":
+          description: Administrator-only firm dataset status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FirmBenchmarkStatus"
+  /portal/admin/firm-benchmark/refresh:
+    post:
+      operationId: refreshFirmBenchmark
+      responses:
+        "202":
+          description: Background refresh accepted or already running
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FirmBenchmarkStatus"
   /healthz:
     get:
       operationId: healthCheck
@@ -124,6 +144,60 @@ paths:
           description: Inquiry delivery unavailable
 components:
   schemas:
+    FirmBenchmarkStatus:
+      type: object
+      required: [state, applicationCount, completedCustomerNumbers, totalCustomerNumbers, startedAt, completedAt, error]
+      properties:
+        state:
+          type: string
+        applicationCount:
+          type: integer
+        completedCustomerNumbers:
+          type: integer
+        totalCustomerNumbers:
+          type: integer
+        startedAt:
+          type: ["string", "null"]
+        completedAt:
+          type: ["string", "null"]
+        error:
+          type: ["string", "null"]
+    PublicFirmBenchmark:
+      type: object
+      required: [lines, excludedApplications, companyApplications, datasetUpdatedAt, filingDateStart, filingDateEnd, footnote]
+      properties:
+        excludedApplications:
+          type: integer
+        companyApplications:
+          type: integer
+        datasetUpdatedAt:
+          type: ["string", "null"]
+        filingDateStart:
+          type: ["string", "null"]
+        filingDateEnd:
+          type: ["string", "null"]
+        footnote:
+          type: string
+        lines:
+          type: array
+          items:
+            type: object
+            required: [metric, value, unit, denominator, companyDenominator, coverage]
+            properties:
+              metric:
+                type: string
+                enum: [allowanceRate, allowedWithTwoActionsRate, officeActionsPerPatent, rceRate, timeToGrantYears]
+              value:
+                type: number
+              unit:
+                type: string
+                enum: [percent, count, years]
+              denominator:
+                type: integer
+              companyDenominator:
+                type: integer
+              coverage:
+                type: number
     HealthStatus:
       type: object
       properties:
@@ -375,6 +449,8 @@ components:
       additionalProperties: false
       required: [prosecutionEfficiency, topArtUnits, outsideCounsel, portfolioInsights, coverage]
       properties:
+        firmBenchmark:
+          $ref: "#/components/schemas/PublicFirmBenchmark"
         prosecutionEfficiency:
           type: object
           additionalProperties: false

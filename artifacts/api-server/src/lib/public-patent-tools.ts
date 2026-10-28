@@ -1,4 +1,7 @@
 import { findExaminerRole } from "./examiner-role-evidence";
+import { metricApplication, calculatePortfolioMetrics } from "./portfolio-metrics";
+import { computeFirmBenchmark } from "./firm-benchmark-math";
+import { firmSnapshot } from "./firm-benchmark-store";
 
 const USPTO_API_BASE = "https://api.uspto.gov";
 const SEARCH_PATH = "/api/v1/patent/applications/search";
@@ -66,7 +69,7 @@ function delay(milliseconds: number) {
   return new Promise((resolve) => setTimeout(resolve, milliseconds));
 }
 
-async function requestUspto(url: URL, signal?: AbortSignal) {
+export async function requestUspto(url: URL, signal?: AbortSignal) {
   const previous = requestQueue;
   let release = () => {};
   requestQueue = new Promise<void>((resolve) => { release = resolve; });
@@ -546,13 +549,29 @@ export async function analyzePortfolio(companyNameInput: string, selectedApplica
   });
 }
 
+export async function fetchFirmApplicationPage(customer: number, offset: number) {
+  const url = new URL(`${USPTO_API_BASE}${SEARCH_PATH}`);
+  url.searchParams.set("q", `applicationMetaData.customerNumber:${customer}`);
+  url.searchParams.set("limit", "100"); url.searchParams.set("offset", String(offset));
+  url.searchParams.set("fields", "applicationNumberText,applicationMetaData,correspondenceAddressBag,eventDataBag");
+  const response = await requestUspto(url);
+  if (response.status === 404) return { count: 0, records: [] as JsonRecord[] };
+  if (!response.ok) throw new Error(`USPTO firm-data request failed (${response.status})`);
+  const body = asRecord(await response.json()) ?? {};
+  if (typeof body.count !== "number" || !Array.isArray(body.patentFileWrapperDataBag)) {
+    throw new Error("USPTO returned an invalid firm-data page");
+  }
+  return { count: body.count, records: recordsFrom(body.patentFileWrapperDataBag) };
+}
+
 export async function analyzePortfolioAdvanced(selectedApplicantNames: string[]) {
   const names = [...new Set(selectedApplicantNames.map((name) => name.trim()).filter((name) => name.length >= 2 && name.length <= 200))];
   if (!names.length || names.length > 8 || names.length !== selectedApplicantNames.length) {
     throw new PublicPatentToolError("Select one or more valid applicant names first.", 400);
   }
   const selectedKey = names.slice().sort().join("|");
-  return cached(`portfolio-advanced:${selectedKey}`, async () => {
+  const snapshot = await firmSnapshot();
+  return cached(`portfolio-advanced-firm-v1:${snapshot.updatedAt ?? "none"}:${selectedKey}`, async () => {
     const applicantQuery = names
       .map((name) => `applicationMetaData.firstApplicantName:"${escapeQuery(name)}"`)
       .join(" OR ");
@@ -570,6 +589,8 @@ export async function analyzePortfolioAdvanced(selectedApplicantNames: string[])
       if (applicationNumber) sampleByApplication.set(applicationNumber, record);
     }
     const records = [...sampleByApplication.values()];
+    const normalizedRecords = records.map(metricApplication);
+    const sharedMetrics = calculatePortfolioMetrics(normalizedRecords);
     const firmApplications = new Map<string, { name: string; applications: Set<string> }>();
     const attorneyApplications = new Map<string, { name: string; applications: Set<string> }>();
     const counselApplications = new Set<string>();
@@ -633,28 +654,18 @@ export async function analyzePortfolioAdvanced(selectedApplicantNames: string[])
       ? `Based on structured USPTO attorney-address and correspondence-name records that explicitly identify a law firm, or on named practitioners of record when no firm is available. Counts are distinct applications among ${records.length.toLocaleString()} analyzed records (n=${counselApplications.size.toLocaleString()} with identified counsel); a listed record does not establish who performed all prosecution work or a current engagement.`
       : "No identifiable law firm or named practitioner was available in the structured USPTO records returned for this application sample.";
     const recordsWithHistory = records.filter((record) => Array.isArray(record.eventDataBag));
-    const historyStartDates = recordsWithHistory
-      .map((record) => text(metadata(record).filingDate))
-      .filter((date): date is string => Boolean(date && !Number.isNaN(Date.parse(date))))
+    const historyStartDates = normalizedRecords
+      .map(record => record.filingDate)
+      .filter((date): date is string => Boolean(date))
       .sort();
     const eventDateRange = historyStartDates.length
       ? { start: historyStartDates[0], end: historyStartDates.at(-1)! }
       : null;
 
-    const uniqueSubstantiveActions = (record: JsonRecord) => {
-      const keys = new Set<string>();
-      for (const event of events(record)) {
-        const code = text(event.eventCode);
-        if (!["CTNF", "CTFR"].includes(code ?? "")) continue;
-        keys.add(`${code}|${text(event.eventDate) ?? ""}|${text(event.eventDescriptionText) ?? ""}`);
-      }
-      return keys.size;
-    };
+    const uniqueSubstantiveActions = (record: JsonRecord) => metricApplication(record).officeActions;
     const grantedWithHistory = recordsWithHistory.filter((record) => isGranted(metadata(record)));
     const officeActionCounts = grantedWithHistory.map(uniqueSubstantiveActions);
-    const averageOfficeActions = officeActionCounts.length >= 10
-      ? round(officeActionCounts.reduce((sum, count) => sum + count, 0) / officeActionCounts.length, 2)
-      : null;
+    const averageOfficeActions = sharedMetrics.officeActionsPerPatent.value === null ? null : round(sharedMetrics.officeActionsPerPatent.value, 2);
     const rceApplications = recordsWithHistory.filter((record) =>
       events(record).some((event) => text(event.eventCode) === "RCEX"),
     ).length;
@@ -739,19 +750,20 @@ export async function analyzePortfolioAdvanced(selectedApplicantNames: string[])
     }));
 
     return {
+      firmBenchmark: computeFirmBenchmark(normalizedRecords, snapshot.records, snapshot.updatedAt, names),
       prosecutionEfficiency: {
         applicationsWithHistories: recordsWithHistory.length,
         averageOfficeActionsPerGrantedPatent: averageOfficeActions,
-        officeActionDenominator: grantedWithHistory.length,
-        rceRate: rate(rceApplications, recordsWithHistory.length),
-        rceApplications,
-        rceDenominator: recordsWithHistory.length,
-        examinerInterviewRate: rate(interviewApplications, recordsWithHistory.length),
-        interviewApplications,
-        interviewDenominator: recordsWithHistory.length,
-        allowedWithTwoOrFewerActionsRate: rate(allowedWithTwoOrFewer.length, allowedWithHistory.length),
-        allowedWithTwoOrFewerActions: allowedWithTwoOrFewer.length,
-        allowedWithHistory: allowedWithHistory.length,
+        officeActionDenominator: sharedMetrics.officeActionsPerPatent.denominator,
+        rceRate: sharedMetrics.rceRate.value === null ? null : round(sharedMetrics.rceRate.value),
+        rceApplications: sharedMetrics.rceRate.numerator,
+        rceDenominator: sharedMetrics.rceRate.denominator,
+        examinerInterviewRate: sharedMetrics.interviewRate.value === null ? null : round(sharedMetrics.interviewRate.value),
+        interviewApplications: sharedMetrics.interviewRate.numerator,
+        interviewDenominator: sharedMetrics.interviewRate.denominator,
+        allowedWithTwoOrFewerActionsRate: sharedMetrics.allowedWithTwoActionsRate.value === null ? null : round(sharedMetrics.allowedWithTwoActionsRate.value),
+        allowedWithTwoOrFewerActions: sharedMetrics.allowedWithTwoActionsRate.numerator,
+        allowedWithHistory: sharedMetrics.allowedWithTwoActionsRate.denominator,
         filingDateStart: eventDateRange?.start ?? null,
         filingDateEnd: eventDateRange?.end ?? null,
       },
@@ -764,12 +776,10 @@ export async function analyzePortfolioAdvanced(selectedApplicantNames: string[])
         entries: counselEntries,
       },
       portfolioInsights: {
-        overallAllowanceRate: outcomes.hasStatusData ? outcomes.allowanceRate : null,
-        knownFinalOutcomes: outcomes.disposed,
-        averageTimeToGrantMonths: grantDurations.length >= 10
-          ? round(grantDurations.reduce((sum, value) => sum + value, 0) / grantDurations.length, 1)
-          : null,
-        grantDurationSampleSize: grantDurations.length,
+        overallAllowanceRate: sharedMetrics.allowanceRate.value === null ? null : round(sharedMetrics.allowanceRate.value),
+        knownFinalOutcomes: sharedMetrics.allowanceRate.denominator,
+        averageTimeToGrantMonths: sharedMetrics.timeToGrantYears.value === null ? null : round(sharedMetrics.timeToGrantYears.value * 12, 1),
+        grantDurationSampleSize: sharedMetrics.timeToGrantYears.denominator,
         averagePendingAgeYears: pendingAgeAverage,
         pendingAgeSampleSize: pendingWithDates.length,
         pendingAgeBuckets: samplePendingAges,

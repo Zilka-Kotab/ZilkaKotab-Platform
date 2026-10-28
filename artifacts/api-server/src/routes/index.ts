@@ -1,4 +1,5 @@
 import { Router, type IRouter } from "express";
+import firmBenchmarkRouter from "./firm-benchmark";
 import healthRouter from "./health";
 import contactRouter from "./contact";
 import authRouter from "./auth";
@@ -10,6 +11,7 @@ import publicPatentToolsRouter from "./public-patent-tools";
 const router: IRouter = Router();
 
 router.use(healthRouter);
+router.use(firmBenchmarkRouter);
 router.use(contactRouter);
 router.use(authRouter);
 router.use(publicPatentToolsRouter);

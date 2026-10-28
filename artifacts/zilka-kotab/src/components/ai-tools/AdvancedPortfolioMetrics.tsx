@@ -1,5 +1,7 @@
 import { useAnalyzePublicPortfolioAdvanced } from '@workspace/api-client-react';
+import type { ReactNode } from 'react';
 import { Metric, fmtNum } from './shared';
+import { FirmBenchmarkLine, FirmInvolvementBadge, hasLines } from './firm-benchmark';
 
 export function AdvancedPortfolioMetrics({ applicantNames, request }: {
   applicantNames: string[];
@@ -21,6 +23,7 @@ export function AdvancedPortfolioMetrics({ applicantNames, request }: {
     </section>;
   }
   if (!request.data) return null;
+  const fb = request.data.firmBenchmark;
   const { prosecutionEfficiency: e, topArtUnits, outsideCounsel, portfolioInsights: p, coverage } = request.data;
 
   return (
@@ -34,12 +37,13 @@ export function AdvancedPortfolioMetrics({ applicantNames, request }: {
         </p>
       </header>
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <EfficiencyGauge label="Avg. Office Actions per Patent" value={e.averageOfficeActionsPerGrantedPatent?.toFixed(2) ?? 'N/A'} note={`Granted cases with history: n=${fmtNum(e.officeActionDenominator)}. Counts non-final and final actions.`} />
-        <EfficiencyGauge label="RCE Rate" value={e.rceRate === null ? 'N/A' : `${e.rceRate.toFixed(1)}%`} note={`${fmtNum(e.rceApplications)} of ${fmtNum(e.rceDenominator)} applications had at least one RCEX event.`} rate={e.rceRate} />
+        <EfficiencyGauge label="Avg. Office Actions per Patent" value={e.averageOfficeActionsPerGrantedPatent?.toFixed(2) ?? 'N/A'} note={`Granted cases with history: n=${fmtNum(e.officeActionDenominator)}. Counts non-final and final actions.`} bench={<FirmBenchmarkLine fb={fb} metric="officeActionsPerPatent" align="center" testId="benchmark-office-actions" />} />
+        <EfficiencyGauge label="RCE Rate" value={e.rceRate === null ? 'N/A' : `${e.rceRate.toFixed(1)}%`} note={`${fmtNum(e.rceApplications)} of ${fmtNum(e.rceDenominator)} applications had at least one RCEX event.`} rate={e.rceRate} bench={<FirmBenchmarkLine fb={fb} metric="rceRate" align="center" testId="benchmark-rce-rate" />} />
         <EfficiencyGauge label="Examiner Interview Rate" value={e.examinerInterviewRate === null ? 'N/A' : `${e.examinerInterviewRate.toFixed(1)}%`} note={`${fmtNum(e.interviewApplications)} of ${fmtNum(e.interviewDenominator)} applications had a documented interview event.`} rate={e.examinerInterviewRate} />
-        <EfficiencyGauge label="Allowed With ≤2 Office Actions" value={e.allowedWithTwoOrFewerActionsRate === null ? 'N/A' : `${e.allowedWithTwoOrFewerActionsRate.toFixed(1)}%`} note={`${fmtNum(e.allowedWithTwoOrFewerActions)} of ${fmtNum(e.allowedWithHistory)} allowed cases with history.`} rate={e.allowedWithTwoOrFewerActionsRate} />
+        <EfficiencyGauge label="Allowed With ≤2 Office Actions" value={e.allowedWithTwoOrFewerActionsRate === null ? 'N/A' : `${e.allowedWithTwoOrFewerActionsRate.toFixed(1)}%`} note={`${fmtNum(e.allowedWithTwoOrFewerActions)} of ${fmtNum(e.allowedWithHistory)} allowed cases with history.`} rate={e.allowedWithTwoOrFewerActionsRate} bench={<FirmBenchmarkLine fb={fb} metric="allowedWithTwoActionsRate" align="center" testId="benchmark-allowed-two-actions" />} />
       </div>
       <p className="-mt-4 text-xs text-muted-foreground">USPTO prosecution events: CTNF / CTFR (substantive actions), RCEX (RCE), and EXIN / EXAT / EXET (interview summaries). Rates are withheld when the metric denominator is under 10; recent records may not include full event histories.</p>
+      {hasLines(fb) && fb && <p className="-mt-5 border-l-2 border-[hsl(var(--zk-brass))] pl-3 text-xs leading-relaxed text-muted-foreground" data-testid="text-firm-benchmark-footnote">{fb.footnote}</p>}
 
       <div className="grid gap-8 lg:grid-cols-2">
         <section>
@@ -56,7 +60,7 @@ export function AdvancedPortfolioMetrics({ applicantNames, request }: {
           </div>
         </section>
         <section>
-          <h4 className="zk-h4">{outsideCounsel.label}</h4>
+          <h4 className="zk-h4">{!outsideCounsel.available && fb && fb.excludedApplications > 0 ? 'Zilka-Kotab Prosecution Involvement' : outsideCounsel.label}</h4>
           {outsideCounsel.entries.length ? (
             <ol className="mt-3 space-y-3" data-testid="top-outside-counsel">
               {outsideCounsel.entries.map((entry, index) => {
@@ -74,7 +78,9 @@ export function AdvancedPortfolioMetrics({ applicantNames, request }: {
                 );
               })}
             </ol>
-          ) : <p className="mt-2 text-sm text-muted-foreground">{outsideCounsel.note}</p>}
+          ) : !outsideCounsel.available && fb && fb.excludedApplications > 0
+            ? <div className="mt-3" data-testid="outside-counsel-firm-involvement"><FirmInvolvementBadge fb={fb} testId="badge-firm-involvement-counsel" /></div>
+            : <p className="mt-2 text-sm text-muted-foreground">{outsideCounsel.note}</p>}
           {outsideCounsel.entries.length > 0 && <p className="mt-3 text-xs leading-relaxed text-muted-foreground">{outsideCounsel.note}</p>}
         </section>
       </div>
@@ -82,8 +88,8 @@ export function AdvancedPortfolioMetrics({ applicantNames, request }: {
       <section>
         <h4 className="zk-h4">Portfolio Prosecution Insights</h4>
         <div className="mt-4 grid gap-px overflow-hidden rounded-sm border bg-border sm:grid-cols-3">
-          <Metric label="Overall Allowance Rate" value={p.overallAllowanceRate === null ? null : `${p.overallAllowanceRate.toFixed(1)}%`} note={`${fmtNum(p.knownFinalOutcomes)} known allowed/granted or abandoned outcomes; pending excluded.`} testId="metric-portfolio-allowance-rate" />
-          <Metric label="Average Time to Grant" value={p.averageTimeToGrantMonths === null ? null : `${(p.averageTimeToGrantMonths / 12).toFixed(1)} years`} note={`Valid filing and grant dates; sample n=${fmtNum(p.grantDurationSampleSize)}.`} testId="metric-portfolio-time-to-grant" />
+          <BenchCell bench={<FirmBenchmarkLine fb={fb} metric="allowanceRate" testId="benchmark-allowance-rate" />}><Metric label="Overall Allowance Rate" value={p.overallAllowanceRate === null ? null : `${p.overallAllowanceRate.toFixed(1)}%`} note={`${fmtNum(p.knownFinalOutcomes)} known allowed/granted or abandoned outcomes; pending excluded.`} testId="metric-portfolio-allowance-rate" /></BenchCell>
+          <BenchCell bench={<FirmBenchmarkLine fb={fb} metric="timeToGrantYears" testId="benchmark-time-to-grant" />}><Metric label="Average Time to Grant" value={p.averageTimeToGrantMonths === null ? null : `${(p.averageTimeToGrantMonths / 12).toFixed(1)} years`} note={`Valid filing and grant dates; sample n=${fmtNum(p.grantDurationSampleSize)}.`} testId="metric-portfolio-time-to-grant" /></BenchCell>
           <Metric label="Average Age of Pending Applications" value={p.averagePendingAgeYears === null ? null : `${p.averagePendingAgeYears.toFixed(1)} years`} note={`Pending sample n=${fmtNum(p.pendingAgeSampleSize)}.`} testId="metric-portfolio-pending-age" className="sm:border-l sm:border-border" />
         </div>
         <div className="mt-4 grid gap-8 lg:grid-cols-2">
@@ -115,7 +121,12 @@ export function AdvancedPortfolioMetrics({ applicantNames, request }: {
   );
 }
 
-function EfficiencyGauge({ label, value, note, rate }: { label: string; value: string; note: string; rate?: number | null }) {
+function BenchCell({ bench, children }: { bench: ReactNode; children: ReactNode }) {
+  if (!bench) return <>{children}</>;
+  return <div className="flex flex-col bg-background [&>.zk-metric]:flex-1">{children}<div className="px-5 pb-4">{bench}</div></div>;
+}
+
+function EfficiencyGauge({ label, value, note, rate, bench }: { label: string; value: string; note: string; rate?: number | null; bench?: ReactNode }) {
   const progress = rate === undefined || rate === null ? 0 : Math.max(0, Math.min(100, rate));
   return (
     <article className="flex flex-col items-center border bg-white p-4 text-center">
@@ -125,6 +136,7 @@ function EfficiencyGauge({ label, value, note, rate }: { label: string; value: s
       </div>
       <h5 className="mt-3 text-sm font-semibold">{label}</h5>
       <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{note}</p>
+      {bench}
     </article>
   );
 }

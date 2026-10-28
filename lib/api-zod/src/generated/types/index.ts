@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from './firmBenchmarkStatus';
 export * from './healthStatus';
 export * from './publicApplicantCandidate';
 export * from './publicDataCoverage';
@@ -26,6 +27,10 @@ export * from './publicExaminerInput';
 export * from './publicExaminerRoleEvidence';
 export * from './publicExaminerRoleEvidenceRole';
 export * from './publicFilingTrend';
+export * from './publicFirmBenchmark';
+export * from './publicFirmBenchmarkLinesItem';
+export * from './publicFirmBenchmarkLinesItemMetric';
+export * from './publicFirmBenchmarkLinesItemUnit';
 export * from './publicPatentApplication';
 export * from './publicPatentGrant';
 export * from './publicPendingAgeBucket';

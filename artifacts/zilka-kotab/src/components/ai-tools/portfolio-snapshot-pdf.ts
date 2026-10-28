@@ -1,6 +1,7 @@
 import type { PublicPortfolioAnalysis, PublicPortfolioAdvancedAnalysis } from '@workspace/api-client-react';
 import { drawPortfolioPdfHeader } from './portfolio-pdf-header';
 import { finishSnapshotWithVectorFooter } from './vector-handout-footer';
+import { benchmarkValue, findLine, hasLines } from './firm-benchmark';
 
 const NAVY: [number, number, number] = [11, 31, 53];
 const GOLD: [number, number, number] = [191, 154, 37];
@@ -65,13 +66,22 @@ export async function createPortfolioSnapshotBlob(
   write('PORTFOLIO COMPOSITION & DOCKET CONCENTRATION', 36, 135, 9.5, NAVY, true);
   rule(142);
   const efficiency = advanced?.prosecutionEfficiency;
+  const fb = advanced?.firmBenchmark;
+  const benchText = (metric: Parameters<typeof findLine>[1]) => {
+    const line = findLine(fb, metric);
+    return line ? `Zilka-Kotab: ${benchmarkValue(line)} (n=${number(line.denominator)})` : null;
+  };
+  if (fb && fb.excludedApplications > 0) {
+    pdf.setFont('helvetica', 'bold'); pdf.setFontSize(6.3); pdf.setTextColor(...GOLD);
+    pdf.text(fit(`${number(fb.excludedApplications)} of ${number(fb.companyApplications)} applications prosecuted by Zilka-Kotab`, 250, 6.3), 576, 135, { align: 'right' });
+  }
   write('PROSECUTION EFFICIENCY', 36, 156, 6.8, NAVY, true);
   if (!advanced) write('Advanced data not available at export time', 347, 156, 6.8, GRAY);
   const gauges = [
-    { value: efficiency?.averageOfficeActionsPerGrantedPatent?.toFixed(2) ?? 'N/A', label: 'Avg. office actions per granted patent', rate: undefined, sample: efficiency?.officeActionDenominator },
-    { value: percent(efficiency?.rceRate), label: 'RCE Rate', rate: efficiency?.rceRate, sample: efficiency?.rceDenominator },
-    { value: percent(efficiency?.examinerInterviewRate), label: 'Examiner Interview Rate', rate: efficiency?.examinerInterviewRate, sample: efficiency?.interviewDenominator },
-    { value: percent(efficiency?.allowedWithTwoOrFewerActionsRate), label: 'Allowed with <=2 office actions', rate: efficiency?.allowedWithTwoOrFewerActionsRate, sample: efficiency?.allowedWithHistory },
+    { value: efficiency?.averageOfficeActionsPerGrantedPatent?.toFixed(2) ?? 'N/A', label: 'Avg. office actions per granted patent', rate: undefined, sample: efficiency?.officeActionDenominator, bench: benchText('officeActionsPerPatent') },
+    { value: percent(efficiency?.rceRate), label: 'RCE Rate', rate: efficiency?.rceRate, sample: efficiency?.rceDenominator, bench: benchText('rceRate') },
+    { value: percent(efficiency?.examinerInterviewRate), label: 'Examiner Interview Rate', rate: efficiency?.examinerInterviewRate, sample: efficiency?.interviewDenominator, bench: null },
+    { value: percent(efficiency?.allowedWithTwoOrFewerActionsRate), label: 'Allowed with <=2 office actions', rate: efficiency?.allowedWithTwoOrFewerActionsRate, sample: efficiency?.allowedWithHistory, bench: benchText('allowedWithTwoActionsRate') },
   ];
   gauges.forEach((gauge, index) => {
     const x = 101 + index * 137;
@@ -94,12 +104,18 @@ export async function createPortfolioSnapshotBlob(
     pdf.text([clean(gauge.label), `(n=${number(gauge.sample)})`], x, 216, {
       align: 'center', lineHeightFactor: 1.25,
     });
+    if (gauge.bench) {
+      pdf.setFont('helvetica', 'bold'); pdf.setTextColor(...GOLD);
+      pdf.text(fit(gauge.bench, 130, 5.4), x, 233.5, { align: 'center' });
+    }
   });
-  rule(246);
+  const showFootnote = hasLines(fb) && fb;
+  if (showFootnote) wrapped(fb.footnote, 36, 246, 540, 5.7, GRAY, 2);
+  rule(showFootnote ? 259 : 246);
 
   // Two compact, comparable data panels.
-  write('FILING TREND - LAST FIVE YEARS', 36, 261, 7.2, NAVY, true);
-  write('LEADING TECHNOLOGY AREAS', 322, 261, 7.2, NAVY, true);
+  write('FILING TREND - LAST FIVE YEARS', 36, showFootnote ? 267 : 261, 7.2, NAVY, true);
+  write('LEADING TECHNOLOGY AREAS', 322, showFootnote ? 267 : 261, 7.2, NAVY, true);
   pdf.setDrawColor(...LIGHT); pdf.setLineWidth(0.5); pdf.line(303, 257, 303, 342);
   const trends = portfolio.filingTrends.slice(-5);
   const maxTrend = Math.max(1, ...trends.map((item) => item.count));
@@ -108,9 +124,9 @@ export async function createPortfolioSnapshotBlob(
     const x = 45 + index * 48;
     const height = item.count / maxTrend * 43;
     pdf.setFillColor(...(index % 2 ? NAVY : GOLD));
-    if (height > 0) pdf.rect(x, 320 - height, 27, height, 'F');
-    write(number(item.count), x, 313 - height, 6.5, NAVY, true);
-    write(String(item.year), x, 334, 7, GRAY);
+    if (height > 0) pdf.rect(x, 320 + (showFootnote ? 7 : 0) - height, 27, height, 'F');
+    write(number(item.count), x, 313 + (showFootnote ? 7 : 0) - height, 6.5, NAVY, true);
+    write(String(item.year), x, 334 + (showFootnote ? 7 : 0), 7, GRAY);
   });
   const technology = portfolio.topTechnologyAreas.slice(0, 3);
   const maxTechnology = Math.max(1, ...technology.map((item) => item.count));
@@ -127,28 +143,35 @@ export async function createPortfolioSnapshotBlob(
   // Allowance uses allowed / (allowed + abandoned); pending is excluded.
   const abandonmentRate = insights?.overallAllowanceRate != null && insights.knownFinalOutcomes > 0
     ? 100 - insights.overallAllowanceRate : null;
-  const summaryMetrics = [
-    ['Allowance rate', percent(insights?.overallAllowanceRate), `Disposed n=${number(insights?.knownFinalOutcomes)}`],
-    ['Average time to grant', insights?.averageTimeToGrantMonths == null ? 'N/A' : `${(insights.averageTimeToGrantMonths / 12).toFixed(1)} yrs`, `Valid dates n=${number(insights?.grantDurationSampleSize)}`],
-    ['Average pending age', insights?.averagePendingAgeYears == null ? 'N/A' : `${insights.averagePendingAgeYears.toFixed(1)} yrs`, `Pending n=${number(insights?.pendingAgeSampleSize)}`],
-    ['Average rate of abandonment', percent(abandonmentRate), `Disposed n=${number(insights?.knownFinalOutcomes)}`],
+  const summaryMetrics: [string, string, string, string | null][] = [
+    ['Allowance rate', percent(insights?.overallAllowanceRate), `Disposed n=${number(insights?.knownFinalOutcomes)}`, benchText('allowanceRate')],
+    ['Average time to grant', insights?.averageTimeToGrantMonths == null ? 'N/A' : `${(insights.averageTimeToGrantMonths / 12).toFixed(1)} yrs`, `Valid dates n=${number(insights?.grantDurationSampleSize)}`, benchText('timeToGrantYears')],
+    ['Average pending age', insights?.averagePendingAgeYears == null ? 'N/A' : `${insights.averagePendingAgeYears.toFixed(1)} yrs`, `Pending n=${number(insights?.pendingAgeSampleSize)}`, null],
+    ['Average rate of abandonment', percent(abandonmentRate), `Disposed n=${number(insights?.knownFinalOutcomes)}`, null],
   ];
+  // When benchmark lines exist, tighten the row by 2pt so a compact line fits above the notes.
+  const summaryBench = summaryMetrics.some((item) => item[3]);
+  const shift = summaryBench ? 2 : 0;
   const summaryColumnWidth = 540 / summaryMetrics.length;
-  summaryMetrics.forEach(([label, value, sample], index) => {
+  summaryMetrics.forEach(([label, value, sample, bench], index) => {
     const x = 36 + index * summaryColumnWidth;
     write(label.toUpperCase(), x, 359, 6.3, NAVY, true);
-    write(value, x, 377, 16, NAVY, true);
-    write(sample, x, 389, 6.3, GRAY);
-    if (index) { pdf.setDrawColor(...LIGHT); pdf.line(x - 12, 353, x - 12, 390); }
+    write(value, x, 377 - shift, 16, NAVY, true);
+    write(sample, x, 389 - shift - (summaryBench ? 1 : 0), 6.3, GRAY);
+    if (bench) {
+      pdf.setFont('helvetica', 'bold'); pdf.setFontSize(5.4); pdf.setTextColor(...GOLD);
+      pdf.text(fit(bench, summaryColumnWidth - 16, 5.4), x, 395);
+    }
+    if (index) { pdf.setDrawColor(...LIGHT); pdf.line(x - 12, 353, x - 12, summaryBench ? 397 : 390); }
   });
   const artworkHeight = 612 * 553 / 934;
   const artworkY = 792 - artworkHeight;
-  const notesTop = 395;
+  const notesTop = summaryBench ? 400 : 395;
   rule(notesTop);
   const filingRange = efficiency?.filingDateStart && efficiency.filingDateEnd
     ? ` History filing range: ${efficiency.filingDateStart} to ${efficiency.filingDateEnd}.` : '';
   wrapped(
-    `Scope: ${portfolio.matchedApplicantNames.join('; ') || portfolio.companyName}. Snapshot sample: ${number(portfolio.coverage.recordsAnalyzed)} / ${number(portfolio.coverage.totalMatchesReported)} matching records.${advanced ? ` Advanced sample: ${number(advanced.coverage.recordsAnalyzed)}${advanced.coverage.truncated ? ' (capped)' : ''}.` : ''}${filingRange} Granted does not confirm in-force status. Filing trends undercount unpublished applications; CPC counts are classification occurrences, not unique patents. Informational only, not a legal opinion.`,
+    `Scope: ${portfolio.matchedApplicantNames.join('; ') || portfolio.companyName}. Snapshot sample: ${number(portfolio.coverage.recordsAnalyzed)} / ${number(portfolio.coverage.totalMatchesReported)} matching records.${advanced ? ` Advanced sample: ${number(advanced.coverage.recordsAnalyzed)}${advanced.coverage.truncated ? ' (capped)' : ''}.` : ''}${filingRange}${fb && fb.excludedApplications > 0 ? ' Firm count: correspondence numbers in analyzed sample, not proof of all work.' : ''} Granted does not confirm in-force status. Filing trends undercount unpublished applications; CPC counts are classification occurrences, not unique patents. Informational only, not a legal opinion.`,
     36, (notesTop + artworkY) / 2, 540, 6.3, GRAY, 4, true,
   );
 
