@@ -1,4 +1,5 @@
 import type { PublicPortfolioAnalysis, PublicPortfolioAdvancedAnalysis } from '@workspace/api-client-react';
+import { drawPortfolioPdfHeader } from './portfolio-pdf-header';
 
 const NAVY: [number, number, number] = [11, 31, 53];
 const GOLD: [number, number, number] = [191, 154, 37];
@@ -54,32 +55,7 @@ export async function createPortfolioSnapshotBlob(
     wrapped(label.toUpperCase(), x + 10, y + 31, width - 17, 6.5, GRAY, 2);
   };
 
-  // No event branding, portfolio-specific advice, or outside-counsel content.
-  pdf.setFillColor(...NAVY); pdf.rect(0, 0, 612, 70, 'F');
-  pdf.setFillColor(...GOLD); pdf.rect(0, 70, 612, 2, 'F');
-  const title = clean(portfolio.companyName);
-  const titleWidth = 365;
-  let titleSize = 23;
-  pdf.setFont('times', 'normal'); pdf.setFontSize(titleSize); pdf.setTextColor(255, 255, 255);
-  while (pdf.getTextWidth(title) > titleWidth && titleSize > 16) {
-    titleSize -= 0.5;
-    pdf.setFontSize(titleSize);
-  }
-  // Center the complete left-hand block using Times' ascender/descender,
-  // accounting for company names whose font size is reduced to fit.
-  const headerOffset = 35 - ((26 - titleSize * 1.053) + (46 + 18 * 0.281)) / 2;
-  pdf.text(fit(title, titleWidth, titleSize), 36, 26 + headerOffset);
-  pdf.setFontSize(18);
-  pdf.text('Patent Portfolio Snapshot', 36, 46 + headerOffset);
-  const date = new Date(portfolio.coverage.retrievedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
-  pdf.setFont('helvetica', 'normal'); pdf.setFontSize(6); pdf.setTextColor(204, 213, 223);
-  pdf.text(`SOURCE: USPTO Open Data Portal | RETRIEVED: ${date}`, 402, 46 + headerOffset, { align: 'right' });
-  pdf.setDrawColor(73, 88, 106); pdf.setLineWidth(0.5); pdf.line(414, 17, 414, 55);
-  pdf.setFont('helvetica', 'bold'); pdf.setFontSize(7.8); pdf.setTextColor(...GOLD);
-  pdf.text('Complimentary Patent Intelligence', 576, 25, { align: 'right' });
-  pdf.setFont('helvetica', 'normal'); pdf.setFontSize(7.4); pdf.setTextColor(225, 231, 238);
-  pdf.text('Provided by Zilka-Kotab, PC', 576, 38, { align: 'right' });
-  pdf.text('AI-Enabled Patent Intelligence', 576, 51, { align: 'right' });
+  drawPortfolioPdfHeader(pdf, clean(portfolio.companyName), portfolio.coverage.retrievedAt);
   [
     ['Granted - status unverified', number(portfolio.identifiedGrantedPatents)],
     ['Identified pending', number(portfolio.identifiedPendingApplications)],
@@ -149,12 +125,18 @@ export async function createPortfolioSnapshotBlob(
   });
   rule(346);
   const insights = advanced?.portfolioInsights;
-  [
+  // Allowance uses allowed / (allowed + abandoned); pending is excluded.
+  const abandonmentRate = insights?.overallAllowanceRate != null && insights.knownFinalOutcomes > 0
+    ? 100 - insights.overallAllowanceRate : null;
+  const summaryMetrics = [
     ['Allowance rate', percent(insights?.overallAllowanceRate), `Disposed n=${number(insights?.knownFinalOutcomes)}`],
     ['Average time to grant', insights?.averageTimeToGrantMonths == null ? 'N/A' : `${(insights.averageTimeToGrantMonths / 12).toFixed(1)} yrs`, `Valid dates n=${number(insights?.grantDurationSampleSize)}`],
     ['Average pending age', insights?.averagePendingAgeYears == null ? 'N/A' : `${insights.averagePendingAgeYears.toFixed(1)} yrs`, `Pending n=${number(insights?.pendingAgeSampleSize)}`],
-  ].forEach(([label, value, sample], index) => {
-    const x = 36 + index * 184;
+    ['Average rate of abandonment', percent(abandonmentRate), `Disposed n=${number(insights?.knownFinalOutcomes)}`],
+  ];
+  const summaryColumnWidth = 540 / summaryMetrics.length;
+  summaryMetrics.forEach(([label, value, sample], index) => {
+    const x = 36 + index * summaryColumnWidth;
     write(label.toUpperCase(), x, 359, 6.3, NAVY, true);
     write(value, x, 377, 16, NAVY, true);
     write(sample, x, 389, 6.3, GRAY);

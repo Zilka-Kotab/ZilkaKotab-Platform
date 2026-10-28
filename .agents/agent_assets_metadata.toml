@@ -217,3 +217,31 @@ mtime_ms = 1793160845608
 storage_uri = "gcs://replit-rams-assets-reed/rams/assets/repl:d8317486-6b11-41c5-bec6-74c880ade2f7/7dc4bc34-0dec-4ab3-a836-1565539851bf/a3d3b25f-7a7a-4491-a928-c090e7e0ab90"
 storage_version_token = "1793160856229385"
 content_type = "application/pdf"
+
+[[outputs]]
+id = "GUP8n_ZYY6_pPqkGIjku-"
+uri = "file://generated-artifacts/portfolio-snapshot-reference-header.pdf"
+type = "pdf"
+title = "Portfolio PDF with redesigned header"
+description = "Reference-inspired dark teal header with a vector globe/network graphic, gold accents, prominent company name, uppercase snapshot title, and stacked firm attribution. The one-page layout and approved lower artwork are preserved."
+logical_id = "ac17b560-1f99-445c-97e2-ce61b569df06"
+content_hash = "sha256:0c2d2bac7363c1435d5af5bc0ab98ddbc485aaa12d5d202d04659412f13bec9c"
+size = 284637
+mtime_ms = 1793161268972
+storage_uri = "gcs://replit-rams-assets-reed/rams/assets/repl:d8317486-6b11-41c5-bec6-74c880ade2f7/ac17b560-1f99-445c-97e2-ce61b569df06/a467c9c4-40a7-423e-91e4-f63164f52499"
+storage_version_token = "1793161304125050"
+content_type = "application/pdf"
+
+[[outputs]]
+id = "tZVLHW19yKjpWIwYJI1bU"
+uri = "file://generated-artifacts/portfolio-snapshot-abandonment-rate.pdf"
+type = "pdf"
+title = "PDF with abandonment rate"
+description = "Four evenly spaced metrics now include Average Rate of Abandonment. The rate uses known disposed outcomes and excludes pending applications; unavailable data remains N/A."
+logical_id = "d2633232-0363-4925-bc28-10cddd540b00"
+content_hash = "sha256:a0aeec9c11a52bc42a3c197985ba967e9d8a9c37cefec4f784d35a8fd95d6a29"
+size = 284983
+mtime_ms = 1793161506532
+storage_uri = "gcs://replit-rams-assets-reed/rams/assets/repl:d8317486-6b11-41c5-bec6-74c880ade2f7/d2633232-0363-4925-bc28-10cddd540b00/d2d3a965-a61f-4d28-aac2-8cb5b1bd11b9"
+storage_version_token = "1793161538512354"
+content_type = "application/pdf"
