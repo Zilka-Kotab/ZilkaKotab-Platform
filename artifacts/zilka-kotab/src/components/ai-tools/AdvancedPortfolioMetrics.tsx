@@ -92,7 +92,7 @@ export function AdvancedPortfolioMetrics({ applicantNames, portfolio }: { applic
         <div className="mt-4 grid gap-px overflow-hidden rounded-sm border bg-border sm:grid-cols-3">
           <Metric label="Overall Allowance Rate" value={p.overallAllowanceRate === null ? null : `${p.overallAllowanceRate.toFixed(1)}%`} note={`${fmtNum(p.knownFinalOutcomes)} known allowed/granted or abandoned outcomes; pending excluded.`} testId="metric-portfolio-allowance-rate" />
           <Metric label="Average Time to Grant" value={p.averageTimeToGrantMonths === null ? null : `${(p.averageTimeToGrantMonths / 12).toFixed(1)} years`} note={`Valid filing and grant dates; sample n=${fmtNum(p.grantDurationSampleSize)}.`} testId="metric-portfolio-time-to-grant" />
-          <Metric label="Average Age of Pending Applications" value={p.averagePendingAgeYears === null ? null : `${p.averagePendingAgeYears.toFixed(1)} years`} note={`Pending sample n=${fmtNum(p.pendingAgeSampleSize)}.`} testId="metric-portfolio-pending-age" className="lg:border-l lg:border-border" />
+          <Metric label="Average Age of Pending Applications" value={p.averagePendingAgeYears === null ? null : `${p.averagePendingAgeYears.toFixed(1)} years`} note={`Pending sample n=${fmtNum(p.pendingAgeSampleSize)}.`} testId="metric-portfolio-pending-age" className="sm:border-l sm:border-border" />
         </div>
         <div className="mt-4 grid gap-8 lg:grid-cols-2">
           <div>

@@ -93,6 +93,7 @@ export function ToolInquiry({ tool }: { tool: PublicToolInquiryInputTool }) {
             <button type="submit" disabled={isPending} className="zk-btn-primary w-full justify-center" data-testid="button-inquiry-submit">
               {isPending ? 'Sending' : 'Request a conversation'} <Send className="h-4 w-4" />
             </button>
+            {isPending && <p role="status" aria-live="polite" className="text-sm text-muted-foreground">Contacting our mail server. This can take up to 35 seconds. Please keep this page open.</p>}
           </motion.form>
         )}
       </AnimatePresence>

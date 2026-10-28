@@ -103,6 +103,7 @@ function ContactForm() {
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (status === 'sending') return;
     setStatus('sending');
     setFeedback('');
     try {
@@ -180,6 +181,7 @@ function ContactForm() {
             <button type="submit" disabled={status === 'sending'} className="w-full inline-flex h-12 items-center justify-center gap-2 rounded-lg bg-primary px-6 text-sm font-semibold text-white shadow transition-all hover:bg-primary/90 disabled:opacity-60 disabled:cursor-not-allowed" data-testid="contact-submit">
               {status === 'sending' ? 'Sending…' : 'Send Message'} <Send className="w-4 h-4" />
             </button>
+            {status === 'sending' && <p role="status" aria-live="polite" className="text-center text-sm text-muted-foreground">Contacting our mail server. This can take up to 35 seconds. Please keep this page open.</p>}
             <p className="text-xs text-muted-foreground text-center">All inquiries are kept confidential. A response does not create an attorney-client relationship.</p>
           </form>
         </>

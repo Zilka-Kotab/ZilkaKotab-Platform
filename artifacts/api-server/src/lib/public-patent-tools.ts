@@ -124,8 +124,10 @@ function normalizedCounselName(value: string) {
 }
 
 function isStructuredLawFirmName(value: string) {
-  return /(?:^| )(?:llp|llc|pllc|pc|pa|inc|incorporated|corp|corporation|law offices?|law firm|patent attorneys?)$/i
-    .test(normalizedCounselName(value));
+  const normalized = normalizedCounselName(value);
+  return /(?:^| )(?:llp|pllc|pc|pa|law offices?|law firm|patent attorneys?)$/i.test(normalized) ||
+    (/(?:^| )(?:llc|inc|incorporated|corp|corporation)$/i.test(normalized) &&
+      /\b(?:ip|intellectual property|patent|law|legal)\b/i.test(normalized));
 }
 
 function escapeQuery(value: string) {
@@ -557,7 +559,7 @@ export async function analyzePortfolioAdvanced(selectedApplicantNames: string[])
       requestAggregate(query, { facets: [STATUS_FACET, "applicationMetaData.groupArtUnitNumber"] }),
       requestSearch(
         query,
-        "applicationNumberText,applicationMetaData,applicationMetaData.attorneyBag,applicationMetaData.correspondenceAddressBag,eventDataBag",
+        "applicationNumberText,applicationMetaData,attorneyBag,correspondenceAddressBag,eventDataBag",
       ),
     ]);
     const sampleByApplication = new Map<string, JsonRecord>();
@@ -600,7 +602,8 @@ export async function analyzePortfolioAdvanced(selectedApplicantNames: string[])
       for (const address of firmAddresses) {
         const lines = [text(address.nameLineOneText), text(address.nameLineTwoText)]
           .filter((line): line is string => Boolean(line));
-        for (const firmName of lines) {
+        for (const rawFirmName of lines) {
+          const firmName = rawFirmName.replace(/^c\/o\s+/i, "").trim();
           const key = normalizedCounselName(firmName);
           if (!key || !isStructuredLawFirmName(firmName) || applicants.has(key)) continue;
           const entry = firmApplications.get(key) ?? { name: firmName, applications: new Set<string>() };
@@ -622,7 +625,7 @@ export async function analyzePortfolioAdvanced(selectedApplicantNames: string[])
       .slice(0, 5);
     const outsideCounselAvailable = counselEntries.length > 0;
     const outsideCounselLabel = useLawFirms
-      ? "Top Law Firms Listed in USPTO Records"
+      ? "Top Outside Patent Counsel"
       : outsideCounselAvailable ? "Top Attorneys of Record" : "Outside Counsel Unavailable";
     const outsideCounselNote = outsideCounselAvailable
       ? `Based on structured USPTO attorney-address and correspondence-name records that explicitly identify a law firm, or on named practitioners of record when no firm is available. Counts are distinct applications among ${records.length.toLocaleString()} analyzed records (n=${counselApplications.size.toLocaleString()} with identified counsel); a listed record does not establish who performed all prosecution work or a current engagement.`

@@ -1,6 +1,7 @@
 import { Router } from "express";
 import nodemailer from "nodemailer";
 import { logger } from "../lib/logger";
+import { deliverMail, MailDeliveryTimeoutError } from "../lib/mail-delivery";
 
 const router = Router();
 const rateWindows = new Map<string, { count: number; resetsAt: number }>();
@@ -65,10 +66,17 @@ router.post("/contact", async (req, res): Promise<void> => {
   }
 
   const transporter = nodemailer.createTransport({
+    pool: true,
+    maxConnections: 1,
+    maxMessages: 1,
     host: smtpHost,
     port: smtpPort,
     secure: smtpPort === 465,
     requireTLS: smtpPort !== 465,
+    dnsTimeout: 5_000,
+    connectionTimeout: 8_000,
+    greetingTimeout: 8_000,
+    socketTimeout: 10_000,
     auth: {
       type: "login",
       user: smtpUser,
@@ -97,7 +105,7 @@ router.post("/contact", async (req, res): Promise<void> => {
   `;
 
   try {
-    await transporter.sendMail({
+    await deliverMail(transporter, {
       from: `"Zilka-Kotab Website" <${fromEmail}>`,
       to: toEmail,
       replyTo: `"${name.replace(/["\r\n]/g, "")}" <${email}>`,
@@ -110,8 +118,19 @@ router.post("/contact", async (req, res): Promise<void> => {
     logger.info("Contact form email sent");
     res.json({ success: true });
   } catch (err) {
-    logger.error({ err: err instanceof Error ? err.message : "Unknown SMTP error" }, "Failed to send contact form email");
-    res.status(500).json({ error: "Failed to send message. Please try again or email us directly." });
+    const failure = err as { code?: string; command?: string; responseCode?: number };
+    logger.error({
+      code: failure?.code,
+      command: failure?.command,
+      responseCode: failure?.responseCode,
+    }, "Failed to send contact form email");
+    const timedOut = err instanceof MailDeliveryTimeoutError || failure?.code === "ETIMEDOUT";
+    res.status(timedOut ? 504 : 502).json({
+      success: false,
+      error: timedOut
+        ? "The mail server did not confirm delivery in time. We cannot confirm your message was sent. Please call us at (408) 971-2573 rather than submitting it repeatedly."
+        : "We could not send your message. Your entries have been kept. Please try again later or call (408) 971-2573.",
+    });
   }
 });
 

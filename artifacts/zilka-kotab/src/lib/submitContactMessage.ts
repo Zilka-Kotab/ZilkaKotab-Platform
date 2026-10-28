@@ -8,28 +8,31 @@ export type ContactMessageInput = {
   consent: boolean;
 };
 
-function readCsrfToken() {
-  const cookie = document.cookie.split('; ').find((item) => item.startsWith('zk_csrf='));
-  const token = cookie?.slice('zk_csrf='.length);
-  return token ? decodeURIComponent(token) : undefined;
-}
-
 export async function submitContactMessage(data: ContactMessageInput): Promise<void> {
-  const csrf = readCsrfToken();
-  const response = await fetch('/api/contact', {
-    method: 'POST',
-    credentials: 'include',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(csrf ? { 'x-csrf-token': csrf } : {}),
-    },
-    body: JSON.stringify(data),
-  });
-  const result = await response.json().catch(() => ({})) as { error?: string };
-  if (!response.ok) {
-    const message = result.error === 'Invalid CSRF token.'
-      ? 'Your security token expired. Refresh the page and try again.'
-      : result.error || 'We could not send your message. Please try again.';
-    throw new Error(message);
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 35_000);
+  try {
+    const response = await fetch('/api/contact', {
+      method: 'POST',
+      // This is an anonymous contact form, not a portal mutation.
+      credentials: 'omit',
+      signal: controller.signal,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    const result = await response.json().catch(() => null) as { success?: boolean; error?: string } | null;
+    if (!response.ok || result?.success !== true) {
+      throw new Error(result?.error || 'We could not confirm your message was sent. Your entries have been kept. Please try again later or call (408) 971-2573.');
+    }
+  } catch (error) {
+    if (controller.signal.aborted) {
+      throw new Error('The send request timed out. We cannot confirm delivery. Your entries have been kept. Please call (408) 971-2573 rather than submitting repeatedly.');
+    }
+    if (error instanceof TypeError) {
+      throw new Error('We could not reach the messaging service. Your entries have been kept. Please check your connection or call (408) 971-2573.');
+    }
+    throw error;
+  } finally {
+    clearTimeout(timer);
   }
 }
