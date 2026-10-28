@@ -9,6 +9,22 @@ The public Patent Examiner Intelligence tool is for patent prosecution attorneys
 
 **How to apply:** Show denominators, sample sizes, time periods, source coverage, and unavailable states. Do not infer a zero from missing event data or provide strategy recommendations when the sample is inadequate.
 
+## Limited illustrative-metric exception
+
+The user permits clearly labeled illustrative **Quarter-End Concentration** values when reliable live calculations are unavailable. This exception does NOT apply to the independent **RCE vs. Continuation Rate** card: each side must show a validated actual rate or **N/A**, never a sample fallback. Timing, action, restriction, and interview metrics also remain evidence-only.
+
+**Why:** The later independent-rate instructions explicitly require N/A for incomplete or failed evidence, superseding the earlier combined Continuation/RCE mockup permission.
+
+**How to apply:** Prefer valid live rates, including genuine zero. Calculate RCE and continuation independently on the same mature cohort; missing continuity cannot mean no continuation. Quarter-end calculations must use actual USPTO mailing dates, not internal action dates or applicant responses; the raw concentration is not business-day normalized.
+
+## Independent-rate observation cohort
+
+Use the same cohort of regular US non-provisional applications at least 24 calendar months old for RCE and continuation rates, including pending and disposed cases. Report the cutoff, exclusions, unresolved outcomes, and source dates. Withhold a rate if its eligible outcomes remain unresolved rather than silently dropping unknowns or treating them as negatives.
+
+**Why:** Recent filings have had less opportunity to generate either event. The user requires comparable maturity filters, separate numerators, and explicit incomplete-data handling.
+
+**How to apply:** Changing the cohort or event definition requires a calculation-version change and cache invalidation. A CON code alone does not establish a domestic continuation: real ODP records also use CON for PCT children, and child bags can include descendant links. Verify direct parent identity, domestic child identity, and the relationship type.
+
 ## Examiner experience evidence
 
 The USPTO Red Book XML specification explicitly distinguishes primary and assistant examiners on a grant. This verifies the role on that dated document, not current GS grade or employment start date. The user approved documented role, with the supporting patent and issue date, instead of an unsupported GS grade. Never equate an application's filing date or current examiner assignment with the examiner's hire date.

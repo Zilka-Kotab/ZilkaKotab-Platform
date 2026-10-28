@@ -71,11 +71,17 @@ export interface PublicPortfolioInput {
      */
   companyName: string;
   /**
-     * @maxItems 8
+     * @maxItems 500
      * @items.minLength 2
      * @items.maxLength 200
      */
   selectedApplicantNames?: string[];
+  /**
+     * @maxItems 50
+     * @items.minLength 2
+     * @items.maxLength 200
+     */
+  additionalCompanyNames?: string[];
 }
 
 export interface PublicFilingTrend {
@@ -96,6 +102,19 @@ export interface PublicTechnologyArea {
   /** @minimum 0 */
   count: number;
   classifications: PublicTechnologyAreaClassificationsItem[];
+}
+
+export type PublicCompanyNameDiscoverySourcesItem = {
+  label: string;
+  url: string;
+  retrievedAt: string;
+  names: string[];
+};
+
+export interface PublicCompanyNameDiscovery {
+  searchedNames: string[];
+  sources: PublicCompanyNameDiscoverySourcesItem[];
+  warnings: string[];
 }
 
 export interface PublicApplicantCandidate {
@@ -142,6 +161,7 @@ export interface PublicDataCoverage {
 
 export interface PublicPortfolioAnalysis {
   companyName: string;
+  nameDiscovery?: PublicCompanyNameDiscovery;
   matchedApplicantNames: string[];
   selectionRequired: boolean;
   applicantCandidates: PublicApplicantCandidate[];
@@ -172,7 +192,7 @@ export interface PublicPortfolioAnalysis {
 export interface PublicPortfolioAdvancedInput {
   /**
      * @minItems 1
-     * @maxItems 8
+     * @maxItems 500
      * @items.minLength 2
      * @items.maxLength 200
      */
@@ -422,6 +442,45 @@ export interface PublicExaminerRoleEvidence {
   history?: PublicExaminerHistorySummary;
 }
 
+export interface PublicExaminerBehaviorMetric {
+  /**
+     * @minimum 0
+     * @maximum 100
+     * @nullable
+     */
+  rate: number | null;
+  /** @minimum 0 */
+  numerator: number;
+  /** @minimum 0 */
+  denominator: number;
+  note: string;
+}
+
+export type PublicExaminerRceContinuationState = typeof PublicExaminerRceContinuationState[keyof typeof PublicExaminerRceContinuationState];
+
+
+export const PublicExaminerRceContinuationState = {
+  queued: 'queued',
+  running: 'running',
+  complete: 'complete',
+  partial: 'partial',
+} as const;
+
+export interface PublicExaminerRceContinuation {
+  id: string;
+  state: PublicExaminerRceContinuationState;
+  calculationVersion: string;
+  cohortCutoff: string;
+  eligibleApplications: number;
+  excludedApplications: number;
+  completedApplications: number;
+  /** @nullable */
+  retrievedAt: string | null;
+  rce: PublicExaminerBehaviorMetric;
+  continuation: PublicExaminerBehaviorMetric;
+  note: string;
+}
+
 export type PublicExaminerAnalysisSearchType = typeof PublicExaminerAnalysisSearchType[keyof typeof PublicExaminerAnalysisSearchType];
 
 
@@ -482,6 +541,8 @@ export type PublicExaminerAnalysisOfficeActionAnalytics = {
      * @nullable
      */
   medianMonthsFilingToFirstAction: number | null;
+  continuationRce?: PublicExaminerBehaviorMetric;
+  quarterEndConcentration?: PublicExaminerBehaviorMetric;
 };
 
 export type PublicExaminerAnalysisInterviewAnalytics = {
@@ -536,6 +597,7 @@ export interface PublicExaminerAnalysis {
   examinerCandidates: PublicExaminerBreakdown[];
   topExaminers: PublicExaminerBreakdown[];
   roleEvidence?: PublicExaminerRoleEvidence;
+  rceContinuationJobId?: string;
   allowanceBenchmarks?: PublicExaminerAnalysisAllowanceBenchmarks;
   officeActionAnalytics?: PublicExaminerAnalysisOfficeActionAnalytics;
   interviewAnalytics?: PublicExaminerAnalysisInterviewAnalytics;

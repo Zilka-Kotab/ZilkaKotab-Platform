@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { PublicApplicantCandidate } from './publicApplicantCandidate';
+import type { PublicCompanyNameDiscovery } from './publicCompanyNameDiscovery';
 import type { PublicDataCoverage } from './publicDataCoverage';
 import type { PublicFilingTrend } from './publicFilingTrend';
 import type { PublicPatentApplication } from './publicPatentApplication';
@@ -14,6 +15,7 @@ import type { PublicTechnologyArea } from './publicTechnologyArea';
 
 export interface PublicPortfolioAnalysis {
   companyName: string;
+  nameDiscovery?: PublicCompanyNameDiscovery;
   matchedApplicantNames: string[];
   selectionRequired: boolean;
   applicantCandidates: PublicApplicantCandidate[];

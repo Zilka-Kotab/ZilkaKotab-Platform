@@ -44,6 +44,7 @@ export interface PublicExaminerAnalysis {
   examinerCandidates: PublicExaminerBreakdown[];
   topExaminers: PublicExaminerBreakdown[];
   roleEvidence?: PublicExaminerRoleEvidence;
+  rceContinuationJobId?: string;
   allowanceBenchmarks?: PublicExaminerAnalysisAllowanceBenchmarks;
   officeActionAnalytics?: PublicExaminerAnalysisOfficeActionAnalytics;
   interviewAnalytics?: PublicExaminerAnalysisInterviewAnalytics;

@@ -1,4 +1,10 @@
 import { findExaminerRole } from "./examiner-role-evidence";
+import { calculateExaminerBehaviorMetrics } from "./examiner-behavior-metrics";
+import { queueExaminerRateJob } from "./examiner-rce-store";
+import { RCE_CALCULATION_VERSION } from "./examiner-rce-evidence";
+import { discoverCompanyNames, uniqueCompanyNames, explicitOrganizationNames, applicantNameMatches, applicantScopeQuery, organizationNameKey } from "./company-name-discovery";
+import { usptoSearchBody } from "./uspto-search-body";
+import { logger } from "./logger";
 import { metricApplication, calculatePortfolioMetrics } from "./portfolio-metrics";
 import { computeFirmBenchmark } from "./firm-benchmark-math";
 import { firmSnapshot } from "./firm-benchmark-store";
@@ -70,7 +76,12 @@ function delay(milliseconds: number) {
   return new Promise((resolve) => setTimeout(resolve, milliseconds));
 }
 
-export async function requestUspto(url: URL, signal?: AbortSignal) {
+export async function requestUspto(url: URL, signal?: AbortSignal, searchBody?: JsonRecord) {
+  if (!searchBody && url.pathname === "/api/v1/patent/applications/search" && url.toString().length > 6500) {
+    try { searchBody = usptoSearchBody(url); }
+    catch { throw new PublicPatentToolError("This company-name scope cannot be represented as a supported USPTO search. Refine the name selection.", 400); }
+  }
+  const target = searchBody ? new URL(url.pathname, url.origin) : url;
   const previous = requestQueue;
   let release = () => {};
   requestQueue = new Promise<void>((resolve) => { release = resolve; });
@@ -81,8 +92,10 @@ export async function requestUspto(url: URL, signal?: AbortSignal) {
   release();
 
   for (let attempt = 0; attempt < 4; attempt += 1) {
-    const response = await fetch(url, {
-      headers: { Accept: "application/json", "X-API-KEY": apiKey() },
+    const response = await fetch(target, {
+      method: searchBody ? "POST" : "GET",
+      headers: { Accept: "application/json", "X-API-KEY": apiKey(), ...(searchBody ? { "Content-Type": "application/json" } : {}) },
+      body: searchBody ? JSON.stringify(searchBody) : undefined,
       signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(30_000)]) : AbortSignal.timeout(30_000),
     });
     if (response.status !== 429 || attempt === 3) return response;
@@ -332,40 +345,57 @@ function isAllowedStatus(statusInput: string) {
     status.includes("issue fee payment received");
 }
 
-export async function analyzePortfolio(companyNameInput: string, selectedApplicantNames?: string[]) {
+export async function analyzePortfolio(companyNameInput: string, selectedApplicantNames?: string[], additionalCompanyNames: string[] = []) {
   const companyName = companyNameInput.trim().replace(/\s+/g, " ");
-  const normalizedCompany = normalizeOrganization(companyName);
+  const normalizedCompany = organizationNameKey(companyName);
   if (normalizedCompany.length < 2) throw new PublicPatentToolError("Enter a more specific company name.", 400);
+  if (additionalCompanyNames.length > 50 || additionalCompanyNames.some(n => typeof n !== "string" || n.trim().length < 2 || n.length > 200)) {
+    throw new PublicPatentToolError("Enter at most 50 additional company names, each 2–200 characters.", 400);
+  }
 
-  const selectedKey = selectedApplicantNames?.slice().sort().join("|") ?? "discover";
-  return cached(`portfolio:${normalizedCompany}:${selectedKey}`, async () => {
-    const discovery = await requestAggregate(companyName, {
-      facets: ["applicationMetaData.firstApplicantName"],
-    });
-    const inputAcronym = companyName.replace(/[^a-z0-9]/gi, "").toLocaleUpperCase();
+  const selectedKey = selectedApplicantNames?.slice().sort() ?? null;
+  const additional = uniqueCompanyNames(additionalCompanyNames);
+  return cached(`portfolio-names-v2:${JSON.stringify([companyName.toLowerCase(), additional.slice().sort(), selectedKey])}`, async () => {
+    const nameDiscovery = await discoverCompanyNames(companyName, additional);
+    if (nameDiscovery.searchedNames.length > 100) throw new PublicPatentToolError("More than 100 search names were discovered. Refine the corporate identity or additional-name list.", 400);
+    let discovery: AggregateResult;
+    for (let pass = 0; ; pass++) {
+      const nameQuery = nameDiscovery.searchedNames.map(n => `"${escapeQuery(n)}"`).join(" OR ");
+      discovery = await requestAggregate(`(${nameQuery})`, { facets: ["applicationMetaData.firstApplicantName"] });
+      const annotated = (discovery.facets["applicationMetaData.firstApplicantName"] ?? [])
+        .filter(c => applicantNameMatches(c.value, nameDiscovery.searchedNames))
+        .flatMap(c => {
+          const parts = explicitOrganizationNames(c.value);
+          return parts.length > 1 ? parts : [];
+        });
+      const expanded = uniqueCompanyNames([...nameDiscovery.searchedNames, ...annotated]);
+      if (expanded.length === nameDiscovery.searchedNames.length) break;
+      if (pass >= 3 || expanded.length > 100) {
+        nameDiscovery.warnings.push("Additional explicit name relationships exceeded the discovery window. Add known names manually or refine the entity; this result is not exhaustive.");
+        break;
+      }
+      nameDiscovery.searchedNames = expanded;
+      const source = nameDiscovery.sources.find(s => s.label === "USPTO explicit DBA/former-name annotations");
+      if (source) source.names = uniqueCompanyNames([...source.names, ...annotated]);
+      else nameDiscovery.sources.push({ label: "USPTO explicit DBA/former-name annotations", url: "https://data.uspto.gov/apis/patent-file-wrapper/search", retrievedAt: new Date().toISOString(), names: uniqueCompanyNames(annotated) });
+    }
     const candidateGroups = new Map<string, { representative: string; count: number }>();
     for (const candidate of discovery.facets["applicationMetaData.firstApplicantName"] ?? []) {
-      const normalizedName = normalizeOrganization(candidate.value);
-      const nameMatches =
-        normalizedName === normalizedCompany ||
-        normalizedName.startsWith(`${normalizedCompany} `) ||
-        normalizedCompany.startsWith(`${normalizedName} `) ||
-        (inputAcronym.length >= 2 && inputAcronym.length <= 10 && organizationAcronym(candidate.value) === inputAcronym);
-      if (!nameMatches) continue;
-      const existing = candidateGroups.get(normalizedName);
+      if (!applicantNameMatches(candidate.value, nameDiscovery.searchedNames) || candidate.count <= 0) continue;
+      // Case variants are covered by the same case-insensitive USPTO phrase.
+      // Do not collapse Inc./LLC/Corp. or drop rare historical names.
+      const rawKey = candidate.value.trim().toLowerCase();
+      const existing = candidateGroups.get(rawKey);
       if (existing) existing.count += candidate.count;
-      else candidateGroups.set(normalizedName, { representative: candidate.value, count: candidate.count });
+      else candidateGroups.set(rawKey, { representative: candidate.value, count: candidate.count });
     }
     const rankedCandidates = [...candidateGroups.values()].sort((left, right) => right.count - left.count);
-    const largestCandidateCount = rankedCandidates[0]?.count ?? 0;
-    const applicantCandidates = rankedCandidates
-      .filter((candidate) => candidate.count >= Math.max(3, largestCandidateCount * 0.01))
-      .slice(0, 8)
-      .map((candidate) => ({ ...candidate, name: candidate.representative }));
+    const applicantCandidates = rankedCandidates.map((candidate) => ({ ...candidate, name: candidate.representative }));
 
     if (!applicantCandidates.length) {
       return {
         companyName,
+        nameDiscovery,
         matchedApplicantNames: [],
         selectionRequired: false,
         applicantCandidates: [],
@@ -391,9 +421,10 @@ export async function analyzePortfolio(companyNameInput: string, selectedApplica
       };
     }
 
-    if (!selectedApplicantNames?.length && applicantCandidates.length > 1) {
+    if (!selectedApplicantNames?.length && (applicantCandidates.length > 1 || nameDiscovery.sources.length > 0 || additional.length > 0)) {
       return {
         companyName,
+        nameDiscovery,
         matchedApplicantNames: [],
         selectionRequired: true,
         applicantCandidates,
@@ -419,14 +450,13 @@ export async function analyzePortfolio(companyNameInput: string, selectedApplica
       };
     }
     const selectedSet = selectedApplicantNames?.length ? new Set(selectedApplicantNames) : new Set([applicantCandidates[0].representative]);
+    if (selectedSet.size > 500) throw new PublicPatentToolError("Select up to 500 applicant names per analysis.", 400);
     const selectedCandidates = applicantCandidates.filter((candidate) => selectedSet.has(candidate.representative));
     if (selectedCandidates.length !== selectedSet.size) {
       throw new PublicPatentToolError("Choose one or more applicant names from the listed results.", 400);
     }
 
-    const applicantQuery = selectedCandidates
-      .map((candidate) => `applicationMetaData.firstApplicantName:"${escapeQuery(candidate.representative)}"`)
-      .join(" OR ");
+    const applicantQuery = applicantScopeQuery(selectedCandidates.map(c => c.representative));
     const query = `(${applicantQuery}) AND applicationMetaData.applicationTypeCategory:REGULAR`;
     const nowYear = new Date().getUTCFullYear();
     const firstTrendYear = nowYear - 4;
@@ -526,6 +556,7 @@ export async function analyzePortfolio(companyNameInput: string, selectedApplica
 
     return {
       companyName,
+      nameDiscovery,
       matchedApplicantNames: selectedCandidates.map((candidate) => candidate.representative),
       selectionRequired: false,
       applicantCandidates,
@@ -580,15 +611,13 @@ export async function fetchFirmApplicationPage(customer: number, offset: number)
 
 export async function analyzePortfolioAdvanced(selectedApplicantNames: string[]) {
   const names = [...new Set(selectedApplicantNames.map((name) => name.trim()).filter((name) => name.length >= 2 && name.length <= 200))];
-  if (!names.length || names.length > 8 || names.length !== selectedApplicantNames.length) {
+  if (!names.length || names.length > 500 || names.length !== selectedApplicantNames.length) {
     throw new PublicPatentToolError("Select one or more valid applicant names first.", 400);
   }
-  const selectedKey = names.slice().sort().join("|");
+  const selectedKey = JSON.stringify(names.slice().sort());
   const snapshot = await firmSnapshot();
   return cached(`portfolio-advanced-full-range-v2:${snapshot.updatedAt ?? "none"}:${selectedKey}`, async () => {
-    const applicantQuery = names
-      .map((name) => `applicationMetaData.firstApplicantName:"${escapeQuery(name)}"`)
-      .join(" OR ");
+    const applicantQuery = applicantScopeQuery(names);
     const query = `(${applicantQuery}) AND applicationMetaData.applicationTypeCategory:REGULAR`;
     const aggregate = await requestAggregate(query, { facets: [STATUS_FACET, "applicationMetaData.groupArtUnitNumber"] });
     const sample = await requestSearch(
@@ -839,10 +868,10 @@ async function analyzeExaminerProfile(queryInput: string, selectedExaminerName?:
     throw new PublicPatentToolError("Enter an examiner's full name or a four-digit art unit.", 400);
   }
 
-  return cached(`examiner-history-v4:${parsed.searchType}:${parsed.value}:${selectedExaminerName ?? ""}`, async () => {
+  return cached(`examiner-independent-rates:${RCE_CALCULATION_VERSION}:${parsed.searchType}:${parsed.value}:${selectedExaminerName ?? ""}`, async () => {
     const search = await requestSearch(
       parsed.query,
-      "applicationNumberText,applicationMetaData,eventDataBag",
+      "applicationNumberText,applicationMetaData,eventDataBag,childContinuityBag",
     );
     const allowed = search.records.filter(isAllowed);
     const abandoned = search.records.filter((record) => isAbandoned(metadata(record)));
@@ -902,6 +931,11 @@ async function analyzeExaminerProfile(queryInput: string, selectedExaminerName?:
         return applicationNumber && grantDate ? [{ applicationNumber, grantDate, examinerName: text(metadata(record).examinerNameText) ?? undefined }] : [];
       }), requestUspto, { discoverHistorical: true })
       : undefined;
+    const rceContinuationJobId = parsed.searchType === "examiner" && primaryExaminer
+      ? await queueExaminerRateJob(primaryExaminer, search.records, requestUspto).catch(error => {
+        logger.error({ err: error }, "Could not start independent examiner rate analysis");
+        return undefined;
+      }) : undefined;
     const benchmarkArtUnit = parsed.searchType === "art-unit" ? parsed.value : primaryArtUnit;
     const technologyCenter = benchmarkArtUnit && /^\d{4}$/.test(benchmarkArtUnit) ? `${benchmarkArtUnit.slice(0, 2)}00` : null;
     const technologyCenterEnd = technologyCenter ? `${technologyCenter.slice(0, 2)}99` : null;
@@ -968,6 +1002,7 @@ async function analyzeExaminerProfile(queryInput: string, selectedExaminerName?:
       examinerCandidates: [],
       topExaminers: parsed.searchType === "art-unit" ? topExaminers : [],
       roleEvidence,
+      rceContinuationJobId,
       allowanceBenchmarks: {
         examinerAllowanceRate: (parsed.searchType === "examiner" ? examinerOutcome : artUnitOutcome)?.allowanceRate ?? null,
         artUnitAllowanceRate: artUnitOutcome?.allowanceRate ?? null,
@@ -981,6 +1016,7 @@ async function analyzeExaminerProfile(queryInput: string, selectedExaminerName?:
         calculationNote: "All rates use USPTO current-status facets and allowed ÷ (allowed + abandoned). Benchmarks include the examiner when present; percentiles are unavailable from the returned USPTO aggregates.",
       },
       officeActionAnalytics: recordsWithEventData.length ? {
+        ...calculateExaminerBehaviorMetrics(search.records),
         applicationsWithEventData: recordsWithEventData.length,
         applicationsWithOfficeAction: officeActionCounts.filter((item) => item.nonFinal + item.final > 0).length,
         applicationsWithFinalRejection: officeActionCounts.filter((item) => item.final > 0).length,

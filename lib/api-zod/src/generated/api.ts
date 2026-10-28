@@ -48,13 +48,19 @@ export const analyzePublicPortfolioBodyCompanyNameMax = 120;
 export const analyzePublicPortfolioBodySelectedApplicantNamesItemMin = 2;
 export const analyzePublicPortfolioBodySelectedApplicantNamesItemMax = 200;
 
-export const analyzePublicPortfolioBodySelectedApplicantNamesMax = 8;
+export const analyzePublicPortfolioBodySelectedApplicantNamesMax = 500;
+
+export const analyzePublicPortfolioBodyAdditionalCompanyNamesItemMin = 2;
+export const analyzePublicPortfolioBodyAdditionalCompanyNamesItemMax = 200;
+
+export const analyzePublicPortfolioBodyAdditionalCompanyNamesMax = 50;
 
 
 
 export const AnalyzePublicPortfolioBody = zod.object({
   "companyName": zod.string().min(analyzePublicPortfolioBodyCompanyNameMin).max(analyzePublicPortfolioBodyCompanyNameMax),
-  "selectedApplicantNames": zod.array(zod.string().min(analyzePublicPortfolioBodySelectedApplicantNamesItemMin).max(analyzePublicPortfolioBodySelectedApplicantNamesItemMax)).max(analyzePublicPortfolioBodySelectedApplicantNamesMax).optional()
+  "selectedApplicantNames": zod.array(zod.string().min(analyzePublicPortfolioBodySelectedApplicantNamesItemMin).max(analyzePublicPortfolioBodySelectedApplicantNamesItemMax)).max(analyzePublicPortfolioBodySelectedApplicantNamesMax).optional(),
+  "additionalCompanyNames": zod.array(zod.string().min(analyzePublicPortfolioBodyAdditionalCompanyNamesItemMin).max(analyzePublicPortfolioBodyAdditionalCompanyNamesItemMax)).max(analyzePublicPortfolioBodyAdditionalCompanyNamesMax).optional()
 })
 
 export const analyzePublicPortfolioResponseApplicantCandidatesItemCountMin = 0;
@@ -85,6 +91,16 @@ export const analyzePublicPortfolioResponseCoverageResultLimitMin = 0;
 
 export const AnalyzePublicPortfolioResponse = zod.object({
   "companyName": zod.string(),
+  "nameDiscovery": zod.object({
+  "searchedNames": zod.array(zod.string()),
+  "sources": zod.array(zod.object({
+  "label": zod.string(),
+  "url": zod.string(),
+  "retrievedAt": zod.string(),
+  "names": zod.array(zod.string())
+})),
+  "warnings": zod.array(zod.string())
+}).optional(),
   "matchedApplicantNames": zod.array(zod.string()),
   "selectionRequired": zod.boolean(),
   "applicantCandidates": zod.array(zod.object({
@@ -145,7 +161,7 @@ export const AnalyzePublicPortfolioResponse = zod.object({
 export const analyzePublicPortfolioAdvancedBodySelectedApplicantNamesItemMin = 2;
 export const analyzePublicPortfolioAdvancedBodySelectedApplicantNamesItemMax = 200;
 
-export const analyzePublicPortfolioAdvancedBodySelectedApplicantNamesMax = 8;
+export const analyzePublicPortfolioAdvancedBodySelectedApplicantNamesMax = 500;
 
 
 
@@ -366,6 +382,20 @@ export const analyzePublicExaminerResponseOfficeActionAnalyticsAverageFinalActio
 
 export const analyzePublicExaminerResponseOfficeActionAnalyticsMedianMonthsFilingToFirstActionMin = 0;
 
+export const analyzePublicExaminerResponseOfficeActionAnalyticsContinuationRceRateMin = 0;
+export const analyzePublicExaminerResponseOfficeActionAnalyticsContinuationRceRateMax = 100;
+
+export const analyzePublicExaminerResponseOfficeActionAnalyticsContinuationRceNumeratorMin = 0;
+
+export const analyzePublicExaminerResponseOfficeActionAnalyticsContinuationRceDenominatorMin = 0;
+
+export const analyzePublicExaminerResponseOfficeActionAnalyticsQuarterEndConcentrationRateMin = 0;
+export const analyzePublicExaminerResponseOfficeActionAnalyticsQuarterEndConcentrationRateMax = 100;
+
+export const analyzePublicExaminerResponseOfficeActionAnalyticsQuarterEndConcentrationNumeratorMin = 0;
+
+export const analyzePublicExaminerResponseOfficeActionAnalyticsQuarterEndConcentrationDenominatorMin = 0;
+
 export const analyzePublicExaminerResponseInterviewAnalyticsApplicationsWithEventDataMin = 0;
 
 export const analyzePublicExaminerResponseInterviewAnalyticsApplicationsWithInterviewSummaryMin = 0;
@@ -458,6 +488,7 @@ export const AnalyzePublicExaminerResponse = zod.object({
 }))
 }).optional()
 }).optional(),
+  "rceContinuationJobId": zod.string().optional(),
   "allowanceBenchmarks": zod.object({
   "examinerAllowanceRate": zod.number().min(analyzePublicExaminerResponseAllowanceBenchmarksExaminerAllowanceRateMin).max(analyzePublicExaminerResponseAllowanceBenchmarksExaminerAllowanceRateMax).nullable(),
   "artUnitAllowanceRate": zod.number().min(analyzePublicExaminerResponseAllowanceBenchmarksArtUnitAllowanceRateMin).max(analyzePublicExaminerResponseAllowanceBenchmarksArtUnitAllowanceRateMax).nullable(),
@@ -477,7 +508,19 @@ export const AnalyzePublicExaminerResponse = zod.object({
   "applicationsWithRestriction": zod.number().min(analyzePublicExaminerResponseOfficeActionAnalyticsApplicationsWithRestrictionMin),
   "averageNonFinalActionsPerApplication": zod.number().min(analyzePublicExaminerResponseOfficeActionAnalyticsAverageNonFinalActionsPerApplicationMin),
   "averageFinalActionsPerApplication": zod.number().min(analyzePublicExaminerResponseOfficeActionAnalyticsAverageFinalActionsPerApplicationMin),
-  "medianMonthsFilingToFirstAction": zod.number().min(analyzePublicExaminerResponseOfficeActionAnalyticsMedianMonthsFilingToFirstActionMin).nullable()
+  "medianMonthsFilingToFirstAction": zod.number().min(analyzePublicExaminerResponseOfficeActionAnalyticsMedianMonthsFilingToFirstActionMin).nullable(),
+  "continuationRce": zod.object({
+  "rate": zod.number().min(analyzePublicExaminerResponseOfficeActionAnalyticsContinuationRceRateMin).max(analyzePublicExaminerResponseOfficeActionAnalyticsContinuationRceRateMax).nullable(),
+  "numerator": zod.number().min(analyzePublicExaminerResponseOfficeActionAnalyticsContinuationRceNumeratorMin),
+  "denominator": zod.number().min(analyzePublicExaminerResponseOfficeActionAnalyticsContinuationRceDenominatorMin),
+  "note": zod.string()
+}).optional(),
+  "quarterEndConcentration": zod.object({
+  "rate": zod.number().min(analyzePublicExaminerResponseOfficeActionAnalyticsQuarterEndConcentrationRateMin).max(analyzePublicExaminerResponseOfficeActionAnalyticsQuarterEndConcentrationRateMax).nullable(),
+  "numerator": zod.number().min(analyzePublicExaminerResponseOfficeActionAnalyticsQuarterEndConcentrationNumeratorMin),
+  "denominator": zod.number().min(analyzePublicExaminerResponseOfficeActionAnalyticsQuarterEndConcentrationDenominatorMin),
+  "note": zod.string()
+}).optional()
 }).optional(),
   "interviewAnalytics": zod.object({
   "applicationsWithEventData": zod.number().min(analyzePublicExaminerResponseInterviewAnalyticsApplicationsWithEventDataMin),
@@ -500,6 +543,57 @@ export const AnalyzePublicExaminerResponse = zod.object({
   "truncated": zod.boolean(),
   "note": zod.string()
 })
+})
+
+
+/**
+ * @summary Retrieve cached RCE and continuation analysis progress
+ */
+export const getPublicExaminerRceContinuationPathJobIdRegExp = new RegExp('^[a-f0-9]{64}$');
+
+
+export const GetPublicExaminerRceContinuationParams = zod.object({
+  "jobId": zod.coerce.string().regex(getPublicExaminerRceContinuationPathJobIdRegExp)
+})
+
+export const getPublicExaminerRceContinuationResponseRceRateMin = 0;
+export const getPublicExaminerRceContinuationResponseRceRateMax = 100;
+
+export const getPublicExaminerRceContinuationResponseRceNumeratorMin = 0;
+
+export const getPublicExaminerRceContinuationResponseRceDenominatorMin = 0;
+
+export const getPublicExaminerRceContinuationResponseContinuationRateMin = 0;
+export const getPublicExaminerRceContinuationResponseContinuationRateMax = 100;
+
+export const getPublicExaminerRceContinuationResponseContinuationNumeratorMin = 0;
+
+export const getPublicExaminerRceContinuationResponseContinuationDenominatorMin = 0;
+
+
+
+export const GetPublicExaminerRceContinuationResponse = zod.object({
+  "id": zod.string(),
+  "state": zod.enum(['queued', 'running', 'complete', 'partial']),
+  "calculationVersion": zod.string(),
+  "cohortCutoff": zod.string(),
+  "eligibleApplications": zod.number(),
+  "excludedApplications": zod.number(),
+  "completedApplications": zod.number(),
+  "retrievedAt": zod.string().nullable(),
+  "rce": zod.object({
+  "rate": zod.number().min(getPublicExaminerRceContinuationResponseRceRateMin).max(getPublicExaminerRceContinuationResponseRceRateMax).nullable(),
+  "numerator": zod.number().min(getPublicExaminerRceContinuationResponseRceNumeratorMin),
+  "denominator": zod.number().min(getPublicExaminerRceContinuationResponseRceDenominatorMin),
+  "note": zod.string()
+}),
+  "continuation": zod.object({
+  "rate": zod.number().min(getPublicExaminerRceContinuationResponseContinuationRateMin).max(getPublicExaminerRceContinuationResponseContinuationRateMax).nullable(),
+  "numerator": zod.number().min(getPublicExaminerRceContinuationResponseContinuationNumeratorMin),
+  "denominator": zod.number().min(getPublicExaminerRceContinuationResponseContinuationDenominatorMin),
+  "note": zod.string()
+}),
+  "note": zod.string()
 })
 
 

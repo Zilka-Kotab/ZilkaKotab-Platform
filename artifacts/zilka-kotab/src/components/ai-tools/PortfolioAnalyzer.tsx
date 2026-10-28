@@ -12,21 +12,26 @@ import { PortfolioComparison } from './PortfolioComparison';
 import { advancedFor } from './portfolio-compare-utils';
 import { FirmInvolvementBadge } from './firm-benchmark';
 import { QuestionsWorthAsking, QuestionsContactCTA } from './QuestionsWorthAsking';
+import { AliasField, NameDiscoveryPanel, SelectionControls, aliasPayload, parseAliases, MAX_APPLICANT_NAMES } from './CompanyNameScope';
 import { CoverageLedger, EmptyPanel, ErrorPanel, Metric, ResultSkeleton, errorMessage, fmtDate, fmtNum } from './shared';
 
 export function PortfolioAnalyzer() {
   const [company, setCompany] = useState('');
   const [submitted, setSubmitted] = useState('');
   const [selectedNames, setSelectedNames] = useState<string[] | null>(null);
+  const [aliasText, setAliasText] = useState('');
+  const [submittedAliases, setSubmittedAliases] = useState<string[]>([]);
   const m = useAnalyzePublicPortfolio();
-  const valid = company.trim().length >= 2;
+  const aliases = parseAliases(aliasText);
+  const valid = company.trim().length >= 2 && !aliases.error;
 
-  const run = (name: string, names?: string[]) => {
+  const run = (name: string, aliasNames: string[], names?: string[]) => {
     setSubmitted(name);
+    setSubmittedAliases(aliasNames);
     setSelectedNames(names ?? null);
-    m.mutate({ data: { companyName: name, ...(names ? { selectedApplicantNames: names } : {}) } });
+    m.mutate({ data: { companyName: name, ...aliasPayload(aliasNames), ...(names ? { selectedApplicantNames: names } : {}) } });
   };
-  const onSubmit = (e: FormEvent) => { e.preventDefault(); if (valid && !m.isPending) run(company.trim()); };
+  const onSubmit = (e: FormEvent) => { e.preventDefault(); if (valid && !m.isPending) run(company.trim(), aliases.names); };
 
   return (
     <div>
@@ -40,15 +45,16 @@ export function PortfolioAnalyzer() {
             {m.isPending ? 'Analyzing' : 'Analyze portfolio'} <ArrowRight className="h-4 w-4" />
           </button>
         </div>
-        <p className="mt-2 text-xs text-muted-foreground">Searches public USPTO application data by applicant name. Name variants and subsidiaries may need separate searches.</p>
+        <p className="mt-2 text-xs text-muted-foreground">Searches public USPTO application data by applicant name. Related name variants are suggested automatically; add known DBA or former names below. Subsidiaries may need separate searches.</p>
+        <AliasField value={aliasText} onChange={(v) => { setAliasText(v); setSelectedNames(null); }} idPrefix="portfolio" testIdPrefix="portfolio" />
       </form>
 
       <div className="mt-8">
         {m.isPending && <ResultSkeleton />}
-        {m.isError && !m.isPending && <ErrorPanel message={errorMessage(m.error)} onRetry={() => run(submitted)} testId="error-portfolio" />}
+        {m.isError && !m.isPending && <ErrorPanel message={errorMessage(m.error)} onRetry={() => run(submitted, submittedAliases, selectedNames ?? undefined)} testId="error-portfolio" />}
         {m.isSuccess && !m.isPending && m.data.selectionRequired && (
-          <ApplicantDialog candidates={m.data.applicantCandidates} selected={selectedNames ?? m.data.applicantCandidates.slice(0, 8).map((candidate) => candidate.name)}
-            onChange={setSelectedNames} onCancel={() => m.reset()} onContinue={() => run(submitted, selectedNames ?? m.data.applicantCandidates.slice(0, 8).map((candidate) => candidate.name))} />
+          <ApplicantDialog candidates={m.data.applicantCandidates} discovery={m.data.nameDiscovery} selected={selectedNames ?? m.data.applicantCandidates.map((candidate) => candidate.name)}
+            onChange={setSelectedNames} onCancel={() => m.reset()} onContinue={() => run(submitted, submittedAliases, selectedNames ?? m.data.applicantCandidates.map((candidate) => candidate.name))} />
         )}
         {m.isSuccess && !m.isPending && !m.data.selectionRequired && <PortfolioResult key={`${m.data.coverage.retrievedAt}:${m.data.matchedApplicantNames.join('|')}`} data={m.data} />}
         {m.isIdle && (
@@ -60,28 +66,31 @@ export function PortfolioAnalyzer() {
   );
 }
 
-function ApplicantDialog({ candidates, selected, onChange, onCancel, onContinue }: {
+function ApplicantDialog({ candidates, discovery, selected, onChange, onCancel, onContinue }: {
   candidates: { name: string; count: number }[];
+  discovery?: PublicPortfolioAnalysis['nameDiscovery'];
   selected: string[];
   onChange: (names: string[]) => void;
   onCancel: () => void;
   onContinue: () => void;
 }) {
-  return <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4" role="presentation">
-    <section role="dialog" aria-modal="true" aria-labelledby="applicant-dialog-title" className="w-full max-w-lg rounded-sm border bg-background p-6 shadow-xl">
+  return <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-2 sm:p-4" role="presentation">
+    <section role="dialog" aria-modal="true" aria-labelledby="applicant-dialog-title" className="flex max-h-[calc(100dvh-1rem)] w-full max-w-lg flex-col overflow-y-auto rounded-sm border bg-background p-4 shadow-xl sm:p-6" data-testid="dialog-applicant-scope">
       <div className="zk-eyebrow">Confirm portfolio scope</div>
       <h3 id="applicant-dialog-title" className="mt-2 font-display text-2xl font-semibold">Which applicant names should be included?</h3>
-      <p className="mt-2 text-sm text-muted-foreground">USPTO records use several potential legal applicant names. Select all that belong in this portfolio.</p>
-      <div className="mt-5 max-h-64 space-y-2 overflow-y-auto">
-        {candidates.map((candidate) => <label key={candidate.name} className="flex cursor-pointer items-start gap-3 border p-3 text-sm hover:bg-muted/50">
-          <input type="checkbox" checked={selected.includes(candidate.name)} onChange={(event) => onChange(event.target.checked ? [...selected, candidate.name] : selected.filter((name) => name !== candidate.name))} className="mt-0.5 accent-primary" />
-          <span className="min-w-0 flex-1"><span className="block font-medium">{candidate.name}</span><span className="text-xs text-muted-foreground">{fmtNum(candidate.count)} matching USPTO records</span></span>
+      <p className="mt-2 text-sm text-muted-foreground">USPTO records use several potential legal applicant names. All returned names are selected. Clear any that belong to a different or unrelated entity.</p>
+      <div className="mt-4"><SelectionControls total={candidates.length} selected={selected.length} onAll={() => onChange(candidates.map((c) => c.name))} onNone={() => onChange([])} testIdPrefix="applicant" /></div>
+      <div className="mt-2 max-h-64 min-h-[6rem] space-y-2 overflow-y-auto">
+        {candidates.map((candidate, i) => <label key={candidate.name} data-testid={`row-applicant-candidate-${i}`} className="flex cursor-pointer items-start gap-3 border p-3 text-sm hover:bg-muted/50">
+          <input type="checkbox" checked={selected.includes(candidate.name)} onChange={(event) => onChange(event.target.checked ? [...selected, candidate.name] : selected.filter((name) => name !== candidate.name))} className="mt-0.5 accent-primary" data-testid={`checkbox-applicant-${i}`} />
+          <span className="min-w-0 flex-1"><span className="block break-words font-medium">{candidate.name}</span><span className="text-xs text-muted-foreground">{fmtNum(candidate.count)} matching USPTO records</span></span>
         </label>)}
       </div>
-      {selected.length > 8 && <p className="mt-3 text-xs text-destructive" role="alert">Select at most eight applicant names.</p>}
-      <div className="mt-6 flex justify-end gap-3">
-        <button type="button" className="zk-btn-secondary" onClick={onCancel}>Cancel</button>
-        <button type="button" className="zk-btn-primary" disabled={!selected.length || selected.length > 8} onClick={onContinue}>Analyze selected</button>
+      {selected.length > MAX_APPLICANT_NAMES && <p className="mt-3 text-xs text-destructive" role="alert">Select at most {MAX_APPLICANT_NAMES} applicant names.</p>}
+      {discovery && <div className="mt-4"><NameDiscoveryPanel discovery={discovery} testId="panel-name-discovery-select" /></div>}
+      <div className="mt-5 flex flex-wrap justify-end gap-3">
+        <button type="button" className="zk-btn-secondary" onClick={onCancel} data-testid="button-cancel-applicants">Cancel</button>
+        <button type="button" className="zk-btn-primary" disabled={!selected.length || selected.length > MAX_APPLICANT_NAMES} onClick={onContinue} data-testid="button-analyze-selected">Analyze selected</button>
       </div>
     </section>
   </div>;
@@ -146,6 +155,7 @@ function PortfolioResult({ data }: { data: PublicPortfolioAnalysis }) {
             {!second && <FirmInvolvementBadge fb={primaryAdvanced?.firmBenchmark} testId="badge-firm-involvement" />}
           </div>
         )}
+        {data.nameDiscovery && <div className="mt-3"><NameDiscoveryPanel discovery={data.nameDiscovery} testId="panel-name-discovery-result" /></div>}
       </header>
       <CompareCompanyDialog open={compareOpen} onOpenChange={setCompareOpen} primary={data} onCompare={setSecond} />
 

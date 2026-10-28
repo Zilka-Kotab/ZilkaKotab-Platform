@@ -5,6 +5,7 @@ import { useAnalyzePublicExaminer } from '@workspace/api-client-react';
 import type { PublicExaminerAnalysis } from '@workspace/api-client-react';
 import { CoverageLedger, EmptyPanel, ErrorPanel, Metric, ResultSkeleton, errorMessage, fmtNum } from './shared';
 import { ExaminerSnapshotPdfButton } from './ExaminerSnapshotPdfButton';
+import { ExaminerProsecutionBehavior } from './ExaminerProsecutionBehavior';
 import { examinerActivitySpan } from './examiner-activity';
 import { QuestionsWorthAsking, QuestionsContactCTA } from './QuestionsWorthAsking';
 
@@ -77,34 +78,6 @@ function ExaminerResult({ data }: { data: PublicExaminerAnalysis }) {
   const rate = data.estimatedAllowanceRate;
   const maxEx = Math.max(1, ...data.topExaminers.map((e) => e.count));
   const title = data.searchType === 'art-unit' ? `Art Unit ${data.artUnit ?? data.query}` : (data.examinerName ?? data.query);
-  const interviewRows = data.interviewAnalytics ? [
-    {
-      label: 'Interview summary found',
-      applications: data.interviewAnalytics.applicationsWithInterviewSummary,
-      allowed: data.interviewAnalytics.interviewSummaryAllowed,
-      abandoned: data.interviewAnalytics.interviewSummaryAbandoned,
-      disposed: data.interviewAnalytics.interviewSummaryAllowed + data.interviewAnalytics.interviewSummaryAbandoned,
-      other: data.interviewAnalytics.interviewSummaryOther,
-    },
-    {
-      label: 'No interview summary located',
-      applications: data.interviewAnalytics.applicationsWithoutInterviewSummary,
-      allowed: data.interviewAnalytics.noSummaryAllowed,
-      abandoned: data.interviewAnalytics.noSummaryAbandoned,
-      disposed: data.interviewAnalytics.noSummaryAllowed + data.interviewAnalytics.noSummaryAbandoned,
-      other: data.interviewAnalytics.noSummaryOther,
-    },
-  ] : [];
-  const withSummary = interviewRows[0];
-  const withoutSummary = interviewRows[1];
-  const withSummaryAllowanceRate = withSummary && withSummary.disposed > 0 ? (withSummary.allowed / withSummary.disposed) * 100 : null;
-  const withoutSummaryAllowanceRate = withoutSummary && withoutSummary.disposed > 0 ? (withoutSummary.allowed / withoutSummary.disposed) * 100 : null;
-  const allowanceRateDifference = withSummaryAllowanceRate !== null && withoutSummaryAllowanceRate !== null
-    ? withSummaryAllowanceRate - withoutSummaryAllowanceRate
-    : null;
-  const relativeAllowanceRateIncrease = withSummaryAllowanceRate !== null && withoutSummaryAllowanceRate !== null && withoutSummaryAllowanceRate > 0
-    ? ((withSummaryAllowanceRate / withoutSummaryAllowanceRate) - 1) * 100
-    : null;
 
   return (
     <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }} className="space-y-8" data-testid="result-examiner">
@@ -203,48 +176,7 @@ function ExaminerResult({ data }: { data: PublicExaminerAnalysis }) {
         </section>
       )}
 
-      {data.officeActionAnalytics && (
-        <section data-testid="section-office-actions">
-          <h4 className="zk-h4">Office Action Behavior</h4>
-          <p className="mt-1 text-xs text-muted-foreground">Event-code metrics use {fmtNum(data.officeActionAnalytics.applicationsWithEventData)} analyzed applications with event histories{data.coverage.truncated ? ' in the retrieved sample' : ''}. Pending applications remain in the event sample; these are not outcome rates.</p>
-          <div className="mt-4 grid gap-px overflow-hidden rounded-sm border bg-border sm:grid-cols-2 lg:grid-cols-3">
-            <Metric label="Applications with an office action" value={data.officeActionAnalytics.applicationsWithOfficeAction} testId="metric-office-action-apps" />
-            <Metric label="Applications with a final rejection" value={data.officeActionAnalytics.applicationsWithFinalRejection} testId="metric-final-rejection-apps" />
-            <Metric label="Applications with a restriction" value={data.officeActionAnalytics.applicationsWithRestriction} testId="metric-restriction-apps" />
-            <Metric label="Avg. non-final actions / application" value={data.officeActionAnalytics.averageNonFinalActionsPerApplication.toFixed(2)} testId="metric-nonfinal-actions" />
-            <Metric label="Avg. final actions / application" value={data.officeActionAnalytics.averageFinalActionsPerApplication.toFixed(2)} testId="metric-final-actions" />
-            <Metric label="Median filing to first action, months" value={data.officeActionAnalytics.medianMonthsFilingToFirstAction?.toFixed(1) ?? null} testId="metric-first-action-time" />
-          </div>
-          <p className="mt-2 text-xs text-muted-foreground">Counts use USPTO prosecution event codes for non-final actions, final actions, and restriction requirements; mailed notices are not double-counted.</p>
-        </section>
-      )}
-
-      {data.interviewAnalytics && (
-        <section className="rounded-sm border bg-white p-4 sm:p-5" data-testid="section-interview-analytics">
-          <h4 className="zk-h4">Examiner Interview Records</h4>
-          <p className="mt-1 text-xs text-muted-foreground">The comparison uses {fmtNum(data.interviewAnalytics.applicationsWithEventData)} analyzed applications with event histories{data.coverage.truncated ? ' in the retrieved sample' : ''}.</p>
-          <div className="mt-4 grid gap-px overflow-hidden rounded-sm border bg-border sm:grid-cols-2 lg:grid-cols-3">
-            <Metric label="Applications with summary found" value={withSummary?.applications ?? null} note={withSummary ? `${fmtNum(withSummary.allowed)} allowed · ${fmtNum(withSummary.abandoned)} abandoned · ${fmtNum(withSummary.other)} other / unresolved` : undefined} testId="metric-interview-summary-found" />
-            <Metric label="Disposed with summary found" value={withSummary?.disposed ?? null} note="Allowed or abandoned applications only" testId="metric-interview-summary-disposed" />
-            <Metric label="Allowance rate with summary found" value={withSummaryAllowanceRate === null ? null : `${withSummaryAllowanceRate.toFixed(1)}%`} note={withSummary ? `${fmtNum(withSummary.allowed)} allowed of ${fmtNum(withSummary.disposed)} disposed` : undefined} testId="metric-interview-summary-allowance-rate" />
-            <Metric label="Applications without summary located" value={withoutSummary?.applications ?? null} note={withoutSummary ? `${fmtNum(withoutSummary.allowed)} allowed · ${fmtNum(withoutSummary.abandoned)} abandoned · ${fmtNum(withoutSummary.other)} other / unresolved` : undefined} testId="metric-no-interview-summary" />
-            <Metric label="Disposed without summary located" value={withoutSummary?.disposed ?? null} note="Allowed or abandoned applications only" testId="metric-no-summary-disposed" />
-            <Metric label="Allowance rate without summary" value={withoutSummaryAllowanceRate === null ? null : `${withoutSummaryAllowanceRate.toFixed(1)}%`} note={withoutSummary ? `${fmtNum(withoutSummary.allowed)} allowed of ${fmtNum(withoutSummary.disposed)} disposed` : undefined} testId="metric-no-summary-allowance-rate" />
-          </div>
-          <div className="mt-4 rounded-sm border border-border bg-white p-4" data-testid="interview-allowance-conclusion">
-            <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Observed comparison</div>
-            {allowanceRateDifference === null ? (
-              <p className="mt-2 text-sm text-muted-foreground">There are not enough disposed applications in both groups to calculate an allowance-rate comparison.</p>
-            ) : (
-              <p className="mt-2 text-sm leading-relaxed">
-                The allowance rate was <strong>{withSummaryAllowanceRate!.toFixed(1)}%</strong> when an interview summary was found and <strong>{withoutSummaryAllowanceRate!.toFixed(1)}%</strong> when none was located: a difference of <strong>{allowanceRateDifference >= 0 ? '+' : ''}{allowanceRateDifference.toFixed(1)} percentage points</strong>
-                {relativeAllowanceRateIncrease !== null && <> ({relativeAllowanceRateIncrease >= 0 ? '+' : ''}{relativeAllowanceRateIncrease.toFixed(1)}% relative).</>}
-              </p>
-            )}
-            <p className="mt-2 text-xs leading-relaxed text-muted-foreground">This is a historical association in these records, not evidence that an interview caused an allowance or that an examiner prefers interviews. No summary located does not prove no interview occurred.</p>
-          </div>
-        </section>
-      )}
+      <ExaminerProsecutionBehavior data={data} />
 
       <QuestionsWorthAsking tool="examiner" />
       <CoverageLedger coverage={data.coverage} testId="coverage-examiner"

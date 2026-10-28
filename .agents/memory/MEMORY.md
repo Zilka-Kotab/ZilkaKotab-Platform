@@ -5,7 +5,7 @@
 - [Runtime schema verification](runtime-schema-verification.md) — after schema changes, verify the live workflow database columns before restarting services.
 - [PostgreSQL pool disconnects](postgres-pool-termination.md) — idle-client shutdowns during autoscale publish must be handled or the API can exit before promotion.
 - [USPTO Open Data Portal API shape](uspto-api-shape.md) — live search uses GET q and grant XML downloads use redirecting fileLocationURI metadata.
-- [Portfolio metric evidence](portfolio-metric-evidence.md) — disclose sample sizes/date ranges and never infer counsel or family relationships from unstructured text.
+- [Portfolio metric evidence](portfolio-metric-evidence.md) — traceable metrics, representative cohorts, positive-only firm benchmarks, and transparent DBA/former-name coverage.
 - [Examiner intelligence scope](examiner-intelligence.md) — the public examiner tool serves patent prosecution attorneys; prioritize transparent, reproducible metrics over speculative recommendations.
 - [Internal workflow data boundaries](internal-workflow-data-boundaries.md) — AppColl owns docket fields; internal assignments and billing stay separate in the authenticated portal.
 - [Contact delivery environments](contact-delivery-environments.md) — use Microsoft 365 HTTPS mail, not SMTP fallback; distinguish acceptance, inbox receipt, and live-site verification.

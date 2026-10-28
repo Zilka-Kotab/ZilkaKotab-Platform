@@ -5,6 +5,7 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { PublicExaminerBehaviorMetric } from './publicExaminerBehaviorMetric';
 
 export type PublicExaminerAnalysisOfficeActionAnalytics = {
   /** @minimum 0 */
@@ -24,4 +25,6 @@ export type PublicExaminerAnalysisOfficeActionAnalytics = {
      * @nullable
      */
   medianMonthsFilingToFirstAction: number | null;
+  continuationRce?: PublicExaminerBehaviorMetric;
+  quarterEndConcentration?: PublicExaminerBehaviorMetric;
 };

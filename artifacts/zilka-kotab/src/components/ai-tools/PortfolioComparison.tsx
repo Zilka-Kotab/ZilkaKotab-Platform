@@ -3,6 +3,7 @@ import type { PublicPortfolioAnalysis, PublicPortfolioAdvancedAnalysis, useAnaly
 import { CoverageLedger, fmtDate, fmtNum } from './shared';
 import { QuestionsWorthAsking, QuestionsContactCTA } from './QuestionsWorthAsking';
 import type { PublicFirmBenchmarkLinesItemMetric } from '@workspace/api-client-react';
+import { NameDiscoveryPanel } from './CompanyNameScope';
 import { FirmBenchmarkLine, FirmInvolvementBadge, hasLines } from './firm-benchmark';
 
 type Side = {
@@ -99,7 +100,9 @@ export function PortfolioComparison({ a, b, onReplace, onExit }: { a: Side; b: S
           {sides.map((s, i) => (
             <div key={i}>
               <p className="mb-2 text-sm font-semibold">{s.data.companyName}</p>
-              <p className="mb-2 text-xs text-muted-foreground">Applicant names: {s.data.matchedApplicantNames.join('; ') || 'none reported'}. Data as of {fmtDate(s.data.coverage.retrievedAt)}.</p>
+              <p className="mb-2 text-xs text-muted-foreground">Applicant names: {s.data.matchedApplicantNames.join('; ') || 'none reported'}</p>
+              <p className="mb-2 text-xs text-muted-foreground">Data as of {fmtDate(s.data.coverage.retrievedAt)}.</p>
+              {s.data.nameDiscovery && <div className="mb-2"><NameDiscoveryPanel discovery={s.data.nameDiscovery} testId={`panel-name-discovery-compare-result-${i}`} /></div>}
               <CoverageLedger coverage={s.data.coverage} testId={`coverage-compare-${i}`}
                 extra={s.advanced ? <p className="mt-3 text-xs leading-relaxed text-muted-foreground"><strong className="font-semibold text-foreground">Prosecution sample.</strong> {fmtNum(s.advanced.coverage.recordsAnalyzed)} records analyzed of {fmtNum(s.advanced.coverage.totalMatchesReported)} reported{s.advanced.coverage.truncated ? ' (sampled)' : ''}. {s.advanced.coverage.note}</p> : undefined} />
             </div>

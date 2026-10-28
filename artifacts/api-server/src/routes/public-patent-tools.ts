@@ -8,7 +8,8 @@ import {
   SubmitPublicToolInquiryBody,
   SubmitPublicToolInquiryResponse,
 } from "@workspace/api-zod";
-import { analyzeExaminer, analyzePortfolio, analyzePortfolioAdvanced, PublicPatentToolError } from "../lib/public-patent-tools";
+import { analyzeExaminer, analyzePortfolio, analyzePortfolioAdvanced, PublicPatentToolError, requestUspto } from "../lib/public-patent-tools";
+import { getExaminerRateJob } from "../lib/examiner-rce-store";
 
 const router: IRouter = Router();
 const SEARCH_WINDOW_MS = 15 * 60 * 1000;
@@ -55,11 +56,11 @@ function escapeHtml(value: string) {
 router.post("/public-tools/portfolio/analyze", rateLimit("portfolio", 10, SEARCH_WINDOW_MS), async (req, res): Promise<void> => {
   const parsed = AnalyzePublicPortfolioBody.safeParse(req.body);
   if (!parsed.success) {
-    res.status(400).json({ error: "Enter a company name between 2 and 120 characters." });
+    res.status(400).json({ error: "Enter a company name (2–120 characters), up to 50 additional names (2–200 characters each), and at most 500 selected applicant names." });
     return;
   }
   try {
-    res.json(AnalyzePublicPortfolioResponse.parse(await analyzePortfolio(parsed.data.companyName, parsed.data.selectedApplicantNames)));
+    res.json(AnalyzePublicPortfolioResponse.parse(await analyzePortfolio(parsed.data.companyName, parsed.data.selectedApplicantNames, parsed.data.additionalCompanyNames)));
   } catch (error) {
     sendToolError(res, error);
   }
@@ -67,7 +68,7 @@ router.post("/public-tools/portfolio/analyze", rateLimit("portfolio", 10, SEARCH
 
 router.post("/public-tools/portfolio/advanced", rateLimit("portfolio-advanced", 4, SEARCH_WINDOW_MS), async (req, res): Promise<void> => {
   const names = req.body?.selectedApplicantNames;
-  if (!Array.isArray(names) || names.length < 1 || names.length > 8 ||
+  if (!Array.isArray(names) || names.length < 1 || names.length > 500 ||
     names.some((name: unknown) => typeof name !== "string" || name.trim().length < 2 || name.trim().length > 200)) {
     res.status(400).json({ error: "Select one or more valid applicant names first." });
     return;
@@ -89,6 +90,19 @@ router.post("/public-tools/examiner/analyze", rateLimit("examiner", 10, SEARCH_W
     res.json(AnalyzePublicExaminerResponse.parse(await analyzeExaminer(parsed.data.query, parsed.data.selectedExaminerName)));
   } catch (error) {
     sendToolError(res, error);
+  }
+});
+
+router.get("/public-tools/examiner/rce-continuation/:jobId", rateLimit("examiner-rates", 90, 60_000), async (req, res): Promise<void> => {
+  const id = String(req.params.jobId);
+  if (!/^[a-f0-9]{64}$/.test(id)) { res.status(400).json({ error: "Invalid analysis identifier." }); return; }
+  try {
+    const result = await getExaminerRateJob(id, requestUspto);
+    if (!result) { res.status(404).json({ error: "Analysis not found. Run the examiner search again." }); return; }
+    res.setHeader("Cache-Control", "no-store");
+    res.json(result);
+  } catch {
+    res.status(503).json({ error: "Evidence analysis is temporarily unavailable; other examiner metrics remain available." });
   }
 });
 

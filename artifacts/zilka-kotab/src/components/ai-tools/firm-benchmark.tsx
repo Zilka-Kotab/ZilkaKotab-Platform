@@ -21,7 +21,7 @@ export function FirmBenchmarkLine({ fb, metric, testId, align = 'left' }: { fb: 
   const line = findLine(fb, metric);
   if (!line) return null;
   return (
-    <p className={`mt-2 border-t border-[hsl(var(--zk-brass)/0.45)] pt-1.5 font-sans text-[11px] leading-snug text-primary ${align === 'center' ? 'text-center' : align === 'right' ? 'text-right' : 'text-left'}`} data-testid={testId}>
+    <p className={`mt-2 rounded-sm border border-[hsl(var(--zk-brass)/0.75)] bg-[hsl(var(--zk-brass)/0.08)] px-2.5 py-2 font-sans text-[11px] leading-snug text-primary ${align === 'center' ? 'text-center' : align === 'right' ? 'text-right' : 'text-left'}`} data-testid={testId}>
       <span className="font-semibold text-[hsl(var(--zk-brass))]">Zilka-Kotab:</span>{' '}
       <span className="font-semibold tabular-nums">{benchmarkValue(line)}</span>
       <span className="text-muted-foreground"> — matched to this portfolio's technology mix (n={fmtNum(line.denominator)})</span>

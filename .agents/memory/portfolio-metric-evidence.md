@@ -20,3 +20,9 @@ Do not describe prosecution statistics from the newest filings alone as portfoli
 **Why:** Conditioning on grants within a recent-only filing cohort creates outcome-maturity bias. A zero within that subset need not be a parsing failure, but it is misleading as a general portfolio average. Missing or empty histories also do not prove zero actions.
 
 **How to apply:** Spread capped portfolio samples across the returned result range, disclose that systematic block sampling is not random sampling, and preserve legitimate zero-action cases with actual history data. Exclude missing/empty histories from event-based denominators. Keep company and firm metric definitions synchronized and invalidate incompatible cached firm data when those definitions change.
+
+Company searches should seek all associated legal, former and DBA/trading names, not just the name entered. Name discovery is a scope proposal, not proof of affiliation, subsidiary ownership, or current patent ownership. Never claim that every DBA has been found.
+
+**Why:** The user expects inclusive company-name coverage; silently omitting rare names understates a portfolio, while combining similarly named but unrelated entities can be equally misleading. Public name sources are incomplete.
+
+**How to apply:** Show discovered names, sources and gaps; allow known additional names and explicit applicant-scope confirmation. Carry the same accepted scope through base statistics, advanced statistics, comparisons and exports, deduplicating applications instead of summing overlapping alias counts.

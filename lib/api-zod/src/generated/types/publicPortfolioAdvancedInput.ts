@@ -9,7 +9,7 @@
 export interface PublicPortfolioAdvancedInput {
   /**
      * @minItems 1
-     * @maxItems 8
+     * @maxItems 500
      * @items.minLength 2
      * @items.maxLength 200
      */

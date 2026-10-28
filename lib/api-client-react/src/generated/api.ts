@@ -24,6 +24,7 @@ import type {
   HealthStatus,
   PublicExaminerAnalysis,
   PublicExaminerInput,
+  PublicExaminerRceContinuation,
   PublicPortfolioAdvancedAnalysis,
   PublicPortfolioAdvancedInput,
   PublicPortfolioAnalysis,
@@ -485,6 +486,83 @@ export const useAnalyzePublicExaminer = <TError = ErrorType<void>,
       > => {
       return useMutation(getAnalyzePublicExaminerMutationOptions(options));
     }
+
+export const getGetPublicExaminerRceContinuationUrl = (jobId: string,) => {
+
+
+
+
+  return `/api/public-tools/examiner/rce-continuation/${jobId}`
+}
+
+/**
+ * @summary Retrieve cached RCE and continuation analysis progress
+ */
+export const getPublicExaminerRceContinuation = async (jobId: string, options?: RequestInit): Promise<PublicExaminerRceContinuation> => {
+
+  return customFetch<PublicExaminerRceContinuation>(getGetPublicExaminerRceContinuationUrl(jobId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetPublicExaminerRceContinuationQueryKey = (jobId: string,) => {
+    return [
+    `/api/public-tools/examiner/rce-continuation/${jobId}`
+    ] as const;
+    }
+
+
+export const getGetPublicExaminerRceContinuationQueryOptions = <TData = Awaited<ReturnType<typeof getPublicExaminerRceContinuation>>, TError = ErrorType<void>>(jobId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPublicExaminerRceContinuation>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetPublicExaminerRceContinuationQueryKey(jobId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPublicExaminerRceContinuation>>> = ({ signal }) => getPublicExaminerRceContinuation(jobId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: jobId !== null && jobId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getPublicExaminerRceContinuation>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetPublicExaminerRceContinuationQueryResult = NonNullable<Awaited<ReturnType<typeof getPublicExaminerRceContinuation>>>
+export type GetPublicExaminerRceContinuationQueryError = ErrorType<void>
+
+
+/**
+ * @summary Retrieve cached RCE and continuation analysis progress
+ */
+
+export function useGetPublicExaminerRceContinuation<TData = Awaited<ReturnType<typeof getPublicExaminerRceContinuation>>, TError = ErrorType<void>>(
+ jobId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPublicExaminerRceContinuation>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetPublicExaminerRceContinuationQueryOptions(jobId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 
 export const getSubmitPublicToolInquiryUrl = () => {
 

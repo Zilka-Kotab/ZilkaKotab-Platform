@@ -13,9 +13,15 @@ export interface PublicPortfolioInput {
      */
   companyName: string;
   /**
-     * @maxItems 8
+     * @maxItems 500
      * @items.minLength 2
      * @items.maxLength 200
      */
   selectedApplicantNames?: string[];
+  /**
+     * @maxItems 50
+     * @items.minLength 2
+     * @items.maxLength 200
+     */
+  additionalCompanyNames?: string[];
 }

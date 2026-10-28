@@ -118,6 +118,27 @@ paths:
           description: Rate limit exceeded
         "502":
           description: USPTO data unavailable
+  /public-tools/examiner/rce-continuation/{jobId}:
+    get:
+      operationId: getPublicExaminerRceContinuation
+      tags: [public-patent-tools]
+      summary: Retrieve cached RCE and continuation analysis progress
+      parameters:
+        - in: path
+          name: jobId
+          required: true
+          schema:
+            type: string
+            pattern: "^[a-f0-9]{64}$"
+      responses:
+        "200":
+          description: Independent RCE and continuation metrics and source coverage
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PublicExaminerRceContinuation"
+        "404":
+          description: Analysis not found
   /public-tools/inquiry:
     post:
       operationId: submitPublicToolInquiry
@@ -216,7 +237,14 @@ components:
           maxLength: 120
         selectedApplicantNames:
           type: array
-          maxItems: 8
+          maxItems: 500
+          items:
+            type: string
+            minLength: 2
+            maxLength: 200
+        additionalCompanyNames:
+          type: array
+          maxItems: 50
           items:
             type: string
             minLength: 2
@@ -255,6 +283,34 @@ components:
               count:
                 type: integer
                 minimum: 0
+    PublicCompanyNameDiscovery:
+      type: object
+      required: [searchedNames, sources, warnings]
+      properties:
+        searchedNames:
+          type: array
+          items:
+            type: string
+        sources:
+          type: array
+          items:
+            type: object
+            required: [label, url, retrievedAt, names]
+            properties:
+              label:
+                type: string
+              url:
+                type: string
+              retrievedAt:
+                type: string
+              names:
+                type: array
+                items:
+                  type: string
+        warnings:
+          type: array
+          items:
+            type: string
     PublicApplicantCandidate:
       type: object
       additionalProperties: false
@@ -346,6 +402,8 @@ components:
       properties:
         companyName:
           type: string
+        nameDiscovery:
+          $ref: "#/components/schemas/PublicCompanyNameDiscovery"
         matchedApplicantNames:
           type: array
           items:
@@ -399,7 +457,7 @@ components:
         selectedApplicantNames:
           type: array
           minItems: 1
-          maxItems: 8
+          maxItems: 500
           items:
             type: string
             minLength: 2
@@ -672,6 +730,50 @@ components:
           $ref: "#/components/schemas/PublicExaminerActivityEvidence"
         history:
           $ref: "#/components/schemas/PublicExaminerHistorySummary"
+    PublicExaminerBehaviorMetric:
+      type: object
+      additionalProperties: false
+      required: [rate, numerator, denominator, note]
+      properties:
+        rate:
+          type: ["number", "null"]
+          minimum: 0
+          maximum: 100
+        numerator:
+          type: integer
+          minimum: 0
+        denominator:
+          type: integer
+          minimum: 0
+        note:
+          type: string
+    PublicExaminerRceContinuation:
+      type: object
+      required: [id, state, calculationVersion, cohortCutoff, eligibleApplications, excludedApplications, completedApplications, retrievedAt, rce, continuation, note]
+      properties:
+        id:
+          type: string
+        state:
+          type: string
+          enum: [queued, running, complete, partial]
+        calculationVersion:
+          type: string
+        cohortCutoff:
+          type: string
+        eligibleApplications:
+          type: integer
+        excludedApplications:
+          type: integer
+        completedApplications:
+          type: integer
+        retrievedAt:
+          type: ["string", "null"]
+        rce:
+          $ref: "#/components/schemas/PublicExaminerBehaviorMetric"
+        continuation:
+          $ref: "#/components/schemas/PublicExaminerBehaviorMetric"
+        note:
+          type: string
     PublicExaminerAnalysis:
       type: object
       additionalProperties: false
@@ -734,6 +836,8 @@ components:
             $ref: "#/components/schemas/PublicExaminerBreakdown"
         roleEvidence:
           $ref: "#/components/schemas/PublicExaminerRoleEvidence"
+        rceContinuationJobId:
+          type: string
         allowanceBenchmarks:
           type: object
           additionalProperties: false
@@ -812,6 +916,10 @@ components:
             medianMonthsFilingToFirstAction:
               type: ["number", "null"]
               minimum: 0
+            continuationRce:
+              $ref: "#/components/schemas/PublicExaminerBehaviorMetric"
+            quarterEndConcentration:
+              $ref: "#/components/schemas/PublicExaminerBehaviorMetric"
         interviewAnalytics:
           type: object
           additionalProperties: false
