@@ -577,7 +577,8 @@ export async function analyzePortfolioAdvanced(selectedApplicantNames: string[])
         text(meta.firstApplicantName),
         ...recordsFrom(meta.applicantBag).map((item) => text(item.applicantNameText) ?? text(item.organizationName)),
       ].filter((name): name is string => Boolean(name)).map(normalizedCounselName));
-      const attorneys = recordsFrom(meta.attorneyBag);
+      const attorneys = [...recordsFrom(record.attorneyBag), ...recordsFrom(meta.attorneyBag)];
+      const firmAddresses = [...recordsFrom(record.correspondenceAddressBag), ...recordsFrom(meta.correspondenceAddressBag)];
       if (attorneys.length) counselApplications.add(appNumber);
       for (const attorney of attorneys) {
         const name = [
@@ -594,17 +595,18 @@ export async function analyzePortfolioAdvanced(selectedApplicantNames: string[])
             attorneyApplications.set(key, entry);
           }
         }
-        for (const address of recordsFrom(attorney.attorneyAddressBag)) {
-          const lines = [text(address.nameLineOneText), text(address.nameLineTwoText)]
-            .filter((line): line is string => Boolean(line));
-          for (const firmName of lines) {
-            const key = normalizedCounselName(firmName);
-            if (!key || !isStructuredLawFirmName(firmName) || applicants.has(key)) continue;
-            const entry = firmApplications.get(key) ?? { name: firmName, applications: new Set<string>() };
-            entry.applications.add(appNumber);
-            firmApplications.set(key, entry);
-            counselApplications.add(appNumber);
-          }
+        firmAddresses.push(...recordsFrom(attorney.attorneyAddressBag));
+      }
+      for (const address of firmAddresses) {
+        const lines = [text(address.nameLineOneText), text(address.nameLineTwoText)]
+          .filter((line): line is string => Boolean(line));
+        for (const firmName of lines) {
+          const key = normalizedCounselName(firmName);
+          if (!key || !isStructuredLawFirmName(firmName) || applicants.has(key)) continue;
+          const entry = firmApplications.get(key) ?? { name: firmName, applications: new Set<string>() };
+          entry.applications.add(appNumber);
+          firmApplications.set(key, entry);
+          counselApplications.add(appNumber);
         }
       }
     }
@@ -620,11 +622,11 @@ export async function analyzePortfolioAdvanced(selectedApplicantNames: string[])
       .slice(0, 5);
     const outsideCounselAvailable = counselEntries.length > 0;
     const outsideCounselLabel = useLawFirms
-      ? "Top Law Firms Listed in USPTO Attorney Records"
+      ? "Top Law Firms Listed in USPTO Records"
       : outsideCounselAvailable ? "Top Attorneys of Record" : "Outside Counsel Unavailable";
     const outsideCounselNote = outsideCounselAvailable
-      ? `Based on structured USPTO attorney and attorney-address records. Counts are distinct applications among ${records.length.toLocaleString()} analyzed records (n=${counselApplications.size.toLocaleString()} with counsel entries); a listed record does not establish who performed all prosecution work or a current engagement.`
-      : "No structured attorney or attorney-address records were available in the retrieved application sample.";
+      ? `Based on structured USPTO attorney-address and correspondence-name records that explicitly identify a law firm, or on named practitioners of record when no firm is available. Counts are distinct applications among ${records.length.toLocaleString()} analyzed records (n=${counselApplications.size.toLocaleString()} with identified counsel); a listed record does not establish who performed all prosecution work or a current engagement.`
+      : "No identifiable law firm or named practitioner was available in the structured USPTO records returned for this application sample.";
     const recordsWithHistory = records.filter((record) => Array.isArray(record.eventDataBag));
     const historyStartDates = recordsWithHistory
       .map((record) => text(metadata(record).filingDate))
