@@ -4,8 +4,7 @@ import { ArrowRight, Search } from 'lucide-react';
 import { useAnalyzePublicExaminer } from '@workspace/api-client-react';
 import type { PublicExaminerAnalysis } from '@workspace/api-client-react';
 import { CoverageLedger, EmptyPanel, ErrorPanel, Metric, ResultSkeleton, errorMessage, fmtNum } from './shared';
-import { ExportPdfButton } from './ExportPdfButton';
-import { examinerPdfReport } from './report-builders';
+import { ExaminerSnapshotPdfButton } from './ExaminerSnapshotPdfButton';
 
 export function ExaminerIntelligence() {
   const [query, setQuery] = useState('');
@@ -106,8 +105,13 @@ function ExaminerResult({ data }: { data: PublicExaminerAnalysis }) {
   return (
     <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }} className="space-y-8" data-testid="result-examiner">
       <header>
-        <div className="zk-eyebrow">{data.searchType === 'art-unit' ? 'Art unit profile' : 'Examiner profile'}</div>
-        <h3 className="mt-1 font-display text-3xl font-semibold" data-testid="text-examiner-title">{title}</h3>
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <div className="zk-eyebrow">{data.searchType === 'art-unit' ? 'Art unit profile' : 'Examiner profile'}</div>
+            <h3 className="mt-1 font-display text-3xl font-semibold" data-testid="text-examiner-title">{title}</h3>
+          </div>
+          <ExaminerSnapshotPdfButton data={data} />
+        </div>
         {data.applicationNumberContext && <p className="mt-2 text-sm text-muted-foreground">Profile opened from application <span className="font-mono">{data.applicationNumberContext}</span>. The profile reflects the examiner currently listed; earlier prosecution may have involved another examiner.</p>}
         {data.artUnit && data.allowanceBenchmarks && (
           <section className="mt-5 border-l-4 border-[hsl(var(--zk-brass))] bg-muted/50 p-4 sm:p-5" data-testid="art-unit-overview">
@@ -130,10 +134,6 @@ function ExaminerResult({ data }: { data: PublicExaminerAnalysis }) {
           </div>
         )}
       </header>
-
-      <div className="flex justify-end">
-        <ExportPdfButton report={examinerPdfReport(data)} />
-      </div>
 
       <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
         <div className="zk-dial" data-testid="metric-allowance-rate">

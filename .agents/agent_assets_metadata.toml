@@ -245,3 +245,45 @@ mtime_ms = 1793161506532
 storage_uri = "gcs://replit-rams-assets-reed/rams/assets/repl:d8317486-6b11-41c5-bec6-74c880ade2f7/d2633232-0363-4925-bc28-10cddd540b00/d2d3a965-a61f-4d28-aac2-8cb5b1bd11b9"
 storage_version_token = "1793161538512354"
 content_type = "application/pdf"
+
+[[outputs]]
+id = "vKR8Tw8Wzp5t6i6wjdqGB"
+uri = "file://generated-artifacts/examiner-intelligence-snapshot.pdf"
+type = "pdf"
+title = "Redesigned examiner intelligence PDF"
+description = "A one-page snapshot using live USPTO examiner results, matching the portfolio report’s branding and exact lower firm artwork. Includes art-unit context, allowance benchmarks, abandonment, office-action bars, interview outcome comparisons, and source/sample disclosures."
+logical_id = "431b7a86-cd49-462d-b733-8e62192f30d3"
+content_hash = "sha256:df5050706106af22742b1b72268f09b92e2f488b04cdc3f9309948ff7055cc80"
+size = 298591
+mtime_ms = 1793161972688
+storage_uri = "gcs://replit-rams-assets-reed/rams/assets/repl:d8317486-6b11-41c5-bec6-74c880ade2f7/431b7a86-cd49-462d-b733-8e62192f30d3/2f658b49-f238-4e61-9eb1-9362b206d26d"
+storage_version_token = "1793162070164469"
+content_type = "application/pdf"
+
+[[outputs]]
+id = "xnPbIzROr8npEWLydTDYd"
+uri = "file://generated-artifacts/examiner-snapshot-custom-questions.pdf"
+type = "pdf"
+title = "Examiner snapshot with revised questions"
+description = "The examiner-only Questions Worth Asking section now uses concise versions of your five questions, each on one line. Portfolio questions, statistics, question icons, and firm artwork remain unchanged."
+logical_id = "a3a31d86-54a4-43c5-8a97-b6b97826f6af"
+content_hash = "sha256:4db44d9d9edf205d20aac27d434fd3f32d32d0d2e3e990c623b237af6493cdc7"
+size = 299805
+mtime_ms = 1793162202268
+storage_uri = "gcs://replit-rams-assets-reed/rams/assets/repl:d8317486-6b11-41c5-bec6-74c880ade2f7/a3a31d86-54a4-43c5-8a97-b6b97826f6af/9a473069-b93f-4382-8744-40691db94f19"
+storage_version_token = "1793162321568878"
+content_type = "application/pdf"
+
+[[outputs]]
+id = "n0WJi6iDGSEUE7dyEfqB-"
+uri = "file://generated-artifacts/patent-examiner-intelligence.pdf"
+type = "pdf"
+title = "Patent Examiner Intelligence PDF"
+description = "The header now reads PATENT EXAMINER INTELLIGENCE. All metrics, custom examiner questions, and firm artwork remain unchanged."
+logical_id = "3a7f926a-520b-4279-b59c-b8228970b9f1"
+content_hash = "sha256:86ef4d7fafc92b8c13140d3c346eca31f4cacc638ee3b7b10c7e4ea568a32067"
+size = 299803
+mtime_ms = 1793162345176
+storage_uri = "gcs://replit-rams-assets-reed/rams/assets/repl:d8317486-6b11-41c5-bec6-74c880ade2f7/3a7f926a-520b-4279-b59c-b8228970b9f1/24c88e30-06a2-4931-ab8b-6ac5354665d1"
+storage_version_token = "1793162357609056"
+content_type = "application/pdf"

@@ -52,7 +52,12 @@ function drawGlobe(pdf: jsPDF) {
   }
 }
 
-export function drawPortfolioPdfHeader(pdf: jsPDF, companyName: string, retrievedAt: string) {
+export function drawPortfolioPdfHeader(
+  pdf: jsPDF,
+  companyName: string,
+  retrievedAt: string,
+  snapshotLabel = 'PATENT PORTFOLIO SNAPSHOT',
+) {
   // Subtle teal glow behind the globe; darker ends preserve text contrast.
   pdf.setFillColor(1, 24, 37);
   pdf.rect(0, 0, 612, HEADER_HEIGHT, 'F');
@@ -83,7 +88,7 @@ export function drawPortfolioPdfHeader(pdf: jsPDF, companyName: string, retrieve
   pdf.text(fitText(companyName, 378), 42, 41);
   pdf.setFont('helvetica', 'normal'); pdf.setFontSize(14.5); pdf.setCharSpace(0.75);
   pdf.setTextColor(224, 229, 234);
-  pdf.text('PATENT PORTFOLIO SNAPSHOT', 42, 59);
+  pdf.text(snapshotLabel, 42, 59);
   pdf.setCharSpace(0);
   pdf.setFontSize(6.8); pdf.setTextColor(186, 201, 210);
   const date = new Date(retrievedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });

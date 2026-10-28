@@ -9,4 +9,4 @@
 - [Examiner intelligence scope](examiner-intelligence.md) — the public examiner tool serves patent prosecution attorneys; prioritize transparent, reproducible metrics over speculative recommendations.
 - [Internal workflow data boundaries](internal-workflow-data-boundaries.md) — AppColl owns docket fields; internal assignments and billing stay separate in the authenticated portal.
 - [Contact delivery environments](contact-delivery-environments.md) — use Microsoft 365 HTTPS mail, not SMTP fallback; distinguish acceptance, inbox receipt, and live-site verification.
-- [Portfolio handout design](portfolio-handout-design.md) — reproduce approved questions and firm/QR footer exactly; retain one page and exclude events, portfolio advice, and counsel.
+- [Patent intelligence handouts](portfolio-handout-design.md) — shared one-page branding; examiner questions are customized, portfolio questions and firm/QR artwork stay fixed.
