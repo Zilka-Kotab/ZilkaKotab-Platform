@@ -149,6 +149,19 @@ export const analyzePublicExaminerResponseExaminerCandidatesItemCountMin = 0;
 
 export const analyzePublicExaminerResponseTopExaminersItemCountMin = 0;
 
+export const analyzePublicExaminerResponseAllowanceBenchmarksExaminerAllowanceRateMin = 0;
+export const analyzePublicExaminerResponseAllowanceBenchmarksExaminerAllowanceRateMax = 100;
+
+export const analyzePublicExaminerResponseAllowanceBenchmarksArtUnitAllowanceRateMin = 0;
+export const analyzePublicExaminerResponseAllowanceBenchmarksArtUnitAllowanceRateMax = 100;
+
+export const analyzePublicExaminerResponseAllowanceBenchmarksTechnologyCenterAllowanceRateMin = 0;
+export const analyzePublicExaminerResponseAllowanceBenchmarksTechnologyCenterAllowanceRateMax = 100;
+
+export const analyzePublicExaminerResponseAllowanceBenchmarksArtUnitDisposedApplicationsMin = 0;
+
+export const analyzePublicExaminerResponseAllowanceBenchmarksTechnologyCenterDisposedApplicationsMin = 0;
+
 export const analyzePublicExaminerResponseOfficeActionAnalyticsApplicationsWithEventDataMin = 0;
 
 export const analyzePublicExaminerResponseOfficeActionAnalyticsApplicationsWithOfficeActionMin = 0;
@@ -191,6 +204,16 @@ export const AnalyzePublicExaminerResponse = zod.object({
   "examinerName": zod.string(),
   "count": zod.number().min(analyzePublicExaminerResponseTopExaminersItemCountMin)
 })),
+  "allowanceBenchmarks": zod.object({
+  "examinerAllowanceRate": zod.number().min(analyzePublicExaminerResponseAllowanceBenchmarksExaminerAllowanceRateMin).max(analyzePublicExaminerResponseAllowanceBenchmarksExaminerAllowanceRateMax).nullable(),
+  "artUnitAllowanceRate": zod.number().min(analyzePublicExaminerResponseAllowanceBenchmarksArtUnitAllowanceRateMin).max(analyzePublicExaminerResponseAllowanceBenchmarksArtUnitAllowanceRateMax).nullable(),
+  "technologyCenterAllowanceRate": zod.number().min(analyzePublicExaminerResponseAllowanceBenchmarksTechnologyCenterAllowanceRateMin).max(analyzePublicExaminerResponseAllowanceBenchmarksTechnologyCenterAllowanceRateMax).nullable(),
+  "artUnit": zod.string().nullable(),
+  "technologyCenter": zod.string().nullable(),
+  "artUnitDisposedApplications": zod.number().min(analyzePublicExaminerResponseAllowanceBenchmarksArtUnitDisposedApplicationsMin),
+  "technologyCenterDisposedApplications": zod.number().min(analyzePublicExaminerResponseAllowanceBenchmarksTechnologyCenterDisposedApplicationsMin),
+  "calculationNote": zod.string()
+}).optional(),
   "officeActionAnalytics": zod.object({
   "applicationsWithEventData": zod.number().min(analyzePublicExaminerResponseOfficeActionAnalyticsApplicationsWithEventDataMin),
   "applicationsWithOfficeAction": zod.number().min(analyzePublicExaminerResponseOfficeActionAnalyticsApplicationsWithOfficeActionMin),

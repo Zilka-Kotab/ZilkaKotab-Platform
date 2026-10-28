@@ -376,6 +376,43 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/PublicExaminerBreakdown"
+        allowanceBenchmarks:
+          type: object
+          additionalProperties: false
+          required:
+            - examinerAllowanceRate
+            - artUnitAllowanceRate
+            - technologyCenterAllowanceRate
+            - artUnit
+            - technologyCenter
+            - artUnitDisposedApplications
+            - technologyCenterDisposedApplications
+            - calculationNote
+          properties:
+            examinerAllowanceRate:
+              type: ["number", "null"]
+              minimum: 0
+              maximum: 100
+            artUnitAllowanceRate:
+              type: ["number", "null"]
+              minimum: 0
+              maximum: 100
+            technologyCenterAllowanceRate:
+              type: ["number", "null"]
+              minimum: 0
+              maximum: 100
+            artUnit:
+              type: ["string", "null"]
+            technologyCenter:
+              type: ["string", "null"]
+            artUnitDisposedApplications:
+              type: integer
+              minimum: 0
+            technologyCenterDisposedApplications:
+              type: integer
+              minimum: 0
+            calculationNote:
+              type: string
         officeActionAnalytics:
           type: object
           additionalProperties: false

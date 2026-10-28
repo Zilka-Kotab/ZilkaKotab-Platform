@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { PublicDataCoverage } from './publicDataCoverage';
+import type { PublicExaminerAnalysisAllowanceBenchmarks } from './publicExaminerAnalysisAllowanceBenchmarks';
 import type { PublicExaminerAnalysisOfficeActionAnalytics } from './publicExaminerAnalysisOfficeActionAnalytics';
 import type { PublicExaminerAnalysisSearchType } from './publicExaminerAnalysisSearchType';
 import type { PublicExaminerBreakdown } from './publicExaminerBreakdown';
@@ -40,6 +41,7 @@ export interface PublicExaminerAnalysis {
   selectionRequired: boolean;
   examinerCandidates: PublicExaminerBreakdown[];
   topExaminers: PublicExaminerBreakdown[];
+  allowanceBenchmarks?: PublicExaminerAnalysisAllowanceBenchmarks;
   officeActionAnalytics?: PublicExaminerAnalysisOfficeActionAnalytics;
   calculationNote: string;
   coverage: PublicDataCoverage;

@@ -4,6 +4,7 @@ const RESULT_LIMIT = 2000;
 const PAGE_SIZE = 100;
 const CACHE_TTL_MS = 30 * 60 * 1000;
 const USPTO_REQUEST_SPACING_MS = 250;
+const STATUS_FACET = "applicationMetaData.applicationStatusDescriptionText";
 
 type JsonRecord = Record<string, unknown>;
 
@@ -241,6 +242,32 @@ function isGranted(meta: JsonRecord) {
 
 function isAbandoned(meta: JsonRecord) {
   return (text(meta.applicationStatusDescriptionText)?.toLocaleLowerCase() ?? "").includes("abandon");
+}
+
+function dispositionCounts(facets: Record<string, FacetEntry[]>) {
+  const statuses = facets[STATUS_FACET] ?? [];
+  let allowed = 0;
+  let abandoned = 0;
+  for (const facet of statuses) {
+    const status = facet.value.toLocaleLowerCase();
+    if (status.includes("abandon")) abandoned += facet.count;
+    else if (
+      status.includes("patented case") ||
+      status.includes("patent expired") ||
+      status.includes("notice of allowance") ||
+      status.includes("allowed") ||
+      status.includes("issue fee payment verified") ||
+      status.includes("issue fee payment received")
+    ) allowed += facet.count;
+  }
+  const disposed = allowed + abandoned;
+  return {
+    allowed,
+    abandoned,
+    disposed,
+    allowanceRate: statuses.length && disposed ? round((allowed / disposed) * 100) : null,
+    hasStatusData: statuses.length > 0,
+  };
 }
 
 export async function analyzePortfolio(companyNameInput: string, selectedApplicantNames?: string[]) {
@@ -575,6 +602,24 @@ async function analyzeExaminerProfile(queryInput: string, selectedExaminerName?:
     }
     const primaryArtUnit = [...artUnitCounts].sort((left, right) => right[1] - left[1])[0]?.[0] ?? null;
     const primaryExaminer = topExaminers[0]?.examinerName ?? null;
+    const benchmarkArtUnit = parsed.searchType === "art-unit" ? parsed.value : primaryArtUnit;
+    const technologyCenter = benchmarkArtUnit && /^\d{4}$/.test(benchmarkArtUnit) ? `${benchmarkArtUnit.slice(0, 2)}00` : null;
+    const technologyCenterEnd = technologyCenter ? `${technologyCenter.slice(0, 2)}99` : null;
+    const [examinerStatusAggregate, artUnitStatusAggregate, technologyCenterStatusAggregate] = await Promise.all([
+      parsed.searchType === "examiner"
+        ? requestAggregate(parsed.query, { facets: [STATUS_FACET] })
+        : Promise.resolve(null),
+      benchmarkArtUnit && /^\d{4}$/.test(benchmarkArtUnit)
+        ? requestAggregate(`applicationMetaData.groupArtUnitNumber:${benchmarkArtUnit}`, { facets: [STATUS_FACET] })
+        : Promise.resolve(null),
+      technologyCenter && technologyCenterEnd
+        ? requestAggregate(`applicationMetaData.groupArtUnitNumber:[${technologyCenter} TO ${technologyCenterEnd}]`, { facets: [STATUS_FACET] })
+        : Promise.resolve(null),
+    ]);
+    const examinerOutcome = examinerStatusAggregate ? dispositionCounts(examinerStatusAggregate.facets) : null;
+    const artUnitOutcome = artUnitStatusAggregate ? dispositionCounts(artUnitStatusAggregate.facets) : null;
+    const technologyCenterOutcome = technologyCenterStatusAggregate ? dispositionCounts(technologyCenterStatusAggregate.facets) : null;
+    const primaryOutcome = parsed.searchType === "art-unit" ? artUnitOutcome : examinerOutcome;
     const recordsWithEventData = search.records.filter((record) => Array.isArray(record.eventDataBag));
     const officeActionCounts = recordsWithEventData.map((record) => {
       const actionEvents = events(record);
@@ -602,16 +647,28 @@ async function analyzeExaminerProfile(queryInput: string, selectedExaminerName?:
       examinerName: parsed.searchType === "examiner" ? primaryExaminer : null,
       artUnit: parsed.searchType === "art-unit" ? parsed.value : primaryArtUnit,
       identifiedApplications: search.count,
-      disposedApplications: completeCoverage ? disposed : 0,
-      allowedApplications: completeCoverage ? allowed.length : 0,
-      abandonedApplications: completeCoverage ? abandoned.length : 0,
-      estimatedAllowanceRate: completeCoverage && disposed >= 10 ? round((allowed.length / disposed) * 100) : null,
+      disposedApplications: primaryOutcome?.hasStatusData ? primaryOutcome.disposed : completeCoverage ? disposed : 0,
+      allowedApplications: primaryOutcome?.hasStatusData ? primaryOutcome.allowed : completeCoverage ? allowed.length : 0,
+      abandonedApplications: primaryOutcome?.hasStatusData ? primaryOutcome.abandoned : completeCoverage ? abandoned.length : 0,
+      estimatedAllowanceRate: primaryOutcome?.hasStatusData
+        ? (primaryOutcome.disposed >= 10 ? primaryOutcome.allowanceRate : null)
+        : completeCoverage && disposed >= 10 ? round((allowed.length / disposed) * 100) : null,
       averageProsecutionDurationMonths: completeCoverage && durationValues.length >= 10
         ? round(durationValues.reduce((sum, value) => sum + value, 0) / durationValues.length)
         : null,
       selectionRequired: false,
       examinerCandidates: [],
       topExaminers: parsed.searchType === "art-unit" ? topExaminers : [],
+      allowanceBenchmarks: {
+        examinerAllowanceRate: (parsed.searchType === "examiner" ? examinerOutcome : artUnitOutcome)?.allowanceRate ?? null,
+        artUnitAllowanceRate: artUnitOutcome?.allowanceRate ?? null,
+        technologyCenterAllowanceRate: technologyCenterOutcome?.allowanceRate ?? null,
+        artUnit: benchmarkArtUnit,
+        technologyCenter,
+        artUnitDisposedApplications: artUnitOutcome?.disposed ?? 0,
+        technologyCenterDisposedApplications: technologyCenterOutcome?.disposed ?? 0,
+        calculationNote: "All rates use USPTO current-status facets and allowed ÷ (allowed + abandoned). Benchmarks include the examiner when present; percentiles are unavailable from the returned USPTO aggregates.",
+      },
       officeActionAnalytics: recordsWithEventData.length ? {
         applicationsWithEventData: recordsWithEventData.length,
         applicationsWithOfficeAction: officeActionCounts.filter((item) => item.nonFinal + item.final > 0).length,
@@ -621,9 +678,11 @@ async function analyzeExaminerProfile(queryInput: string, selectedExaminerName?:
         averageFinalActionsPerApplication: round(officeActionCounts.reduce((sum, item) => sum + item.final, 0) / recordsWithEventData.length),
         medianMonthsFilingToFirstAction: median(firstActionMonths),
       } : undefined,
-      calculationNote: completeCoverage
-        ? "Allowance rate uses identified allowed or patented cases divided by identified allowed, patented, and abandoned cases."
-        : `The USPTO reported more than ${RESULT_LIMIT.toLocaleString()} matching applications. Outcome metrics are withheld because the analyzed records are an incomplete sample.`,
+      calculationNote: primaryOutcome?.hasStatusData
+        ? "Allowance rate uses complete USPTO current-status facets: allowed ÷ (allowed + abandoned). Pending applications are excluded. Event-history metrics use the retrieved records shown in coverage."
+        : completeCoverage
+          ? "Allowance rate uses identified allowed or patented cases divided by identified allowed, patented, and abandoned cases."
+          : `The USPTO reported more than ${RESULT_LIMIT.toLocaleString()} matching applications. Outcome metrics are withheld because complete status facets were unavailable.`,
       coverage: {
         source: "USPTO Open Data Portal — Patent File Wrapper",
         retrievedAt: new Date().toISOString(),

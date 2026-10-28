@@ -124,6 +124,29 @@ function ExaminerResult({ data }: { data: PublicExaminerAnalysis }) {
         </section>
       )}
 
+      {data.allowanceBenchmarks && (
+        <section data-testid="section-allowance-benchmarks">
+          <h4 className="zk-h4">{data.searchType === 'examiner' ? 'Examiner vs. Art Unit' : 'Art Unit vs. Technology Center'}</h4>
+          <p className="mt-1 text-xs text-muted-foreground">Allowance rate is allowed ÷ (allowed + abandoned); pending cases are excluded.</p>
+          <div className="mt-4 space-y-4">
+            {[
+              ...(data.searchType === 'examiner' ? [{ label: 'Examiner', value: data.allowanceBenchmarks.examinerAllowanceRate, emphasis: true, n: data.disposedApplications }] : []),
+              { label: `Art Unit ${data.allowanceBenchmarks.artUnit ?? '—'}`, value: data.allowanceBenchmarks.artUnitAllowanceRate, emphasis: false, n: data.allowanceBenchmarks.artUnitDisposedApplications },
+              { label: `Technology Center ${data.allowanceBenchmarks.technologyCenter ?? '—'}`, value: data.allowanceBenchmarks.technologyCenterAllowanceRate, emphasis: false, n: data.allowanceBenchmarks.technologyCenterDisposedApplications },
+            ].map((row) => (
+              <div key={row.label} className="grid grid-cols-[7.5rem_minmax(0,1fr)_6rem] items-center gap-2 text-xs sm:grid-cols-[9rem_minmax(0,1fr)_7rem] sm:gap-3 sm:text-sm">
+                <span className={row.emphasis ? 'font-semibold' : 'text-muted-foreground'}>{row.label}</span>
+                <div className="h-2 bg-muted" aria-hidden="true">
+                  {row.value !== null && <div className={`h-full ${row.emphasis ? 'bg-primary' : 'bg-[hsl(var(--zk-brass))]'}`} style={{ width: `${row.value}%` }} />}
+                </div>
+                <span className="text-right tabular-nums">{row.value === null ? 'Unavailable' : `${row.value.toFixed(1)}%`}<span className="ml-1 text-xs text-muted-foreground">n={fmtNum(row.n)}</span></span>
+              </div>
+            ))}
+          </div>
+          <p className="mt-3 text-xs leading-relaxed text-muted-foreground">{data.allowanceBenchmarks.calculationNote}</p>
+        </section>
+      )}
+
       {data.officeActionAnalytics && (
         <section data-testid="section-office-actions">
           <h4 className="zk-h4">Office Action Behavior</h4>

@@ -10,6 +10,7 @@ export * from './healthStatus';
 export * from './publicApplicantCandidate';
 export * from './publicDataCoverage';
 export * from './publicExaminerAnalysis';
+export * from './publicExaminerAnalysisAllowanceBenchmarks';
 export * from './publicExaminerAnalysisOfficeActionAnalytics';
 export * from './publicExaminerAnalysisSearchType';
 export * from './publicExaminerBreakdown';

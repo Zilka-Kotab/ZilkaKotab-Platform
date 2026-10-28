@@ -141,6 +141,36 @@ export const PublicExaminerAnalysisSearchType = {
   'art-unit': 'art-unit',
 } as const;
 
+export type PublicExaminerAnalysisAllowanceBenchmarks = {
+  /**
+     * @minimum 0
+     * @maximum 100
+     * @nullable
+     */
+  examinerAllowanceRate: number | null;
+  /**
+     * @minimum 0
+     * @maximum 100
+     * @nullable
+     */
+  artUnitAllowanceRate: number | null;
+  /**
+     * @minimum 0
+     * @maximum 100
+     * @nullable
+     */
+  technologyCenterAllowanceRate: number | null;
+  /** @nullable */
+  artUnit: string | null;
+  /** @nullable */
+  technologyCenter: string | null;
+  /** @minimum 0 */
+  artUnitDisposedApplications: number;
+  /** @minimum 0 */
+  technologyCenterDisposedApplications: number;
+  calculationNote: string;
+};
+
 export type PublicExaminerAnalysisOfficeActionAnalytics = {
   /** @minimum 0 */
   applicationsWithEventData: number;
@@ -191,6 +221,7 @@ export interface PublicExaminerAnalysis {
   selectionRequired: boolean;
   examinerCandidates: PublicExaminerBreakdown[];
   topExaminers: PublicExaminerBreakdown[];
+  allowanceBenchmarks?: PublicExaminerAnalysisAllowanceBenchmarks;
   officeActionAnalytics?: PublicExaminerAnalysisOfficeActionAnalytics;
   calculationNote: string;
   coverage: PublicDataCoverage;
