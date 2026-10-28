@@ -27,7 +27,7 @@ export function ExportPdfButton({ report, onDownload, label = 'Download PDF' }: 
 
   return (
     <div className="flex flex-col items-start gap-1 sm:items-end">
-      <button type="button" onClick={download} disabled={isExporting} className="zk-btn-secondary inline-flex items-center gap-2 disabled:cursor-wait disabled:opacity-60" data-testid="button-export-pdf">
+      <button type="button" onClick={download} disabled={isExporting} className="zk-btn-primary inline-flex items-center gap-2 shadow-md ring-1 ring-[hsl(var(--zk-brass)/0.5)] disabled:cursor-wait disabled:opacity-60" data-testid="button-export-pdf">
         <Download className="h-4 w-4" />
         {isExporting ? 'Preparing PDF…' : label}
       </button>

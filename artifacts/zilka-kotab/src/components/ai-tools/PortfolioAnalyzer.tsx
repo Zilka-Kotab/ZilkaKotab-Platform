@@ -5,6 +5,7 @@ import { useAnalyzePublicPortfolio, useAnalyzePublicPortfolioAdvanced } from '@w
 import type { PublicPortfolioAnalysis } from '@workspace/api-client-react';
 import { AdvancedPortfolioMetrics } from './AdvancedPortfolioMetrics';
 import { PortfolioSnapshotPdfButton } from './PortfolioSnapshotPdfButton';
+import { QuestionsWorthAsking } from './QuestionsWorthAsking';
 import { CoverageLedger, EmptyPanel, ErrorPanel, Metric, ResultSkeleton, errorMessage, fmtDate, fmtNum } from './shared';
 
 export function PortfolioAnalyzer() {
@@ -94,6 +95,7 @@ function PortfolioResult({ data }: { data: PublicPortfolioAnalysis }) {
       <EmptyPanel testId="empty-portfolio-results" title={`No USPTO records matched "${data.companyName}"`}
         body="Try the exact legal entity name as it appears on filings, for example including Inc., LLC, or Corporation, or a known former name." />
       <CoverageLedger coverage={data.coverage} testId="coverage-portfolio" />
+      <QuestionsWorthAsking tool="portfolio" />
     </div>;
   }
   const maxTech = Math.max(1, ...data.topTechnologyAreas.map((t) => t.count));
@@ -244,6 +246,7 @@ function PortfolioResult({ data }: { data: PublicPortfolioAnalysis }) {
           <p className="mt-3 text-xs leading-relaxed text-muted-foreground"><strong className="font-semibold text-foreground">Record limit.</strong> The limit of five applies to recent application detail rows; the portfolio totals and technology aggregates use the full reported match count.</p>
           <p className="mt-3 text-xs leading-relaxed text-muted-foreground"><strong className="font-semibold text-foreground">Legal status limitation.</strong> USPTO status text reflects prosecution records only. It does not confirm maintenance-fee payment, ownership after assignment, expiration, or enforceability. This is not a legal opinion.</p>
         </>} />
+      <QuestionsWorthAsking tool="portfolio" />
     </motion.div>
   );
 }

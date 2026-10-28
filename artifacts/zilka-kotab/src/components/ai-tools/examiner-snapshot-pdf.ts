@@ -1,6 +1,7 @@
 import type { PublicExaminerAnalysis } from '@workspace/api-client-react';
 import { drawPortfolioPdfHeader } from './portfolio-pdf-header';
 import { examinerActivitySpan } from './examiner-activity';
+import { EXAMINER_QUESTIONS } from './snapshot-questions';
 
 const NAVY: [number, number, number] = [11, 31, 53];
 const GOLD: [number, number, number] = [191, 154, 37];
@@ -10,13 +11,7 @@ const num = (value: number | null | undefined) => value == null ? 'N/A' : value.
 const pct = (value: number | null | undefined) => value == null ? 'N/A' : `${value.toFixed(1)}%`;
 const share = (count: number | undefined, total: number | undefined) =>
   count != null && total != null && total > 0 ? count / total * 100 : null;
-export const EXAMINER_SNAPSHOT_QUESTIONS = [
-  "Are you tailoring prosecution strategy to this examiner's historical allowance patterns, or treating every examiner the same?",
-  'When might an interview improve your allowance prospects with this examiner, and are you using interviews strategically?',
-  'How does this examiner compare with others in the art unit, and what does that mean for your strategy?',
-  'Which path fits this examiner best: continued prosecution, an RCE, an appeal, or a different claim strategy?',
-  'How much time and money could examiner-specific intelligence save before your next Office Action?',
-] as const;
+export const EXAMINER_SNAPSHOT_QUESTIONS = EXAMINER_QUESTIONS;
 const clean = (text: string) => text.replace(/[–—]/g, '-').replace(/[“”]/g, '"')
   .replace(/[’]/g, "'").replace(/\s+/g, ' ').trim();
 
