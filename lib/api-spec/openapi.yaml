@@ -50,6 +50,30 @@ paths:
           description: Rate limit exceeded
         "502":
           description: USPTO data unavailable
+  /public-tools/portfolio/advanced:
+    post:
+      operationId: analyzePublicPortfolioAdvanced
+      tags: [public-patent-tools]
+      summary: Analyze prosecution details for selected USPTO applicants
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PublicPortfolioAdvancedInput"
+      responses:
+        "200":
+          description: Advanced patent portfolio metrics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PublicPortfolioAdvancedAnalysis"
+        "400":
+          description: Invalid applicant selection
+        "429":
+          description: Rate limit exceeded
+        "502":
+          description: USPTO data unavailable
   /public-tools/examiner/analyze:
     post:
       operationId: analyzePublicExaminer
@@ -221,7 +245,7 @@ components:
           minimum: 0
         resultLimit:
           type: integer
-          minimum: 1
+          minimum: 0
         truncated:
           type: boolean
         note:
@@ -291,6 +315,183 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/PublicPatentGrant"
+        coverage:
+          $ref: "#/components/schemas/PublicDataCoverage"
+    PublicPortfolioAdvancedInput:
+      type: object
+      additionalProperties: false
+      required: [selectedApplicantNames]
+      properties:
+        selectedApplicantNames:
+          type: array
+          minItems: 1
+          maxItems: 8
+          items:
+            type: string
+            minLength: 2
+            maxLength: 200
+    PublicPortfolioArtUnit:
+      type: object
+      additionalProperties: false
+      required: [artUnit, applicationCount, portfolioSharePercent]
+      properties:
+        artUnit:
+          type: string
+        applicationCount:
+          type: integer
+          minimum: 0
+        portfolioSharePercent:
+          type: number
+          minimum: 0
+          maximum: 100
+    PublicPortfolioExaminer:
+      type: object
+      additionalProperties: false
+      required: [examinerName, artUnit, applicationCount]
+      properties:
+        examinerName:
+          type: string
+        artUnit:
+          type: ["string", "null"]
+        applicationCount:
+          type: integer
+          minimum: 0
+    PublicPendingAgeBucket:
+      type: object
+      additionalProperties: false
+      required: [label, count, sharePercent]
+      properties:
+        label:
+          type: string
+        count:
+          type: integer
+          minimum: 0
+        sharePercent:
+          type: number
+          minimum: 0
+          maximum: 100
+    PublicPortfolioAdvancedAnalysis:
+      type: object
+      additionalProperties: false
+      required: [prosecutionEfficiency, topArtUnits, outsideCounsel, portfolioInsights, coverage]
+      properties:
+        prosecutionEfficiency:
+          type: object
+          additionalProperties: false
+          required: [applicationsWithHistories, averageOfficeActionsPerGrantedPatent, officeActionDenominator, rceRate, rceApplications, rceDenominator, examinerInterviewRate, interviewApplications, interviewDenominator, allowedWithTwoOrFewerActionsRate, allowedWithTwoOrFewerActions, allowedWithHistory, filingDateStart, filingDateEnd]
+          properties:
+            applicationsWithHistories:
+              type: integer
+              minimum: 0
+            averageOfficeActionsPerGrantedPatent:
+              type: ["number", "null"]
+              minimum: 0
+            officeActionDenominator:
+              type: integer
+              minimum: 0
+            rceRate:
+              type: ["number", "null"]
+              minimum: 0
+              maximum: 100
+            rceApplications:
+              type: integer
+              minimum: 0
+            rceDenominator:
+              type: integer
+              minimum: 0
+            examinerInterviewRate:
+              type: ["number", "null"]
+              minimum: 0
+              maximum: 100
+            interviewApplications:
+              type: integer
+              minimum: 0
+            interviewDenominator:
+              type: integer
+              minimum: 0
+            allowedWithTwoOrFewerActionsRate:
+              type: ["number", "null"]
+              minimum: 0
+              maximum: 100
+            allowedWithTwoOrFewerActions:
+              type: integer
+              minimum: 0
+            allowedWithHistory:
+              type: integer
+              minimum: 0
+            filingDateStart:
+              type: ["string", "null"]
+            filingDateEnd:
+              type: ["string", "null"]
+        topArtUnits:
+          type: array
+          items:
+            $ref: "#/components/schemas/PublicPortfolioArtUnit"
+        outsideCounsel:
+          type: object
+          additionalProperties: false
+          required: [available, label, note, sampleSize, entries]
+          properties:
+            available:
+              type: boolean
+            label:
+              type: string
+            note:
+              type: string
+            sampleSize:
+              type: integer
+              minimum: 0
+            entries:
+              type: array
+              items:
+                type: object
+                additionalProperties: false
+                required: [name, applicationCount, portfolioSharePercent]
+                properties:
+                  name:
+                    type: string
+                  applicationCount:
+                    type: integer
+                    minimum: 0
+                  portfolioSharePercent:
+                    type: number
+                    minimum: 0
+                    maximum: 100
+        portfolioInsights:
+          type: object
+          additionalProperties: false
+          required: [overallAllowanceRate, knownFinalOutcomes, averageTimeToGrantMonths, grantDurationSampleSize, averagePendingAgeYears, pendingAgeSampleSize, pendingAgeBuckets, topExaminers, examinerSampleSize]
+          properties:
+            overallAllowanceRate:
+              type: ["number", "null"]
+              minimum: 0
+              maximum: 100
+            knownFinalOutcomes:
+              type: integer
+              minimum: 0
+            averageTimeToGrantMonths:
+              type: ["number", "null"]
+              minimum: 0
+            grantDurationSampleSize:
+              type: integer
+              minimum: 0
+            averagePendingAgeYears:
+              type: ["number", "null"]
+              minimum: 0
+            pendingAgeSampleSize:
+              type: integer
+              minimum: 0
+            pendingAgeBuckets:
+              type: array
+              items:
+                $ref: "#/components/schemas/PublicPendingAgeBucket"
+            topExaminers:
+              type: array
+              items:
+                $ref: "#/components/schemas/PublicPortfolioExaminer"
+            examinerSampleSize:
+              type: integer
+              minimum: 0
         coverage:
           $ref: "#/components/schemas/PublicDataCoverage"
     PublicExaminerInput:

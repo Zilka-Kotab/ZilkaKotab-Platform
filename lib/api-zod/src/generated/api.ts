@@ -57,6 +57,7 @@ export const analyzePublicPortfolioResponseCoverageTotalMatchesReportedMin = 0;
 
 export const analyzePublicPortfolioResponseCoverageRecordsAnalyzedMin = 0;
 
+export const analyzePublicPortfolioResponseCoverageResultLimitMin = 0;
 
 
 
@@ -109,7 +110,154 @@ export const AnalyzePublicPortfolioResponse = zod.object({
   "retrievedAt": zod.coerce.date(),
   "totalMatchesReported": zod.number().min(analyzePublicPortfolioResponseCoverageTotalMatchesReportedMin),
   "recordsAnalyzed": zod.number().min(analyzePublicPortfolioResponseCoverageRecordsAnalyzedMin),
-  "resultLimit": zod.number().min(1),
+  "resultLimit": zod.number().min(analyzePublicPortfolioResponseCoverageResultLimitMin),
+  "truncated": zod.boolean(),
+  "note": zod.string()
+})
+})
+
+
+/**
+ * @summary Analyze prosecution details for selected USPTO applicants
+ */
+export const analyzePublicPortfolioAdvancedBodySelectedApplicantNamesItemMin = 2;
+export const analyzePublicPortfolioAdvancedBodySelectedApplicantNamesItemMax = 200;
+
+export const analyzePublicPortfolioAdvancedBodySelectedApplicantNamesMax = 8;
+
+
+
+export const AnalyzePublicPortfolioAdvancedBody = zod.object({
+  "selectedApplicantNames": zod.array(zod.string().min(analyzePublicPortfolioAdvancedBodySelectedApplicantNamesItemMin).max(analyzePublicPortfolioAdvancedBodySelectedApplicantNamesItemMax)).min(1).max(analyzePublicPortfolioAdvancedBodySelectedApplicantNamesMax)
+})
+
+export const analyzePublicPortfolioAdvancedResponseProsecutionEfficiencyApplicationsWithHistoriesMin = 0;
+
+export const analyzePublicPortfolioAdvancedResponseProsecutionEfficiencyAverageOfficeActionsPerGrantedPatentMin = 0;
+
+export const analyzePublicPortfolioAdvancedResponseProsecutionEfficiencyOfficeActionDenominatorMin = 0;
+
+export const analyzePublicPortfolioAdvancedResponseProsecutionEfficiencyRceRateMin = 0;
+export const analyzePublicPortfolioAdvancedResponseProsecutionEfficiencyRceRateMax = 100;
+
+export const analyzePublicPortfolioAdvancedResponseProsecutionEfficiencyRceApplicationsMin = 0;
+
+export const analyzePublicPortfolioAdvancedResponseProsecutionEfficiencyRceDenominatorMin = 0;
+
+export const analyzePublicPortfolioAdvancedResponseProsecutionEfficiencyExaminerInterviewRateMin = 0;
+export const analyzePublicPortfolioAdvancedResponseProsecutionEfficiencyExaminerInterviewRateMax = 100;
+
+export const analyzePublicPortfolioAdvancedResponseProsecutionEfficiencyInterviewApplicationsMin = 0;
+
+export const analyzePublicPortfolioAdvancedResponseProsecutionEfficiencyInterviewDenominatorMin = 0;
+
+export const analyzePublicPortfolioAdvancedResponseProsecutionEfficiencyAllowedWithTwoOrFewerActionsRateMin = 0;
+export const analyzePublicPortfolioAdvancedResponseProsecutionEfficiencyAllowedWithTwoOrFewerActionsRateMax = 100;
+
+export const analyzePublicPortfolioAdvancedResponseProsecutionEfficiencyAllowedWithTwoOrFewerActionsMin = 0;
+
+export const analyzePublicPortfolioAdvancedResponseProsecutionEfficiencyAllowedWithHistoryMin = 0;
+
+export const analyzePublicPortfolioAdvancedResponseTopArtUnitsItemApplicationCountMin = 0;
+
+export const analyzePublicPortfolioAdvancedResponseTopArtUnitsItemPortfolioSharePercentMin = 0;
+export const analyzePublicPortfolioAdvancedResponseTopArtUnitsItemPortfolioSharePercentMax = 100;
+
+export const analyzePublicPortfolioAdvancedResponseOutsideCounselSampleSizeMin = 0;
+
+export const analyzePublicPortfolioAdvancedResponseOutsideCounselEntriesItemApplicationCountMin = 0;
+
+export const analyzePublicPortfolioAdvancedResponseOutsideCounselEntriesItemPortfolioSharePercentMin = 0;
+export const analyzePublicPortfolioAdvancedResponseOutsideCounselEntriesItemPortfolioSharePercentMax = 100;
+
+export const analyzePublicPortfolioAdvancedResponsePortfolioInsightsOverallAllowanceRateMin = 0;
+export const analyzePublicPortfolioAdvancedResponsePortfolioInsightsOverallAllowanceRateMax = 100;
+
+export const analyzePublicPortfolioAdvancedResponsePortfolioInsightsKnownFinalOutcomesMin = 0;
+
+export const analyzePublicPortfolioAdvancedResponsePortfolioInsightsAverageTimeToGrantMonthsMin = 0;
+
+export const analyzePublicPortfolioAdvancedResponsePortfolioInsightsGrantDurationSampleSizeMin = 0;
+
+export const analyzePublicPortfolioAdvancedResponsePortfolioInsightsAveragePendingAgeYearsMin = 0;
+
+export const analyzePublicPortfolioAdvancedResponsePortfolioInsightsPendingAgeSampleSizeMin = 0;
+
+export const analyzePublicPortfolioAdvancedResponsePortfolioInsightsPendingAgeBucketsItemCountMin = 0;
+
+export const analyzePublicPortfolioAdvancedResponsePortfolioInsightsPendingAgeBucketsItemSharePercentMin = 0;
+export const analyzePublicPortfolioAdvancedResponsePortfolioInsightsPendingAgeBucketsItemSharePercentMax = 100;
+
+export const analyzePublicPortfolioAdvancedResponsePortfolioInsightsTopExaminersItemApplicationCountMin = 0;
+
+export const analyzePublicPortfolioAdvancedResponsePortfolioInsightsExaminerSampleSizeMin = 0;
+
+export const analyzePublicPortfolioAdvancedResponseCoverageTotalMatchesReportedMin = 0;
+
+export const analyzePublicPortfolioAdvancedResponseCoverageRecordsAnalyzedMin = 0;
+
+export const analyzePublicPortfolioAdvancedResponseCoverageResultLimitMin = 0;
+
+
+
+export const AnalyzePublicPortfolioAdvancedResponse = zod.object({
+  "prosecutionEfficiency": zod.object({
+  "applicationsWithHistories": zod.number().min(analyzePublicPortfolioAdvancedResponseProsecutionEfficiencyApplicationsWithHistoriesMin),
+  "averageOfficeActionsPerGrantedPatent": zod.number().min(analyzePublicPortfolioAdvancedResponseProsecutionEfficiencyAverageOfficeActionsPerGrantedPatentMin).nullable(),
+  "officeActionDenominator": zod.number().min(analyzePublicPortfolioAdvancedResponseProsecutionEfficiencyOfficeActionDenominatorMin),
+  "rceRate": zod.number().min(analyzePublicPortfolioAdvancedResponseProsecutionEfficiencyRceRateMin).max(analyzePublicPortfolioAdvancedResponseProsecutionEfficiencyRceRateMax).nullable(),
+  "rceApplications": zod.number().min(analyzePublicPortfolioAdvancedResponseProsecutionEfficiencyRceApplicationsMin),
+  "rceDenominator": zod.number().min(analyzePublicPortfolioAdvancedResponseProsecutionEfficiencyRceDenominatorMin),
+  "examinerInterviewRate": zod.number().min(analyzePublicPortfolioAdvancedResponseProsecutionEfficiencyExaminerInterviewRateMin).max(analyzePublicPortfolioAdvancedResponseProsecutionEfficiencyExaminerInterviewRateMax).nullable(),
+  "interviewApplications": zod.number().min(analyzePublicPortfolioAdvancedResponseProsecutionEfficiencyInterviewApplicationsMin),
+  "interviewDenominator": zod.number().min(analyzePublicPortfolioAdvancedResponseProsecutionEfficiencyInterviewDenominatorMin),
+  "allowedWithTwoOrFewerActionsRate": zod.number().min(analyzePublicPortfolioAdvancedResponseProsecutionEfficiencyAllowedWithTwoOrFewerActionsRateMin).max(analyzePublicPortfolioAdvancedResponseProsecutionEfficiencyAllowedWithTwoOrFewerActionsRateMax).nullable(),
+  "allowedWithTwoOrFewerActions": zod.number().min(analyzePublicPortfolioAdvancedResponseProsecutionEfficiencyAllowedWithTwoOrFewerActionsMin),
+  "allowedWithHistory": zod.number().min(analyzePublicPortfolioAdvancedResponseProsecutionEfficiencyAllowedWithHistoryMin),
+  "filingDateStart": zod.string().nullable(),
+  "filingDateEnd": zod.string().nullable()
+}),
+  "topArtUnits": zod.array(zod.object({
+  "artUnit": zod.string(),
+  "applicationCount": zod.number().min(analyzePublicPortfolioAdvancedResponseTopArtUnitsItemApplicationCountMin),
+  "portfolioSharePercent": zod.number().min(analyzePublicPortfolioAdvancedResponseTopArtUnitsItemPortfolioSharePercentMin).max(analyzePublicPortfolioAdvancedResponseTopArtUnitsItemPortfolioSharePercentMax)
+})),
+  "outsideCounsel": zod.object({
+  "available": zod.boolean(),
+  "label": zod.string(),
+  "note": zod.string(),
+  "sampleSize": zod.number().min(analyzePublicPortfolioAdvancedResponseOutsideCounselSampleSizeMin),
+  "entries": zod.array(zod.object({
+  "name": zod.string(),
+  "applicationCount": zod.number().min(analyzePublicPortfolioAdvancedResponseOutsideCounselEntriesItemApplicationCountMin),
+  "portfolioSharePercent": zod.number().min(analyzePublicPortfolioAdvancedResponseOutsideCounselEntriesItemPortfolioSharePercentMin).max(analyzePublicPortfolioAdvancedResponseOutsideCounselEntriesItemPortfolioSharePercentMax)
+}))
+}),
+  "portfolioInsights": zod.object({
+  "overallAllowanceRate": zod.number().min(analyzePublicPortfolioAdvancedResponsePortfolioInsightsOverallAllowanceRateMin).max(analyzePublicPortfolioAdvancedResponsePortfolioInsightsOverallAllowanceRateMax).nullable(),
+  "knownFinalOutcomes": zod.number().min(analyzePublicPortfolioAdvancedResponsePortfolioInsightsKnownFinalOutcomesMin),
+  "averageTimeToGrantMonths": zod.number().min(analyzePublicPortfolioAdvancedResponsePortfolioInsightsAverageTimeToGrantMonthsMin).nullable(),
+  "grantDurationSampleSize": zod.number().min(analyzePublicPortfolioAdvancedResponsePortfolioInsightsGrantDurationSampleSizeMin),
+  "averagePendingAgeYears": zod.number().min(analyzePublicPortfolioAdvancedResponsePortfolioInsightsAveragePendingAgeYearsMin).nullable(),
+  "pendingAgeSampleSize": zod.number().min(analyzePublicPortfolioAdvancedResponsePortfolioInsightsPendingAgeSampleSizeMin),
+  "pendingAgeBuckets": zod.array(zod.object({
+  "label": zod.string(),
+  "count": zod.number().min(analyzePublicPortfolioAdvancedResponsePortfolioInsightsPendingAgeBucketsItemCountMin),
+  "sharePercent": zod.number().min(analyzePublicPortfolioAdvancedResponsePortfolioInsightsPendingAgeBucketsItemSharePercentMin).max(analyzePublicPortfolioAdvancedResponsePortfolioInsightsPendingAgeBucketsItemSharePercentMax)
+})),
+  "topExaminers": zod.array(zod.object({
+  "examinerName": zod.string(),
+  "artUnit": zod.string().nullable(),
+  "applicationCount": zod.number().min(analyzePublicPortfolioAdvancedResponsePortfolioInsightsTopExaminersItemApplicationCountMin)
+})),
+  "examinerSampleSize": zod.number().min(analyzePublicPortfolioAdvancedResponsePortfolioInsightsExaminerSampleSizeMin)
+}),
+  "coverage": zod.object({
+  "source": zod.string(),
+  "retrievedAt": zod.coerce.date(),
+  "totalMatchesReported": zod.number().min(analyzePublicPortfolioAdvancedResponseCoverageTotalMatchesReportedMin),
+  "recordsAnalyzed": zod.number().min(analyzePublicPortfolioAdvancedResponseCoverageRecordsAnalyzedMin),
+  "resultLimit": zod.number().min(analyzePublicPortfolioAdvancedResponseCoverageResultLimitMin),
   "truncated": zod.boolean(),
   "note": zod.string()
 })
@@ -202,6 +350,7 @@ export const analyzePublicExaminerResponseCoverageTotalMatchesReportedMin = 0;
 
 export const analyzePublicExaminerResponseCoverageRecordsAnalyzedMin = 0;
 
+export const analyzePublicExaminerResponseCoverageResultLimitMin = 0;
 
 
 
@@ -264,7 +413,7 @@ export const AnalyzePublicExaminerResponse = zod.object({
   "retrievedAt": zod.coerce.date(),
   "totalMatchesReported": zod.number().min(analyzePublicExaminerResponseCoverageTotalMatchesReportedMin),
   "recordsAnalyzed": zod.number().min(analyzePublicExaminerResponseCoverageRecordsAnalyzedMin),
-  "resultLimit": zod.number().min(1),
+  "resultLimit": zod.number().min(analyzePublicExaminerResponseCoverageResultLimitMin),
   "truncated": zod.boolean(),
   "note": zod.string()
 })

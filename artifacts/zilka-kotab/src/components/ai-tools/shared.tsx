@@ -25,10 +25,10 @@ export function errorMessage(err: unknown) {
   return 'We could not complete this lookup. Please check your input and try again.';
 }
 
-export function Metric({ label, value, note, testId, emphasis }: { label: string; value: number | string | null; note?: string; testId: string; emphasis?: boolean }) {
+export function Metric({ label, value, note, testId, emphasis, className }: { label: string; value: number | string | null; note?: string; testId: string; emphasis?: boolean; className?: string }) {
   const unavailable = value === null;
   return (
-    <div className={`zk-metric ${emphasis ? 'zk-metric--em' : ''}`} data-testid={testId}>
+    <div className={`zk-metric ${emphasis ? 'zk-metric--em' : ''} ${className ?? ''}`} data-testid={testId}>
       <div className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground font-medium">{label}</div>
       {unavailable ? (
         <div className="mt-2 font-display text-lg text-muted-foreground/80 italic">Unavailable</div>
@@ -50,7 +50,7 @@ export function CoverageLedger({ coverage, extra, testId }: { coverage: PublicDa
         <div><dt className="zk-dt">Source</dt><dd className="zk-dd" data-testid={`${testId}-source`}>{coverage.source}</dd></div>
         <div><dt className="zk-dt">Retrieved</dt><dd className="zk-dd">{new Date(coverage.retrievedAt).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })}</dd></div>
         <div><dt className="zk-dt">Records analyzed</dt><dd className="zk-dd tabular-nums">{fmtNum(coverage.recordsAnalyzed)} of {fmtNum(coverage.totalMatchesReported)}</dd></div>
-        <div><dt className="zk-dt">Record limit</dt><dd className="zk-dd tabular-nums">{fmtNum(coverage.resultLimit)}</dd></div>
+        <div><dt className="zk-dt">Record cap</dt><dd className="zk-dd tabular-nums">{coverage.resultLimit > 0 ? fmtNum(coverage.resultLimit) : 'No cap on aggregate counts'}</dd></div>
       </dl>
       {coverage.truncated && (
         <div className="mt-4 flex gap-2 rounded-sm border border-[hsl(var(--zk-brass)/0.45)] bg-[hsl(var(--zk-brass)/0.08)] p-3 text-sm" data-testid={`${testId}-truncated`}>

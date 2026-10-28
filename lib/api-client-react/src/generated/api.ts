@@ -23,6 +23,8 @@ import type {
   HealthStatus,
   PublicExaminerAnalysis,
   PublicExaminerInput,
+  PublicPortfolioAdvancedAnalysis,
+  PublicPortfolioAdvancedInput,
   PublicPortfolioAnalysis,
   PublicPortfolioInput,
   PublicToolInquiryInput,
@@ -203,6 +205,77 @@ export const useAnalyzePublicPortfolio = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getAnalyzePublicPortfolioMutationOptions(options));
+    }
+
+export const getAnalyzePublicPortfolioAdvancedUrl = () => {
+
+
+
+
+  return `/api/public-tools/portfolio/advanced`
+}
+
+/**
+ * @summary Analyze prosecution details for selected USPTO applicants
+ */
+export const analyzePublicPortfolioAdvanced = async (publicPortfolioAdvancedInput: PublicPortfolioAdvancedInput, options?: RequestInit): Promise<PublicPortfolioAdvancedAnalysis> => {
+
+  return customFetch<PublicPortfolioAdvancedAnalysis>(getAnalyzePublicPortfolioAdvancedUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(publicPortfolioAdvancedInput)
+  }
+);}
+
+
+
+
+
+export const getAnalyzePublicPortfolioAdvancedMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof analyzePublicPortfolioAdvanced>>, TError,{data: BodyType<PublicPortfolioAdvancedInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof analyzePublicPortfolioAdvanced>>, TError,{data: BodyType<PublicPortfolioAdvancedInput>}, TContext> => {
+
+const mutationKey = ['analyzePublicPortfolioAdvanced'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof analyzePublicPortfolioAdvanced>>, {data: BodyType<PublicPortfolioAdvancedInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  analyzePublicPortfolioAdvanced(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AnalyzePublicPortfolioAdvancedMutationResult = NonNullable<Awaited<ReturnType<typeof analyzePublicPortfolioAdvanced>>>
+    export type AnalyzePublicPortfolioAdvancedMutationBody = BodyType<PublicPortfolioAdvancedInput>
+    export type AnalyzePublicPortfolioAdvancedMutationError = ErrorType<void>
+
+    /**
+ * @summary Analyze prosecution details for selected USPTO applicants
+ */
+export const useAnalyzePublicPortfolioAdvanced = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof analyzePublicPortfolioAdvanced>>, TError,{data: BodyType<PublicPortfolioAdvancedInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof analyzePublicPortfolioAdvanced>>,
+        TError,
+        {data: BodyType<PublicPortfolioAdvancedInput>},
+        TContext
+      > => {
+      return useMutation(getAnalyzePublicPortfolioAdvancedMutationOptions(options));
     }
 
 export const getAnalyzePublicExaminerUrl = () => {

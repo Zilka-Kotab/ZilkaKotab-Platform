@@ -13,7 +13,7 @@ export interface PublicDataCoverage {
   totalMatchesReported: number;
   /** @minimum 0 */
   recordsAnalyzed: number;
-  /** @minimum 1 */
+  /** @minimum 0 */
   resultLimit: number;
   truncated: boolean;
   note: string;

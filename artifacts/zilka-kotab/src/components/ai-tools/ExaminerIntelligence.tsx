@@ -4,6 +4,8 @@ import { ArrowRight, Search } from 'lucide-react';
 import { useAnalyzePublicExaminer } from '@workspace/api-client-react';
 import type { PublicExaminerAnalysis } from '@workspace/api-client-react';
 import { CoverageLedger, EmptyPanel, ErrorPanel, Metric, ResultSkeleton, errorMessage, fmtNum } from './shared';
+import { ExportPdfButton } from './ExportPdfButton';
+import { examinerPdfReport } from './report-builders';
 
 export function ExaminerIntelligence() {
   const [query, setQuery] = useState('');
@@ -128,6 +130,10 @@ function ExaminerResult({ data }: { data: PublicExaminerAnalysis }) {
           </div>
         )}
       </header>
+
+      <div className="flex justify-end">
+        <ExportPdfButton report={examinerPdfReport(data)} />
+      </div>
 
       <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
         <div className="zk-dial" data-testid="metric-allowance-rate">

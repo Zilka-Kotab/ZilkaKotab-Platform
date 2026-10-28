@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { ArrowRight, ExternalLink, Search, X } from 'lucide-react';
 import { useAnalyzePublicPortfolio } from '@workspace/api-client-react';
 import type { PublicPortfolioAnalysis } from '@workspace/api-client-react';
+import { AdvancedPortfolioMetrics } from './AdvancedPortfolioMetrics';
 import { CoverageLedger, EmptyPanel, ErrorPanel, Metric, ResultSkeleton, errorMessage, fmtDate, fmtNum } from './shared';
 
 export function PortfolioAnalyzer() {
@@ -140,6 +141,8 @@ function PortfolioResult({ data }: { data: PublicPortfolioAnalysis }) {
           )}
         </section>
       </div>
+
+      <AdvancedPortfolioMetrics applicantNames={data.matchedApplicantNames} portfolio={data} />
 
       <section>
         <h4 className="zk-h4">Recent applications</h4>

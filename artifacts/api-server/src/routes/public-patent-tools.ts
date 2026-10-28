@@ -8,7 +8,7 @@ import {
   SubmitPublicToolInquiryBody,
   SubmitPublicToolInquiryResponse,
 } from "@workspace/api-zod";
-import { analyzeExaminer, analyzePortfolio, PublicPatentToolError } from "../lib/public-patent-tools";
+import { analyzeExaminer, analyzePortfolio, analyzePortfolioAdvanced, PublicPatentToolError } from "../lib/public-patent-tools";
 
 const router: IRouter = Router();
 const SEARCH_WINDOW_MS = 15 * 60 * 1000;
@@ -60,6 +60,20 @@ router.post("/public-tools/portfolio/analyze", rateLimit("portfolio", 10, SEARCH
   }
   try {
     res.json(AnalyzePublicPortfolioResponse.parse(await analyzePortfolio(parsed.data.companyName, parsed.data.selectedApplicantNames)));
+  } catch (error) {
+    sendToolError(res, error);
+  }
+});
+
+router.post("/public-tools/portfolio/advanced", rateLimit("portfolio-advanced", 4, SEARCH_WINDOW_MS), async (req, res): Promise<void> => {
+  const names = req.body?.selectedApplicantNames;
+  if (!Array.isArray(names) || names.length < 1 || names.length > 8 ||
+    names.some((name: unknown) => typeof name !== "string" || name.trim().length < 2 || name.trim().length > 200)) {
+    res.status(400).json({ error: "Select one or more valid applicant names first." });
+    return;
+  }
+  try {
+    res.json(await analyzePortfolioAdvanced(names as string[]));
   } catch (error) {
     sendToolError(res, error);
   }

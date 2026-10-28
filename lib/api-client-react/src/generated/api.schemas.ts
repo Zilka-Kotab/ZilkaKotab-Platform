@@ -79,7 +79,7 @@ export interface PublicDataCoverage {
   totalMatchesReported: number;
   /** @minimum 0 */
   recordsAnalyzed: number;
-  /** @minimum 1 */
+  /** @minimum 0 */
   resultLimit: number;
   truncated: boolean;
   note: string;
@@ -111,6 +111,149 @@ export interface PublicPortfolioAnalysis {
   topTechnologyAreas: PublicTechnologyArea[];
   recentApplications: PublicPatentApplication[];
   recentGrants: PublicPatentGrant[];
+  coverage: PublicDataCoverage;
+}
+
+export interface PublicPortfolioAdvancedInput {
+  /**
+     * @minItems 1
+     * @maxItems 8
+     * @items.minLength 2
+     * @items.maxLength 200
+     */
+  selectedApplicantNames: string[];
+}
+
+export interface PublicPortfolioArtUnit {
+  artUnit: string;
+  /** @minimum 0 */
+  applicationCount: number;
+  /**
+     * @minimum 0
+     * @maximum 100
+     */
+  portfolioSharePercent: number;
+}
+
+export interface PublicPortfolioExaminer {
+  examinerName: string;
+  /** @nullable */
+  artUnit: string | null;
+  /** @minimum 0 */
+  applicationCount: number;
+}
+
+export interface PublicPendingAgeBucket {
+  label: string;
+  /** @minimum 0 */
+  count: number;
+  /**
+     * @minimum 0
+     * @maximum 100
+     */
+  sharePercent: number;
+}
+
+export type PublicPortfolioAdvancedAnalysisProsecutionEfficiency = {
+  /** @minimum 0 */
+  applicationsWithHistories: number;
+  /**
+     * @minimum 0
+     * @nullable
+     */
+  averageOfficeActionsPerGrantedPatent: number | null;
+  /** @minimum 0 */
+  officeActionDenominator: number;
+  /**
+     * @minimum 0
+     * @maximum 100
+     * @nullable
+     */
+  rceRate: number | null;
+  /** @minimum 0 */
+  rceApplications: number;
+  /** @minimum 0 */
+  rceDenominator: number;
+  /**
+     * @minimum 0
+     * @maximum 100
+     * @nullable
+     */
+  examinerInterviewRate: number | null;
+  /** @minimum 0 */
+  interviewApplications: number;
+  /** @minimum 0 */
+  interviewDenominator: number;
+  /**
+     * @minimum 0
+     * @maximum 100
+     * @nullable
+     */
+  allowedWithTwoOrFewerActionsRate: number | null;
+  /** @minimum 0 */
+  allowedWithTwoOrFewerActions: number;
+  /** @minimum 0 */
+  allowedWithHistory: number;
+  /** @nullable */
+  filingDateStart: string | null;
+  /** @nullable */
+  filingDateEnd: string | null;
+};
+
+export type PublicPortfolioAdvancedAnalysisOutsideCounselEntriesItem = {
+  name: string;
+  /** @minimum 0 */
+  applicationCount: number;
+  /**
+     * @minimum 0
+     * @maximum 100
+     */
+  portfolioSharePercent: number;
+};
+
+export type PublicPortfolioAdvancedAnalysisOutsideCounsel = {
+  available: boolean;
+  label: string;
+  note: string;
+  /** @minimum 0 */
+  sampleSize: number;
+  entries: PublicPortfolioAdvancedAnalysisOutsideCounselEntriesItem[];
+};
+
+export type PublicPortfolioAdvancedAnalysisPortfolioInsights = {
+  /**
+     * @minimum 0
+     * @maximum 100
+     * @nullable
+     */
+  overallAllowanceRate: number | null;
+  /** @minimum 0 */
+  knownFinalOutcomes: number;
+  /**
+     * @minimum 0
+     * @nullable
+     */
+  averageTimeToGrantMonths: number | null;
+  /** @minimum 0 */
+  grantDurationSampleSize: number;
+  /**
+     * @minimum 0
+     * @nullable
+     */
+  averagePendingAgeYears: number | null;
+  /** @minimum 0 */
+  pendingAgeSampleSize: number;
+  pendingAgeBuckets: PublicPendingAgeBucket[];
+  topExaminers: PublicPortfolioExaminer[];
+  /** @minimum 0 */
+  examinerSampleSize: number;
+};
+
+export interface PublicPortfolioAdvancedAnalysis {
+  prosecutionEfficiency: PublicPortfolioAdvancedAnalysisProsecutionEfficiency;
+  topArtUnits: PublicPortfolioArtUnit[];
+  outsideCounsel: PublicPortfolioAdvancedAnalysisOutsideCounsel;
+  portfolioInsights: PublicPortfolioAdvancedAnalysisPortfolioInsights;
   coverage: PublicDataCoverage;
 }
 

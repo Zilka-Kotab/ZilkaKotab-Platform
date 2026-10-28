@@ -31,6 +31,7 @@ type CachedValue = {
 };
 
 const resultCache = new Map<string, CachedValue>();
+const inFlightCache = new Map<string, Promise<unknown>>();
 let requestQueue = Promise.resolve();
 let lastRequestAt = 0;
 
@@ -103,6 +104,28 @@ function stringArray(value: unknown) {
 
 function metadata(record: JsonRecord) {
   return asRecord(record.applicationMetaData) ?? {};
+}
+
+function recordsFrom(value: unknown) {
+  return Array.isArray(value) ? value.flatMap((item) => {
+    const record = asRecord(item);
+    return record ? [record] : [];
+  }) : [];
+}
+
+function normalizedCounselName(value: string) {
+  return value.normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLocaleLowerCase()
+    .replace(/&/g, " and ")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim()
+    .replace(/\s+/g, " ");
+}
+
+function isStructuredLawFirmName(value: string) {
+  return /(?:^| )(?:llp|llc|pllc|pc|pa|inc|incorporated|corp|corporation|law offices?|law firm|patent attorneys?)$/i
+    .test(normalizedCounselName(value));
 }
 
 function escapeQuery(value: string) {
@@ -226,13 +249,21 @@ async function requestAggregate(
 async function cached<T>(key: string, load: () => Promise<T>) {
   const entry = resultCache.get(key);
   if (entry && entry.expiresAt > Date.now()) return entry.value as T;
-  const value = await load();
-  resultCache.set(key, { value, expiresAt: Date.now() + CACHE_TTL_MS });
-  if (resultCache.size > 100) {
-    const oldest = resultCache.keys().next().value;
-    if (oldest) resultCache.delete(oldest);
+  const pending = inFlightCache.get(key);
+  if (pending) return pending as Promise<T>;
+  const request = load();
+  inFlightCache.set(key, request);
+  try {
+    const value = await request;
+    resultCache.set(key, { value, expiresAt: Date.now() + CACHE_TTL_MS });
+    if (resultCache.size > 100) {
+      const oldest = resultCache.keys().next().value;
+      if (oldest) resultCache.delete(oldest);
+    }
+    return value;
+  } finally {
+    inFlightCache.delete(key);
   }
-  return value;
 }
 
 function isGranted(meta: JsonRecord) {
@@ -332,7 +363,7 @@ export async function analyzePortfolio(companyNameInput: string, selectedApplica
           retrievedAt: new Date().toISOString(),
           totalMatchesReported: 0,
           recordsAnalyzed: 0,
-          resultLimit: 5,
+          resultLimit: 0,
           truncated: false,
           note: "No USPTO first-applicant name could be confidently matched to this search.",
         },
@@ -360,7 +391,7 @@ export async function analyzePortfolio(companyNameInput: string, selectedApplica
           retrievedAt: new Date().toISOString(),
           totalMatchesReported: 0,
           recordsAnalyzed: 0,
-          resultLimit: 5,
+          resultLimit: 0,
           truncated: false,
           note: "Select the applicant names to include before calculating portfolio metrics.",
         },
@@ -503,9 +534,249 @@ export async function analyzePortfolio(companyNameInput: string, selectedApplica
         retrievedAt: new Date().toISOString(),
         totalMatchesReported: summary.count,
         recordsAnalyzed: summary.count,
-        resultLimit: 5,
+        resultLimit: 0,
         truncated: false,
         note: "Counts and charts use complete USPTO aggregations for the matched first-applicant names; five recent published applications are shown as detail. Assignment-only ownership changes may not appear.",
+      },
+    };
+  });
+}
+
+export async function analyzePortfolioAdvanced(selectedApplicantNames: string[]) {
+  const names = [...new Set(selectedApplicantNames.map((name) => name.trim()).filter((name) => name.length >= 2 && name.length <= 200))];
+  if (!names.length || names.length > 8 || names.length !== selectedApplicantNames.length) {
+    throw new PublicPatentToolError("Select one or more valid applicant names first.", 400);
+  }
+  const selectedKey = names.slice().sort().join("|");
+  return cached(`portfolio-advanced:${selectedKey}`, async () => {
+    const applicantQuery = names
+      .map((name) => `applicationMetaData.firstApplicantName:"${escapeQuery(name)}"`)
+      .join(" OR ");
+    const query = `(${applicantQuery}) AND applicationMetaData.applicationTypeCategory:REGULAR`;
+    const [aggregate, sample] = await Promise.all([
+      requestAggregate(query, { facets: [STATUS_FACET, "applicationMetaData.groupArtUnitNumber"] }),
+      requestSearch(
+        query,
+        "applicationNumberText,applicationMetaData,applicationMetaData.attorneyBag,applicationMetaData.correspondenceAddressBag,eventDataBag",
+      ),
+    ]);
+    const sampleByApplication = new Map<string, JsonRecord>();
+    for (const record of sample.records) {
+      const applicationNumber = text(record.applicationNumberText);
+      if (applicationNumber) sampleByApplication.set(applicationNumber, record);
+    }
+    const records = [...sampleByApplication.values()];
+    const firmApplications = new Map<string, { name: string; applications: Set<string> }>();
+    const attorneyApplications = new Map<string, { name: string; applications: Set<string> }>();
+    const counselApplications = new Set<string>();
+    for (const record of records) {
+      const appNumber = text(record.applicationNumberText);
+      if (!appNumber) continue;
+      const meta = metadata(record);
+      const applicants = new Set([
+        text(meta.firstApplicantName),
+        ...recordsFrom(meta.applicantBag).map((item) => text(item.applicantNameText) ?? text(item.organizationName)),
+      ].filter((name): name is string => Boolean(name)).map(normalizedCounselName));
+      const attorneys = recordsFrom(meta.attorneyBag);
+      if (attorneys.length) counselApplications.add(appNumber);
+      for (const attorney of attorneys) {
+        const name = [
+          text(attorney.firstName),
+          text(attorney.middleName),
+          text(attorney.lastName),
+          text(attorney.nameSuffix),
+        ].filter(Boolean).join(" ");
+        if (name) {
+          const key = normalizedCounselName(name);
+          if (key) {
+            const entry = attorneyApplications.get(key) ?? { name, applications: new Set<string>() };
+            entry.applications.add(appNumber);
+            attorneyApplications.set(key, entry);
+          }
+        }
+        for (const address of recordsFrom(attorney.attorneyAddressBag)) {
+          const lines = [text(address.nameLineOneText), text(address.nameLineTwoText)]
+            .filter((line): line is string => Boolean(line));
+          for (const firmName of lines) {
+            const key = normalizedCounselName(firmName);
+            if (!key || !isStructuredLawFirmName(firmName) || applicants.has(key)) continue;
+            const entry = firmApplications.get(key) ?? { name: firmName, applications: new Set<string>() };
+            entry.applications.add(appNumber);
+            firmApplications.set(key, entry);
+            counselApplications.add(appNumber);
+          }
+        }
+      }
+    }
+    const useLawFirms = firmApplications.size > 0;
+    const counselCounts = useLawFirms ? firmApplications : attorneyApplications;
+    const counselEntries = [...counselCounts.values()]
+      .map((entry) => ({
+        name: entry.name,
+        applicationCount: entry.applications.size,
+        portfolioSharePercent: records.length ? round((entry.applications.size / records.length) * 100, 1) : 0,
+      }))
+      .sort((left, right) => right.applicationCount - left.applicationCount || left.name.localeCompare(right.name))
+      .slice(0, 5);
+    const outsideCounselAvailable = counselEntries.length > 0;
+    const outsideCounselLabel = useLawFirms
+      ? "Top Law Firms Listed in USPTO Attorney Records"
+      : outsideCounselAvailable ? "Top Attorneys of Record" : "Outside Counsel Unavailable";
+    const outsideCounselNote = outsideCounselAvailable
+      ? `Based on structured USPTO attorney and attorney-address records. Counts are distinct applications among ${records.length.toLocaleString()} analyzed records (n=${counselApplications.size.toLocaleString()} with counsel entries); a listed record does not establish who performed all prosecution work or a current engagement.`
+      : "No structured attorney or attorney-address records were available in the retrieved application sample.";
+    const recordsWithHistory = records.filter((record) => Array.isArray(record.eventDataBag));
+    const historyStartDates = recordsWithHistory
+      .map((record) => text(metadata(record).filingDate))
+      .filter((date): date is string => Boolean(date && !Number.isNaN(Date.parse(date))))
+      .sort();
+    const eventDateRange = historyStartDates.length
+      ? { start: historyStartDates[0], end: historyStartDates.at(-1)! }
+      : null;
+
+    const uniqueSubstantiveActions = (record: JsonRecord) => {
+      const keys = new Set<string>();
+      for (const event of events(record)) {
+        const code = text(event.eventCode);
+        if (!["CTNF", "CTFR"].includes(code ?? "")) continue;
+        keys.add(`${code}|${text(event.eventDate) ?? ""}|${text(event.eventDescriptionText) ?? ""}`);
+      }
+      return keys.size;
+    };
+    const grantedWithHistory = recordsWithHistory.filter((record) => isGranted(metadata(record)));
+    const officeActionCounts = grantedWithHistory.map(uniqueSubstantiveActions);
+    const averageOfficeActions = officeActionCounts.length >= 10
+      ? round(officeActionCounts.reduce((sum, count) => sum + count, 0) / officeActionCounts.length, 2)
+      : null;
+    const rceApplications = recordsWithHistory.filter((record) =>
+      events(record).some((event) => text(event.eventCode) === "RCEX"),
+    ).length;
+    const interviewApplications = recordsWithHistory.filter((record) =>
+      events(record).some((event) => ["EXIN", "EXAT", "EXET"].includes(text(event.eventCode) ?? "")),
+    ).length;
+    const allowedWithHistory = recordsWithHistory.filter(isAllowed);
+    const allowedWithTwoOrFewer = allowedWithHistory.filter((record) => uniqueSubstantiveActions(record) <= 2);
+    const rate = (numerator: number, denominator: number) => denominator >= 10 ? round((numerator / denominator) * 100) : null;
+    const grantDurations = grantedWithHistory.flatMap((record) => {
+      const meta = metadata(record);
+      const duration = monthsBetween(text(meta.filingDate) ?? "", text(meta.grantDate) ?? "");
+      return duration === null ? [] : [duration];
+    });
+
+    const terminalMarkers = [
+      "abandon", "expired", "patented case", "terminated", "withdrawn", "cancel",
+      "revoked", "processing completed-placed in storage",
+    ];
+    const pendingWithDates = records.filter((record) => {
+      const meta = metadata(record);
+      const status = text(meta.applicationStatusDescriptionText)?.toLocaleLowerCase() ?? "";
+      return !isGranted(meta) && !isAbandoned(meta) &&
+        !isAllowedStatus(status) &&
+        !terminalMarkers.some((marker) => status.includes(marker)) &&
+        Boolean(text(meta.filingDate));
+    }).flatMap((record) => {
+      const filingDate = text(metadata(record).filingDate)!;
+      const ageMonths = monthsBetween(filingDate, new Date().toISOString());
+      return ageMonths === null ? [] : [{ filingDate, ageYears: ageMonths / 12 }];
+    });
+    const pendingAgeBuckets = [
+      { label: "Under 1 year", count: pendingWithDates.filter((item) => item.ageYears < 1).length },
+      { label: "1–3 years", count: pendingWithDates.filter((item) => item.ageYears >= 1 && item.ageYears < 3).length },
+      { label: "3–5 years", count: pendingWithDates.filter((item) => item.ageYears >= 3 && item.ageYears < 5).length },
+      { label: "Over 5 years", count: pendingWithDates.filter((item) => item.ageYears >= 5).length },
+    ];
+    const pendingAgeAverage = pendingWithDates.length >= 10
+      ? round(pendingWithDates.reduce((sum, item) => sum + item.ageYears, 0) / pendingWithDates.length, 2)
+      : null;
+
+    const examinerApplications = new Map<string, Map<string, { count: number; artUnits: Map<string, number> }>>();
+    for (const record of records) {
+      const meta = metadata(record);
+      const examiner = text(meta.examinerNameText);
+      const applicationNumber = text(record.applicationNumberText);
+      const artUnit = text(meta.groupArtUnitNumber);
+      if (!examiner || !applicationNumber || !artUnit || !/^\d{4}$/.test(artUnit) || /\b(docket|central)\b/i.test(examiner)) continue;
+      const apps = examinerApplications.get(examiner) ?? new Map();
+      const entry = apps.get(applicationNumber) ?? { count: 0, artUnits: new Map<string, number>() };
+      entry.count = 1;
+      entry.artUnits.set(artUnit, (entry.artUnits.get(artUnit) ?? 0) + 1);
+      apps.set(applicationNumber, entry);
+      examinerApplications.set(examiner, apps);
+    }
+    const topExaminers = [...examinerApplications].map(([examinerName, apps]) => {
+      const artUnitCounts = new Map<string, number>();
+      for (const entry of apps.values()) {
+        for (const [artUnit, count] of entry.artUnits) artUnitCounts.set(artUnit, (artUnitCounts.get(artUnit) ?? 0) + count);
+      }
+      return {
+        examinerName,
+        artUnit: [...artUnitCounts].sort((left, right) => right[1] - left[1])[0]?.[0] ?? null,
+        applicationCount: apps.size,
+      };
+    }).sort((left, right) => right.applicationCount - left.applicationCount || left.examinerName.localeCompare(right.examinerName)).slice(0, 5);
+
+    const artUnitFacets = aggregate.facets["applicationMetaData.groupArtUnitNumber"] ?? [];
+    const topArtUnits = artUnitFacets
+      .filter((facet) => /^\d{4}$/.test(facet.value))
+      .sort((left, right) => right.count - left.count || left.value.localeCompare(right.value))
+      .slice(0, 5)
+      .map((facet) => ({
+        artUnit: facet.value,
+        applicationCount: facet.count,
+        portfolioSharePercent: aggregate.count ? round((facet.count / aggregate.count) * 100) : 0,
+      }));
+    const outcomes = dispositionCounts(aggregate.facets);
+    const samplePendingAges = pendingAgeBuckets.map((bucket) => ({
+      ...bucket,
+      sharePercent: pendingWithDates.length ? round((bucket.count / pendingWithDates.length) * 100) : 0,
+    }));
+
+    return {
+      prosecutionEfficiency: {
+        applicationsWithHistories: recordsWithHistory.length,
+        averageOfficeActionsPerGrantedPatent: averageOfficeActions,
+        officeActionDenominator: grantedWithHistory.length,
+        rceRate: rate(rceApplications, recordsWithHistory.length),
+        rceApplications,
+        rceDenominator: recordsWithHistory.length,
+        examinerInterviewRate: rate(interviewApplications, recordsWithHistory.length),
+        interviewApplications,
+        interviewDenominator: recordsWithHistory.length,
+        allowedWithTwoOrFewerActionsRate: rate(allowedWithTwoOrFewer.length, allowedWithHistory.length),
+        allowedWithTwoOrFewerActions: allowedWithTwoOrFewer.length,
+        allowedWithHistory: allowedWithHistory.length,
+        filingDateStart: eventDateRange?.start ?? null,
+        filingDateEnd: eventDateRange?.end ?? null,
+      },
+      topArtUnits,
+      outsideCounsel: {
+        available: outsideCounselAvailable,
+        label: outsideCounselLabel,
+        note: outsideCounselNote,
+        sampleSize: records.length,
+        entries: counselEntries,
+      },
+      portfolioInsights: {
+        overallAllowanceRate: outcomes.hasStatusData ? outcomes.allowanceRate : null,
+        knownFinalOutcomes: outcomes.disposed,
+        averageTimeToGrantMonths: grantDurations.length >= 10
+          ? round(grantDurations.reduce((sum, value) => sum + value, 0) / grantDurations.length, 1)
+          : null,
+        grantDurationSampleSize: grantDurations.length,
+        averagePendingAgeYears: pendingAgeAverage,
+        pendingAgeSampleSize: pendingWithDates.length,
+        pendingAgeBuckets: samplePendingAges,
+        topExaminers,
+        examinerSampleSize: records.length,
+      },
+      coverage: {
+        source: "USPTO Open Data Portal — Patent File Wrapper",
+        retrievedAt: new Date().toISOString(),
+        totalMatchesReported: sample.count,
+        recordsAnalyzed: records.length,
+        resultLimit: RESULT_LIMIT,
+        truncated: sample.truncated,
+        note: `Advanced prosecution metrics use ${recordsWithHistory.length} of ${records.length} distinct application records with event-history data${sample.truncated ? ` from a capped ${RESULT_LIMIT.toLocaleString()}-record sample of ${sample.count.toLocaleString()}` : ""}. Filing date range: ${eventDateRange ? `${eventDateRange.start} to ${eventDateRange.end}` : "unavailable"}.`,
       },
     };
   });
