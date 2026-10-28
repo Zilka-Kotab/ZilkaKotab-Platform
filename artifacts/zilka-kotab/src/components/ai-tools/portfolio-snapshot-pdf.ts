@@ -69,12 +69,14 @@ export async function createPortfolioSnapshotBlob(
   pdf.setFontSize(18);
   pdf.text('Patent Portfolio Snapshot', 36, 46);
   const date = new Date(portfolio.coverage.retrievedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
-  write(`SOURCE: USPTO Open Data Portal | RETRIEVED: ${date}`, 36, 60, 7, [204, 213, 223]);
+  pdf.setFont('helvetica', 'normal'); pdf.setFontSize(6); pdf.setTextColor(204, 213, 223);
+  pdf.text(`SOURCE: USPTO Open Data Portal | RETRIEVED: ${date}`, 402, 46, { align: 'right' });
   pdf.setDrawColor(73, 88, 106); pdf.setLineWidth(0.5); pdf.line(414, 17, 414, 55);
   pdf.setFont('helvetica', 'bold'); pdf.setFontSize(7.8); pdf.setTextColor(...GOLD);
   pdf.text('Complimentary Patent Intelligence', 576, 25, { align: 'right' });
   pdf.setFont('helvetica', 'normal'); pdf.setFontSize(7.4); pdf.setTextColor(225, 231, 238);
   pdf.text('Provided by Zilka-Kotab, PC', 576, 38, { align: 'right' });
+  pdf.text('AI-Enabled Patent Intelligence', 576, 51, { align: 'right' });
   [
     ['Granted - status unverified', number(portfolio.identifiedGrantedPatents)],
     ['Identified pending', number(portfolio.identifiedPendingApplications)],

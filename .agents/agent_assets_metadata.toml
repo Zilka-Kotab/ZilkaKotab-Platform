@@ -161,3 +161,31 @@ mtime_ms = 1793160650192
 storage_uri = "gcs://replit-rams-assets-reed/rams/assets/repl:d8317486-6b11-41c5-bec6-74c880ade2f7/c95c71e0-c6e3-499e-b571-9e389aa96683/eb36bf38-7eb8-4be8-9433-389e87f8c173"
 storage_version_token = "1793160660801525"
 content_type = "application/pdf"
+
+[[outputs]]
+id = "xsfSSJb09j5OE8GaOsUOM"
+uri = "file://generated-artifacts/portfolio-snapshot-inline-source.pdf"
+type = "pdf"
+title = "PDF with repositioned source line"
+description = "The source and retrieval date now sit to the right of Patent Portfolio Snapshot, on the same baseline and beside the vertical divider."
+logical_id = "5ab1af15-1b83-4fe5-854f-c1c5ee6cb032"
+content_hash = "sha256:0682425f2ea4e63b252e21666f8382b0edc60921cb10a2a00f5992c85bef3062"
+size = 144772
+mtime_ms = 1793160712836
+storage_uri = "gcs://replit-rams-assets-reed/rams/assets/repl:d8317486-6b11-41c5-bec6-74c880ade2f7/5ab1af15-1b83-4fe5-854f-c1c5ee6cb032/1bf42585-0213-4bd8-bd52-1dbadde01527"
+storage_version_token = "1793160724519464"
+content_type = "application/pdf"
+
+[[outputs]]
+id = "HTTUed9lsxmtowEtncMmm"
+uri = "file://generated-artifacts/portfolio-snapshot-ai-enabled.pdf"
+type = "pdf"
+title = "Updated portfolio PDF"
+description = "AI-Enabled Patent Intelligence now appears directly beneath Provided by Zilka-Kotab, PC in the header."
+logical_id = "1cdf8314-c635-490e-a055-4d2989094924"
+content_hash = "sha256:ced9a2010ac52f216a748215a01c7aef2d1e8bb3c458f233a8a5785ab0650f96"
+size = 144897
+mtime_ms = 1793160748556
+storage_uri = "gcs://replit-rams-assets-reed/rams/assets/repl:d8317486-6b11-41c5-bec6-74c880ade2f7/1cdf8314-c635-490e-a055-4d2989094924/a3f2c85b-0d95-4fa0-a64c-777b03c0181e"
+storage_version_token = "1793160758756393"
+content_type = "application/pdf"
