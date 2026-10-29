@@ -129,6 +129,16 @@ function PortfolioResult({ data }: { data: PublicPortfolioAnalysis }) {
       <QuestionsContactCTA />
     </div>;
   }
+  const waitingForPrimary = data.matchedApplicantNames.length > 0 && !primaryAdvanced && !advanced.isError;
+  const waitingForComparison = second && second.matchedApplicantNames.length > 0 && !secondAdvancedData && !secondAdvanced.isError;
+  if (waitingForPrimary || waitingForComparison) {
+    return <div aria-busy="true" data-testid="portfolio-complete-loading">
+      <p role="status" className="mb-4 text-sm text-muted-foreground">
+        {second ? 'Preparing both portfolios' : 'Preparing your complete portfolio'} — loading prosecution histories and efficiency metrics. All results will appear together when ready.
+      </p>
+      <ResultSkeleton />
+    </div>;
+  }
   const maxTech = Math.max(1, ...data.topTechnologyAreas.map((t) => t.count));
 
   return (

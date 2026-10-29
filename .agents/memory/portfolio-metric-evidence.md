@@ -3,6 +3,12 @@ name: Portfolio metric evidence
 description: Evidence and disclosure rules for public USPTO portfolio analytics.
 ---
 
+Display a portfolio's results together after the main and advanced prosecution requests finish, including both companies in comparison mode. If advanced retrieval fails, disclose that failure and offer retry without hiding the available results.
+
+**Why:** The user explicitly wants prosecution efficiency to appear with the rest of the portfolio rather than arrive later.
+
+**How to apply:** Preserve the combined loading boundary when changing portfolio retrieval, comparisons, or exports; do not restore progressive section-by-section reveal.
+
 For public portfolio intelligence, publish only metrics with traceable source fields. Disclose cohort size and date range for sample-based metrics. Counsel rankings may use structured USPTO attorney-address and correspondence-name fields when a record explicitly identifies a law firm; exclude generic corporate names and label practitioner-only results as attorneys of record. Do not infer continuation relationships without structured, validated family fields. Show “unavailable” rather than estimates when those fields are not supported.
 
 **Why:** Unsupported inference can turn incomplete public records into misleading portfolio advice.

@@ -11,7 +11,7 @@ export function AdvancedPortfolioMetrics({ applicantNames, request }: {
   if (request.isPending) {
     return <section aria-live="polite" className="space-y-3" data-testid="advanced-portfolio-loading">
       <h4 className="zk-h4">Advanced portfolio metrics</h4>
-      <p className="text-sm text-muted-foreground">Loading prosecution histories separately. The portfolio snapshot remains available.</p>
+      <p className="text-sm text-muted-foreground">Loading prosecution histories and efficiency metrics.</p>
       <div className="h-20 animate-pulse rounded-sm bg-muted" />
     </section>;
   }
