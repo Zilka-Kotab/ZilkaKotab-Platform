@@ -31,10 +31,16 @@ The standalone portfolio comparison tool exports one consolidated report for bot
 
 **Why:** The user replaced the earlier per-company PDF chooser with a consolidated comparison and specifically requested firm outperformance where supported against either or both companies.
 
-**How to apply:** Do not restore the individual-company chooser for comparison exports. Keep missing metrics unavailable, retain metric-specific sample sizes, and never merge two differently technology-matched firm benchmarks into one universal firm rate.
+**How to apply:** Do not restore the individual-company chooser for comparison exports. Keep missing metrics unavailable and sample limitations in the caveats. Never merge two differently technology-matched firm benchmarks into one universal firm rate.
 
 The comparison handout separates granted/pending/expired statistics from six prosecution-efficiency metrics: grant time, office-action average, RCE, interview, allowed within two actions, and allowance rate. Pair filing and grant trends with company-name legends.
 
 **Why:** The user requested clearer grouping and replaced the allowance graphic with grant history. Recent-grant lists are capped and cannot establish a full yearly trend.
 
 **How to apply:** Use full-scope grant-date aggregate counts for grant trends, not filing-year counts or recent-grant sample lengths. Preserve the approved questions and footer.
+
+Comparison PDFs use six columns: merged section label, metric, company one, its firm benchmark, company two, its firm benchmark. Values have no sample-size or coverage annotations; limitations stay below. Put legends beside chart headings.
+
+**Why:** The user requested more compact columns and explicitly removed all “n=” labels and firm coverage percentages. Bronze/gold is associated with the firm, not a comparison company.
+
+**How to apply:** Keep proper units for firm values (percentages, years, counts). Use blue and muted burgundy #963F52 for the companies; reserve bronze/gold for Zilka-Kotab.

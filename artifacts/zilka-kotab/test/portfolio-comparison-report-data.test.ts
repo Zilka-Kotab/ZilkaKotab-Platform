@@ -3,7 +3,8 @@ import { test } from 'node:test';
 import { jsPDF } from 'jspdf';
 import type { PublicFirmBenchmarkLinesItem, PublicPortfolioAdvancedAnalysis } from '@workspace/api-client-react';
 import { comparisonBenchmark, comparisonReportRows, type ComparisonReportSide } from '../src/components/ai-tools/portfolio-comparison-report-data';
-import { drawComparisonCharts } from '../src/components/ai-tools/portfolio-comparison-pdf-charts';
+import { COMPARISON_COLORS, drawComparisonCharts } from '../src/components/ai-tools/portfolio-comparison-pdf-charts';
+import { drawComparisonTable } from '../src/components/ai-tools/portfolio-comparison-pdf-table';
 
 const line = (metric: PublicFirmBenchmarkLinesItem['metric'], value: number): PublicFirmBenchmarkLinesItem =>
   ({ metric, value, unit: metric === 'timeToGrantYears' ? 'years' : metric === 'officeActionsPerPatent' ? 'count' : 'percent', denominator: 123, companyDenominator: 50, coverage: .8 });
@@ -97,4 +98,23 @@ test('old or missing grant data stays unavailable, not a false zero trend', () =
   const pdf = new jsPDF({ unit: 'pt', format: 'letter' });
   drawComparisonCharts(pdf, [a, b], 300);
   assert.ok(pdf.output().includes('(N/A)'));
+});
+test('comparison uses blue and exact muted burgundy, never firm gold as a company color', () => {
+  assert.deepEqual(COMPARISON_COLORS, [[34, 69, 108], [150, 63, 82]]);
+});
+test('six-column table has separate firm values, merged section labels and no sample annotations', () => {
+  const pdf = new jsPDF({ unit: 'pt', format: 'letter' });
+  const bottom = drawComparisonTable(pdf, [
+    side('First Company', 123, [line('allowanceRate', 90), line('officeActionsPerPatent', 1.5)]),
+    side('Second Company', 456, [line('allowanceRate', 95)]),
+  ]);
+  const content = pdf.output();
+  assert.equal(bottom, 286);
+  for (const label of ['SECTION', 'METRIC', 'First Company', 'Second Company', 'ZILKA-KOTAB', 'BENCHMARK', 'PORTFOLIO', 'AT A GLANCE', 'PROSECUTION', 'EFFICIENCY', '90.0%', '95.0%', '1.5']) {
+    assert.ok(content.includes(`(${label})`), label);
+  }
+  assert.ok(!content.includes('n='));
+  assert.ok(!content.includes('cover'));
+  assert.equal(content.split('(PROSECUTION)').length - 1, 1);
+  assert.equal(content.split('(PORTFOLIO)').length - 1, 1);
 });

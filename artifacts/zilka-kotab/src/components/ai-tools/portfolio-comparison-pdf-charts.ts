@@ -1,7 +1,7 @@
 import type { jsPDF } from 'jspdf';
 import { reportNumber, type ComparisonReportSide } from './portfolio-comparison-report-data';
 
-export const COMPARISON_COLORS: [number, number, number][] = [[34, 69, 108], [21, 111, 123]];
+export const COMPARISON_COLORS: [number, number, number][] = [[34, 69, 108], [150, 63, 82]];
 const GRAY: [number, number, number] = [100, 109, 119];
 const LIGHT: [number, number, number] = [226, 229, 230];
 const clean = (s: string) => s.replace(/[–—]/g, '-').replace(/[‘’]/g, "'").replace(/[“”]/g, '"');
@@ -12,22 +12,30 @@ export function drawComparisonCharts(pdf: jsPDF, sides: readonly ComparisonRepor
     pdf.setFont('helvetica', 'normal'); pdf.setFontSize(size); pdf.setTextColor(...color);
     pdf.text(clean(value), x, y, { align });
   };
+  pdf.setFont('helvetica', 'normal'); pdf.setFontSize(6.2);
+  const legendLines = sides.map((side) => {
+    const lines = pdf.splitTextToSize(clean(side.portfolio.companyName), 164) as string[];
+    if (lines.length <= 3) return lines;
+    let last = lines[2];
+    while (last && pdf.getTextWidth(`${last}...`) > 164) last = last.slice(0, -1);
+    return [lines[0], lines[1], `${last}...`];
+  });
+  const legendHeight = legendLines.reduce((height, lines) => height + lines.length * 7 + 3, 0);
   (['filingTrends', 'grantTrends'] as const).forEach((field, chartIndex) => {
     const left = chartIndex === 0 ? 36 : 322;
     text(chartIndex === 0 ? 'FILING TREND' : 'GRANT TREND', left, top, 8, COMPARISON_COLORS[0]);
-    sides.forEach((s, i) => {
-      pdf.setFillColor(...COMPARISON_COLORS[i]); pdf.rect(left, top + 7 + i * 15, 6, 5, 'F');
-      pdf.setFontSize(6.2);
-      const lines = pdf.splitTextToSize(clean(s.portfolio.companyName), 238) as string[];
-      pdf.setTextColor(...COMPARISON_COLORS[i]);
-      pdf.text(lines.slice(0, 2), left + 10, top + 12 + i * 15, { lineHeightFactor: 1.05 });
+    let legendY = top;
+    legendLines.forEach((lines, i) => {
+      pdf.setFillColor(...COMPARISON_COLORS[i]); pdf.rect(left + 76, legendY - 4.5, 6, 5, 'F');
+      lines.forEach((line, index) => text(line, left + 86, legendY + index * 7, 6.2, COMPARISON_COLORS[i]));
+      legendY += lines.length * 7 + 3;
     });
     const series = sides.map((s) => s.portfolio[field] ?? []);
     const years = [...new Set(series.flatMap((points) => points.map((t) => t.year)))].sort((a, b) => a - b).slice(-5);
     const values = series.map((points) => new Map(points.map((t) => [t.year, t.count])));
     const max = Math.max(1, ...values.flatMap((map) => years.map((year) => map.get(year) ?? 0)));
     const bottom = 393;
-    const plotTop = top + 42;
+    const plotTop = top + legendHeight + 12;
     const height = bottom - plotTop;
     const plotX = left + 22, width = 228;
     pdf.setDrawColor(...LIGHT); pdf.setLineWidth(0.4);
