@@ -77,6 +77,8 @@ export const analyzePublicPortfolioResponseActivePatentCountMin = 0;
 
 export const analyzePublicPortfolioResponseFilingTrendsItemCountMin = 0;
 
+export const analyzePublicPortfolioResponseGrantTrendsItemCountMin = 0;
+
 export const analyzePublicPortfolioResponseTopTechnologyAreasItemCountMin = 0;
 
 export const analyzePublicPortfolioResponseTopTechnologyAreasItemClassificationsItemCountMin = 0;
@@ -117,6 +119,10 @@ export const AnalyzePublicPortfolioResponse = zod.object({
   "year": zod.number(),
   "count": zod.number().min(analyzePublicPortfolioResponseFilingTrendsItemCountMin)
 })),
+  "grantTrends": zod.array(zod.object({
+  "year": zod.number(),
+  "count": zod.number().min(analyzePublicPortfolioResponseGrantTrendsItemCountMin)
+})).optional().describe('Full-scope grant counts by grant year, not a sample of recent grants.'),
   "topTechnologyAreas": zod.array(zod.object({
   "code": zod.string(),
   "label": zod.string(),

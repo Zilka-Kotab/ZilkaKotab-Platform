@@ -339,7 +339,7 @@ export async function analyzePortfolio(companyNameInput: string, selectedApplica
 
   const selectedKey = selectedApplicantNames?.slice().sort() ?? null;
   const additional = uniqueCompanyNames(additionalCompanyNames);
-  return cached(`portfolio-names-v2:${JSON.stringify([companyName.toLowerCase(), additional.slice().sort(), selectedKey])}`, async () => {
+  return cached(`portfolio-grant-trends-v3:${JSON.stringify([companyName.toLowerCase(), additional.slice().sort(), selectedKey])}`, async () => {
     const nameDiscovery = await discoverCompanyNames(companyName, additional);
     if (nameDiscovery.searchedNames.length > 100) throw new PublicPatentToolError("More than 100 search names were discovered. Refine the corporate identity or additional-name list.", 400);
     let discovery: AggregateResult;
@@ -390,6 +390,7 @@ export async function analyzePortfolio(companyNameInput: string, selectedApplica
         activePatentCount: null,
         activePatentCountNote: "",
         filingTrends: [],
+        grantTrends: [],
         topTechnologyAreas: [],
         recentApplications: [],
         recentGrants: [],
@@ -419,6 +420,7 @@ export async function analyzePortfolio(companyNameInput: string, selectedApplica
         activePatentCount: null,
         activePatentCountNote: "",
         filingTrends: [],
+        grantTrends: [],
         topTechnologyAreas: [],
         recentApplications: [],
         recentGrants: [],
@@ -448,7 +450,7 @@ export async function analyzePortfolio(companyNameInput: string, selectedApplica
     const recentGrantStart = new Date(asOf);
     recentGrantStart.setUTCFullYear(recentGrantStart.getUTCFullYear() - 1);
     const recentGrantQuery = `(${query}) AND applicationMetaData.patentNumber:* AND applicationMetaData.grantDate:[${recentGrantStart.toISOString().slice(0, 10)} TO *]`;
-    const [summary, granted, recent, recentGrants, ...yearResults] = await Promise.all([
+    const [summary, granted, recent, recentGrants, ...trendResults] = await Promise.all([
       requestAggregate(query, {
         facets: [
           "applicationMetaData.applicationStatusDescriptionText",
@@ -463,6 +465,10 @@ export async function analyzePortfolio(companyNameInput: string, selectedApplica
       ...Array.from({ length: 5 }, (_, index) => {
         const year = firstTrendYear + index;
         return requestAggregate(`(${query}) AND applicationMetaData.filingDate:[${year}-01-01 TO ${year}-12-31]`);
+      }),
+      ...Array.from({ length: 5 }, (_, index) => {
+        const year = firstTrendYear + index;
+        return requestAggregate(`(${query}) AND applicationMetaData.patentNumber:* AND applicationMetaData.grantDate:[${year}-01-01 TO ${year}-12-31]`);
       }),
     ]);
 
@@ -550,7 +556,8 @@ export async function analyzePortfolio(companyNameInput: string, selectedApplica
       recentGrantCount: recentGrants.count,
       activePatentCount: null,
       activePatentCountNote: "",
-      filingTrends: yearResults.map((result, index) => ({ year: firstTrendYear + index, count: result.count })),
+      filingTrends: trendResults.slice(0, 5).map((result, index) => ({ year: firstTrendYear + index, count: result.count })),
+      grantTrends: trendResults.slice(5).map((result, index) => ({ year: firstTrendYear + index, count: result.count })),
       topTechnologyAreas: [...sections]
         .map(([code, count]) => ({
           code,

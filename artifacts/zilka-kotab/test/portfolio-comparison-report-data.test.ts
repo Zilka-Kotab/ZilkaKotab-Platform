@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
+import { jsPDF } from 'jspdf';
 import type { PublicFirmBenchmarkLinesItem, PublicPortfolioAdvancedAnalysis } from '@workspace/api-client-react';
 import { comparisonBenchmark, comparisonReportRows, type ComparisonReportSide } from '../src/components/ai-tools/portfolio-comparison-report-data';
+import { drawComparisonCharts } from '../src/components/ai-tools/portfolio-comparison-pdf-charts';
 
 const line = (metric: PublicFirmBenchmarkLinesItem['metric'], value: number): PublicFirmBenchmarkLinesItem =>
   ({ metric, value, unit: metric === 'timeToGrantYears' ? 'years' : metric === 'officeActionsPerPatent' ? 'count' : 'percent', denominator: 123, companyDenominator: 50, coverage: .8 });
@@ -18,11 +20,16 @@ function side(name: string, grants: number, lines: PublicFirmBenchmarkLinesItem[
 
 test('consolidated rows preserve each company values and denominators', () => {
   const rows = comparisonReportRows([side('First', 123), side('Second', 456)]);
-  assert.equal(rows.length, 12);
+  assert.equal(rows.length, 9);
+  assert.deepEqual(rows.map((row) => row.label), [
+    'Granted patents', 'Pending applications', 'Expired / inactive patents',
+    'Average time to grant', 'Avg. office actions per granted patent', 'RCE rate',
+    'Examiner interview rate', 'Allowed with <=2 office actions', 'Overall allowance rate',
+  ]);
   assert.deepEqual(rows[0].cells.map((c) => c.value), ['123', '456']);
-  assert.deepEqual(rows[4].cells.map((c) => c.sample), [50, 50]);
-  assert.equal(rows[5].cells[0].value, '20.0%');
-  assert.equal(rows[6].cells[0].value, '3.0 yrs');
+  assert.deepEqual(rows[8].cells.map((c) => c.sample), [50, 50]);
+  assert.equal(rows[8].cells[0].value, '80.0%');
+  assert.equal(rows[3].cells[0].value, '3.0 yrs');
 });
 test('missing advanced metrics remain N/A rather than fabricated zeros', () => {
   const s = side('Missing', 0); s.advanced = undefined;
@@ -32,23 +39,23 @@ test('missing advanced metrics remain N/A rather than fabricated zeros', () => {
   assert.equal(rows[4].cells[0].value, 'N/A');
   assert.equal(rows[5].cells[0].value, 'N/A');
 });
-test('zero is a valid metric and allowance 100 implies zero abandonment', () => {
+test('zero RCE and 100% allowance remain valid metrics', () => {
   const s = side('Zero', 1);
   s.advanced!.portfolioInsights.overallAllowanceRate = 100;
   s.advanced!.prosecutionEfficiency.rceRate = 0;
   const rows = comparisonReportRows([s, s]);
   assert.equal(rows[5].cells[0].value, '0.0%');
-  assert.equal(rows[9].cells[0].value, '0.0%');
+  assert.equal(rows[8].cells[0].value, '100.0%');
 });
 test('firm advantages can appear against one company without leaking into the other', () => {
   const a = side('First', 1, [line('allowanceRate', 90)]);
   const b = side('Second', 2);
-  const row = comparisonReportRows([a, b])[4];
+  const row = comparisonReportRows([a, b])[8];
   assert.equal(row.cells[0].benchmark?.value, 90);
   assert.equal(row.cells[1].benchmark, undefined);
 });
 test('both matched firm comparisons retain independent benchmark values', () => {
-  const row = comparisonReportRows([side('First', 1, [line('allowanceRate', 90)]), side('Second', 2, [line('allowanceRate', 95)])])[4];
+  const row = comparisonReportRows([side('First', 1, [line('allowanceRate', 90)]), side('Second', 2, [line('allowanceRate', 95)])])[8];
   assert.deepEqual(row.cells.map((c) => c.benchmark?.value), [90, 95]);
 });
 test('tied, unfavorable, non-finite, insufficient and poorly covered firm lines stay hidden', () => {
@@ -64,4 +71,30 @@ test('lower values are favorable for action counts, RCE and grant duration only 
   assert.equal(comparisonBenchmark(s, 'rceRate', 30)?.value, 20);
   assert.equal(comparisonBenchmark(s, 'timeToGrantYears', 3)?.value, 2.5);
   assert.equal(comparisonBenchmark(side('No firm evidence', 1), 'rceRate', 30), undefined);
+});
+test('charts use company names and full-scope grant trends, not recent-grant list lengths', () => {
+  const a = side('First Company', 1), b = side('Second Company', 2);
+  for (const s of [a, b]) {
+    s.portfolio.filingTrends = [{ year: 2026, count: 111 }];
+    s.portfolio.grantTrends = [{ year: 2026, count: 777 }];
+    s.portfolio.recentGrantCount = 999;
+    s.portfolio.recentGrants = [];
+  }
+  const pdf = new jsPDF({ unit: 'pt', format: 'letter' });
+  drawComparisonCharts(pdf, [a, b], 300);
+  const content = pdf.output();
+  assert.ok(content.includes('(First Company)'));
+  assert.ok(content.includes('(Second Company)'));
+  assert.ok(content.includes('(GRANT TREND)'));
+  assert.ok(content.includes('(777)'));
+  assert.ok(!content.includes('(999)'));
+  assert.ok(!content.includes('as in table above'));
+});
+test('old or missing grant data stays unavailable, not a false zero trend', () => {
+  const a = side('First Company', 1), b = side('Second Company', 2);
+  a.portfolio.filingTrends = b.portfolio.filingTrends = [];
+  a.portfolio.grantTrends = [{ year: 2026, count: 77 }];
+  const pdf = new jsPDF({ unit: 'pt', format: 'letter' });
+  drawComparisonCharts(pdf, [a, b], 300);
+  assert.ok(pdf.output().includes('(N/A)'));
 });

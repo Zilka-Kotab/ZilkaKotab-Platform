@@ -435,6 +435,11 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/PublicFilingTrend"
+        grantTrends:
+          description: Full-scope grant counts by grant year, not a sample of recent grants.
+          type: array
+          items:
+            $ref: "#/components/schemas/PublicFilingTrend"
         topTechnologyAreas:
           type: array
           items:

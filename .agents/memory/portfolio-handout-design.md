@@ -32,3 +32,9 @@ The standalone portfolio comparison tool exports one consolidated report for bot
 **Why:** The user replaced the earlier per-company PDF chooser with a consolidated comparison and specifically requested firm outperformance where supported against either or both companies.
 
 **How to apply:** Do not restore the individual-company chooser for comparison exports. Keep missing metrics unavailable, retain metric-specific sample sizes, and never merge two differently technology-matched firm benchmarks into one universal firm rate.
+
+The comparison handout separates granted/pending/expired statistics from six prosecution-efficiency metrics: grant time, office-action average, RCE, interview, allowed within two actions, and allowance rate. Pair filing and grant trends with company-name legends.
+
+**Why:** The user requested clearer grouping and replaced the allowance graphic with grant history. Recent-grant lists are capped and cannot establish a full yearly trend.
+
+**How to apply:** Use full-scope grant-date aggregate counts for grant trends, not filing-year counts or recent-grant sample lengths. Preserve the approved questions and footer.

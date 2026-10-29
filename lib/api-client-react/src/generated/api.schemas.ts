@@ -183,6 +183,8 @@ export interface PublicPortfolioAnalysis {
   activePatentCount: number | null;
   activePatentCountNote: string;
   filingTrends: PublicFilingTrend[];
+  /** Full-scope grant counts by grant year, not a sample of recent grants. */
+  grantTrends?: PublicFilingTrend[];
   topTechnologyAreas: PublicTechnologyArea[];
   recentApplications: PublicPatentApplication[];
   recentGrants: PublicPatentGrant[];

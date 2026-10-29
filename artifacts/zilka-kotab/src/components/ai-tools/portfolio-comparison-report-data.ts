@@ -32,24 +32,14 @@ export function comparisonReportRows(sides: readonly ComparisonReportSide[]): Co
   const decimal = (value: number | null | undefined) => value == null || !Number.isFinite(value) ? 'N/A' : value.toFixed(2);
   const years = (value: number | null | undefined) => value == null || !Number.isFinite(value) ? 'N/A' : `${value.toFixed(1)} yrs`;
   return [
-    row('Granted - status unverified', (s) => cell(s.portfolio.identifiedGrantedPatents)),
-    row('Identified pending applications', (s) => cell(s.portfolio.identifiedPendingApplications)),
-    row('Expired / inactive identified', (s) => cell(s.portfolio.expiredInactivePatents)),
-    row('Grants in last 12 months', (s) => cell(s.portfolio.recentGrantCount)),
-    row('Overall allowance rate', (s) => {
-      const p = s.advanced?.portfolioInsights;
-      return cell(p?.overallAllowanceRate, reportPercent, p?.knownFinalOutcomes, comparisonBenchmark(s, 'allowanceRate', p?.overallAllowanceRate, true));
-    }),
-    row('Abandonment share of known outcomes', (s) => {
-      const p = s.advanced?.portfolioInsights;
-      return cell(p?.overallAllowanceRate != null && p.knownFinalOutcomes > 0 ? 100 - p.overallAllowanceRate : null, reportPercent, p?.knownFinalOutcomes);
-    }),
+    row('Granted patents', (s) => cell(s.portfolio.identifiedGrantedPatents)),
+    row('Pending applications', (s) => cell(s.portfolio.identifiedPendingApplications)),
+    row('Expired / inactive patents', (s) => cell(s.portfolio.expiredInactivePatents)),
     row('Average time to grant', (s) => {
       const p = s.advanced?.portfolioInsights;
       const value = p?.averageTimeToGrantMonths == null ? null : p.averageTimeToGrantMonths / 12;
       return cell(value, years, p?.grantDurationSampleSize, comparisonBenchmark(s, 'timeToGrantYears', value));
     }),
-    row('Average pending application age', (s) => cell(s.advanced?.portfolioInsights.averagePendingAgeYears, years, s.advanced?.portfolioInsights.pendingAgeSampleSize)),
     row('Avg. office actions per granted patent', (s) => {
       const e = s.advanced?.prosecutionEfficiency;
       return cell(e?.averageOfficeActionsPerGrantedPatent, decimal, e?.officeActionDenominator, comparisonBenchmark(s, 'officeActionsPerPatent', e?.averageOfficeActionsPerGrantedPatent));
@@ -62,6 +52,10 @@ export function comparisonReportRows(sides: readonly ComparisonReportSide[]): Co
     row('Allowed with <=2 office actions', (s) => {
       const e = s.advanced?.prosecutionEfficiency;
       return cell(e?.allowedWithTwoOrFewerActionsRate, reportPercent, e?.allowedWithHistory, comparisonBenchmark(s, 'allowedWithTwoActionsRate', e?.allowedWithTwoOrFewerActionsRate, true));
+    }),
+    row('Overall allowance rate', (s) => {
+      const p = s.advanced?.portfolioInsights;
+      return cell(p?.overallAllowanceRate, reportPercent, p?.knownFinalOutcomes, comparisonBenchmark(s, 'allowanceRate', p?.overallAllowanceRate, true));
     }),
   ];
 }
