@@ -34,11 +34,11 @@ export async function createPortfolioComparisonBlob(first: ComparisonReportSide,
   sides.forEach((side, index) => {
     const e = side.advanced?.prosecutionEfficiency;
     const range = e?.filingDateStart && e.filingDateEnd ? `; histories ${e.filingDateStart.slice(0, 10)} to ${e.filingDateEnd.slice(0, 10)}` : '';
-    write(`${names[index].slice(0, 48)}: ${side.portfolio.matchedApplicantNames.length} applicant names; retrieved ${side.portfolio.coverage.retrievedAt.slice(0, 10)}; ${reportNumber(side.portfolio.coverage.recordsAnalyzed)}/${reportNumber(side.portfolio.coverage.totalMatchesReported)} records; history sample: ${reportNumber(side.advanced?.coverage.recordsAnalyzed)}${range}.`, 36, 407 + index * 6.5, 5.3, GRAY);
+    write(`${names[index].slice(0, 48)}: ${side.portfolio.matchedApplicantNames.length} applicant names; retrieved ${side.portfolio.coverage.retrievedAt.slice(0, 10)}; ${reportNumber(side.portfolio.coverage.recordsAnalyzed)}/${reportNumber(side.portfolio.coverage.totalMatchesReported)} records; history sample: ${reportNumber(side.advanced?.coverage.recordsAnalyzed)}${range}.`, 36, 391 + index * 6.5, 5.3, GRAY);
   });
   wrap(
     'Tint: favorable observed efficiency; neutral metrics/ties unranked. N/A: insufficient data. Granted is not active. Outcomes exclude pending. Current year partial; unpublished filings absent. Samples differ. No causal inference or legal opinion.',
-    36, 421, 540, 5.5, 2,
+    36, 410, 540, 5.5, 2,
   );
   pdf.setProperties({ title: `${names.join(' vs. ')} - Patent Portfolio Comparison`, author: 'Zilka-Kotab PC', subject: 'Consolidated USPTO patent portfolio comparison' });
   // Same native questions, vector branding, original portrait and QR as the analyzer.

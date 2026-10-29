@@ -19,7 +19,7 @@ export function comparisonTableColumns(): TableColumn[] {
 
 /** Company-only comparison; firm benchmarks belong in the standalone analyzer. */
 export function drawComparisonTable(pdf: jsPDF, sides: readonly ComparisonReportSide[]) {
-  const top = 94, headerHeight = 30, rowHeight = 18, bodyTop = top + headerHeight;
+  const top = 94, headerHeight = 22, rowHeight = 17, bodyTop = top + headerHeight;
   const rows = comparisonReportRows(sides);
   const columns = comparisonTableColumns();
   const bottom = bodyTop + rows.length * rowHeight;
@@ -49,14 +49,14 @@ export function drawComparisonTable(pdf: jsPDF, sides: readonly ComparisonReport
   columns.filter((column) => column.side >= 0).forEach((column) => {
     centeredLines(comparisonCompanyLabel(sides[column.side].portfolio.companyName),
       column.x, top, column.width, headerHeight, HEADING_SIZE,
-      COMPARISON_COLORS[column.side], true);
+      COMPARISON_COLORS[column.side], true, 2);
   });
   rows.forEach((row, index) => {
     const y = bodyTop + index * rowHeight;
     if (index % 2 === 0) {
       pdf.setFillColor(247, 249, 251); pdf.rect(114, y, 462, rowHeight, 'F');
     }
-    text(row.label, 120, y + 11.5, 7.2);
+    text(row.label, 120, y + 11, 7.2);
     const winner = comparisonWinner(row);
     columns.filter((column) => column.side >= 0).forEach((column) => {
       const cell = row.cells[column.side];
@@ -65,9 +65,9 @@ export function drawComparisonTable(pdf: jsPDF, sides: readonly ComparisonReport
         const tint: [number, number, number] = column.side === 0 ? [231, 239, 248] : [249, 233, 238];
         pdf.setFillColor(...tint);
         pdf.setDrawColor(...COMPARISON_COLORS[column.side]); pdf.setLineWidth(.6);
-        pdf.roundedRect(column.x + 3, y + 2, column.width - 6, 14, 2, 2, 'FD');
+        pdf.roundedRect(column.x + 3, y + 2, column.width - 6, 13, 2, 2, 'FD');
       }
-      text(cell.value, center, y + 11.7, 8.5, COMPARISON_COLORS[column.side], true, 'center');
+      text(cell.value, center, y + 11.2, 8.5, COMPARISON_COLORS[column.side], true, 'center');
     });
   });
   [

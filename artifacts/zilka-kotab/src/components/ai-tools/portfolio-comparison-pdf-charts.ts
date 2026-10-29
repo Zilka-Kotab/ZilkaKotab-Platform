@@ -33,7 +33,7 @@ export function drawComparisonCharts(pdf: jsPDF, sides: readonly ComparisonRepor
     const years = [...new Set(series.flatMap((points) => points.map((t) => t.year)))].sort((a, b) => a - b).slice(-5);
     const values = series.map((points) => new Map(points.map((t) => [t.year, t.count])));
     const max = Math.max(1, ...values.flatMap((map) => years.map((year) => map.get(year) ?? 0)));
-    const bottom = 393;
+    const bottom = 376;
     const plotTop = top + legendHeight + 12;
     const height = bottom - plotTop;
     const plotX = left + 22, width = 228;

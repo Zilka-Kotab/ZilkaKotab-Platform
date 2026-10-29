@@ -109,7 +109,7 @@ test('comparison table omits firm benchmarks even when supplied and preserves me
     side('Second Company', 456, [line('allowanceRate', 95)]),
   ]);
   const content = pdf.output();
-  assert.equal(bottom, 286);
+  assert.equal(bottom, 269);
   for (const label of ['SECTION', 'METRIC', 'FIRST COMPANY', 'SECOND COMPANY', 'PORTFOLIO', 'AT A GLANCE', 'PROSECUTION', 'EFFICIENCY']) {
     assert.ok(content.includes(`(${label})`), label);
   }
