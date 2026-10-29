@@ -85,7 +85,8 @@ export function drawPortfolioPdfHeader(
     pdf.setFontSize(companySize);
   }
   pdf.setTextColor(255, 255, 255);
-  pdf.text(fitText(companyName, 378), 42, 41);
+  // Reserve room for descenders (g, p, y) above the snapshot subtitle.
+  pdf.text(fitText(companyName, 378), 42, 35);
   pdf.setFont('helvetica', 'normal'); pdf.setFontSize(14.5); pdf.setCharSpace(0.75);
   pdf.setTextColor(224, 229, 234);
   pdf.text(snapshotLabel, 42, 59);
