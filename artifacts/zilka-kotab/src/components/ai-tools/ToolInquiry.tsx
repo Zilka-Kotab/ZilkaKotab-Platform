@@ -2,12 +2,13 @@ import { useState, type FormEvent } from 'react';
 import { Link } from 'wouter';
 import { AnimatePresence, motion } from 'framer-motion';
 import { AlertCircle, Check, Send } from 'lucide-react';
-import type { PublicToolInquiryInputTool } from '@workspace/api-client-react';
+import type { AiToolDefinition } from './tool-catalog';
 import { submitContactMessage } from '@/lib/submitContactMessage';
 
 const empty = { name: '', company: '', email: '', message: '', website: '' };
 
-export function ToolInquiry({ tool }: { tool: PublicToolInquiryInputTool }) {
+export function ToolInquiry({ tool: definition }: { tool: Pick<AiToolDefinition, 'key' | 'name' | 'reviewLabel'> }) {
+  const tool = definition.key;
   const [f, setF] = useState(empty);
   const [consent, setConsent] = useState(false);
   const [touched, setTouched] = useState(false);
@@ -29,7 +30,7 @@ export function ToolInquiry({ tool }: { tool: PublicToolInquiryInputTool }) {
     if (!ok || isPending) return;
     setIsPending(true);
     setSubmitError('');
-    const toolName = tool === 'portfolio-analyzer' ? 'Patent Portfolio Analyzer' : 'Patent Examiner Intelligence';
+    const toolName = definition.name;
     const message = [
       `Company: ${f.company.trim()}`,
       `Tool requested: ${toolName}`,
@@ -52,7 +53,7 @@ export function ToolInquiry({ tool }: { tool: PublicToolInquiryInputTool }) {
     }
   };
   const set = (k: keyof typeof empty) => (e: { target: { value: string } }) => setF((p) => ({ ...p, [k]: e.target.value }));
-  const label = tool === 'portfolio-analyzer' ? 'portfolio' : 'prosecution';
+  const label = definition.reviewLabel;
 
   return (
     <div className="zk-inquiry">

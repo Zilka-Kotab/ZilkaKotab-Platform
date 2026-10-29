@@ -11,3 +11,4 @@
 - [Contact delivery environments](contact-delivery-environments.md) — use Microsoft 365 HTTPS mail, not SMTP fallback; distinguish acceptance, inbox receipt, and live-site verification.
 - [Patent intelligence handouts](portfolio-handout-design.md) — shared one-page branding; examiner questions are customized, portfolio questions and firm/QR artwork stay fixed.
 - [Weekly background refresh](weekly-background-refresh.md) — Autoscale timers stop while idle; use a Scheduled Deployment for a strict weekly refresh.
+- [Public tool directory](public-tool-directory.md) — plan for more complimentary tools; keep distinct, clearly clickable tool cards as the collection grows.
