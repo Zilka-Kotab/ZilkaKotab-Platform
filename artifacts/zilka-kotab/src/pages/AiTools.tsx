@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { ArrowRight, Check } from 'lucide-react';
 import { SEO } from '@/components/SEO';
 import { PortfolioAnalyzer } from '@/components/ai-tools/PortfolioAnalyzer';
 import { ExaminerIntelligence } from '@/components/ai-tools/ExaminerIntelligence';
@@ -42,16 +43,20 @@ export default function AiTools() {
         </section>
 
         <section className="container mx-auto px-4 pb-12 pt-8 md:pb-16 md:pt-10">
-          <div role="tablist" aria-label="Patent tools" className="grid gap-px overflow-hidden rounded-sm border bg-border sm:grid-cols-2">
+          <h2 className="font-display text-2xl font-semibold">Choose a free tool</h2>
+          <p className="mt-2 text-sm text-muted-foreground">Click either button below, then enter a company or examiner name to get started.</p>
+          <div role="tablist" aria-label="Patent tools" className="mt-5 grid gap-4 sm:grid-cols-2">
             {tools.map((t) => {
               const on = t.key === active;
               return (
-                <button key={t.key} role="tab" aria-selected={on} aria-controls={`panel-${t.key}`} id={`tab-${t.key}`}
+                <button type="button" key={t.key} role="tab" aria-selected={on} aria-controls={`panel-${t.key}`} id={`tab-${t.key}`}
                   onClick={() => setActive(t.key)} className={`zk-tab ${on ? 'zk-tab--on' : ''}`} data-testid={`tab-${t.key}`}>
                   <span className="font-mono text-xs text-[hsl(var(--zk-brass))]">{t.no}</span>
                   <span className="mt-2 block font-display text-xl font-semibold">{t.name}</span>
-                  <span className="mt-1 block text-sm text-muted-foreground">{t.desc}</span>
-                  {on && <motion.span layoutId="zkTabRule" className="absolute inset-x-0 top-0 h-[3px] bg-primary" transition={{ type: 'spring', stiffness: 380, damping: 34 }} />}
+                  <span className={`mt-2 block flex-1 text-sm ${on ? 'text-primary-foreground/85' : 'text-muted-foreground'}`}>{t.desc}</span>
+                  <span className={`mt-5 inline-flex min-h-11 items-center justify-center gap-2 self-start rounded-sm px-4 py-2 text-sm font-semibold ${on ? 'bg-white text-primary' : 'bg-primary text-primary-foreground'}`}>
+                    {on ? <><Check className="h-4 w-4 shrink-0" /> Selected — use form below</> : <>Open {t.key === 'portfolio-analyzer' ? 'portfolio' : 'examiner'} tool <ArrowRight className="h-4 w-4 shrink-0" /></>}
+                  </span>
                 </button>
               );
             })}
