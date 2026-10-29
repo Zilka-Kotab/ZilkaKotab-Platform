@@ -39,8 +39,8 @@ The comparison handout separates granted/pending/expired statistics from six pro
 
 **How to apply:** Use full-scope grant-date aggregate counts for grant trends, not filing-year counts or recent-grant sample lengths. Preserve the approved questions and footer.
 
-Comparison PDFs use six columns: merged section label, metric, company one, its firm benchmark, company two, its firm benchmark. Values have no sample-size or coverage annotations; limitations stay below. Put legends beside chart headings.
+Comparison PDFs use merged section and metric columns plus two company columns. Each adjacent firm-benchmark column is optional and appears only with at least one qualifying improvement against that company. Values omit sample/coverage annotations.
 
-**Why:** The user requested more compact columns and explicitly removed all “n=” labels and firm coverage percentages. Bronze/gold is associated with the firm, not a comparison company.
+**Why:** The user requested compact columns, removed “n=” and coverage labels, and rejected empty firm columns and full-column shading. Bronze/gold identifies the firm, not a comparison company.
 
-**How to apply:** Keep proper units for firm values (percentages, years, counts). Use blue and muted burgundy #963F52 for the companies; reserve bronze/gold for Zilka-Kotab.
+**How to apply:** Redistribute freed column width, retain proper units, and keep caveats below. Use uppercase company display labels and side-by-side legends beside chart headings. Keep blue vs. burgundy #963F52; reserve gold for firm values, without full-column shading. Highlight directional efficiency advantages individually; do not rank neutral counts, interview frequency, missing data, or ties as better.

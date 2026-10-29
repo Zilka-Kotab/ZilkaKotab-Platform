@@ -1,5 +1,5 @@
 import type { jsPDF } from 'jspdf';
-import { reportNumber, type ComparisonReportSide } from './portfolio-comparison-report-data';
+import { comparisonCompanyLabel, reportNumber, type ComparisonReportSide } from './portfolio-comparison-report-data';
 
 export const COMPARISON_COLORS: [number, number, number][] = [[34, 69, 108], [150, 63, 82]];
 const GRAY: [number, number, number] = [100, 109, 119];
@@ -14,21 +14,20 @@ export function drawComparisonCharts(pdf: jsPDF, sides: readonly ComparisonRepor
   };
   pdf.setFont('helvetica', 'normal'); pdf.setFontSize(6.2);
   const legendLines = sides.map((side) => {
-    const lines = pdf.splitTextToSize(clean(side.portfolio.companyName), 164) as string[];
+    const lines = pdf.splitTextToSize(clean(comparisonCompanyLabel(side.portfolio.companyName)), 76) as string[];
     if (lines.length <= 3) return lines;
     let last = lines[2];
-    while (last && pdf.getTextWidth(`${last}...`) > 164) last = last.slice(0, -1);
+    while (last && pdf.getTextWidth(`${last}...`) > 76) last = last.slice(0, -1);
     return [lines[0], lines[1], `${last}...`];
   });
-  const legendHeight = legendLines.reduce((height, lines) => height + lines.length * 7 + 3, 0);
+  const legendHeight = Math.max(...legendLines.map((lines) => lines.length * 7));
   (['filingTrends', 'grantTrends'] as const).forEach((field, chartIndex) => {
     const left = chartIndex === 0 ? 36 : 322;
     text(chartIndex === 0 ? 'FILING TREND' : 'GRANT TREND', left, top, 8, COMPARISON_COLORS[0]);
-    let legendY = top;
     legendLines.forEach((lines, i) => {
-      pdf.setFillColor(...COMPARISON_COLORS[i]); pdf.rect(left + 76, legendY - 4.5, 6, 5, 'F');
-      lines.forEach((line, index) => text(line, left + 86, legendY + index * 7, 6.2, COMPARISON_COLORS[i]));
-      legendY += lines.length * 7 + 3;
+      const x = left + 76 + i * 88;
+      pdf.setFillColor(...COMPARISON_COLORS[i]); pdf.rect(x, top - 4.5, 6, 5, 'F');
+      lines.forEach((line, index) => text(line, x + 10, top + index * 7, 6.2, COMPARISON_COLORS[i]));
     });
     const series = sides.map((s) => s.portfolio[field] ?? []);
     const years = [...new Set(series.flatMap((points) => points.map((t) => t.year)))].sort((a, b) => a - b).slice(-5);

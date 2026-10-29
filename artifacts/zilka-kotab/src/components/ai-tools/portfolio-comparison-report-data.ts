@@ -7,8 +7,18 @@ export type ComparisonReportSide = {
   portfolio: PublicPortfolioAnalysis;
   advanced?: PublicPortfolioAdvancedAnalysis;
 };
-export type ComparisonCell = { value: string; sample?: number; benchmark?: PublicFirmBenchmarkLinesItem };
-export type ComparisonRow = { label: string; cells: ComparisonCell[] };
+export type ComparisonCell = { value: string; rawValue?: number; sample?: number; benchmark?: PublicFirmBenchmarkLinesItem };
+export type ComparisonRow = { label: string; cells: ComparisonCell[]; preference?: 'higher' | 'lower' };
+export const comparisonCompanyLabel = (name: string) => name.trim().replace(/\s+/g, ' ').toUpperCase();
+
+/** Only directional efficiency metrics are ranked; volume and interview frequency are neutral. */
+export function comparisonWinner(row: ComparisonRow): number | undefined {
+  const [a, b] = row.cells;
+  if (!row.preference || !a || !b || a.rawValue == null || b.rawValue == null ||
+    !Number.isFinite(a.rawValue) || !Number.isFinite(b.rawValue) || a.value === b.value) return undefined;
+  if (a.rawValue === b.rawValue) return undefined;
+  return (row.preference === 'higher' ? a.rawValue > b.rawValue : a.rawValue < b.rawValue) ? 0 : 1;
+}
 export const reportNumber = (value: number | null | undefined) =>
   value == null || !Number.isFinite(value) ? 'N/A' : value.toLocaleString('en-US');
 export const reportPercent = (value: number | null | undefined) =>
@@ -26,9 +36,10 @@ export function comparisonBenchmark(side: ComparisonReportSide, metric: PublicFi
 }
 
 export function comparisonReportRows(sides: readonly ComparisonReportSide[]): ComparisonRow[] {
-  const row = (label: string, get: (side: ComparisonReportSide) => ComparisonCell) => ({ label, cells: sides.map(get) });
+  const row = (label: string, get: (side: ComparisonReportSide) => ComparisonCell, preference?: ComparisonRow['preference']): ComparisonRow =>
+    ({ label, cells: sides.map(get), preference });
   const cell = (value: number | null | undefined, format = reportNumber, sample?: number, benchmark?: PublicFirmBenchmarkLinesItem): ComparisonCell =>
-    ({ value: format(value), sample, benchmark });
+    ({ value: format(value), rawValue: value != null && Number.isFinite(value) ? value : undefined, sample, benchmark });
   const decimal = (value: number | null | undefined) => value == null || !Number.isFinite(value) ? 'N/A' : value.toFixed(2);
   const years = (value: number | null | undefined) => value == null || !Number.isFinite(value) ? 'N/A' : `${value.toFixed(1)} yrs`;
   return [
@@ -39,23 +50,23 @@ export function comparisonReportRows(sides: readonly ComparisonReportSide[]): Co
       const p = s.advanced?.portfolioInsights;
       const value = p?.averageTimeToGrantMonths == null ? null : p.averageTimeToGrantMonths / 12;
       return cell(value, years, p?.grantDurationSampleSize, comparisonBenchmark(s, 'timeToGrantYears', value));
-    }),
+    }, 'lower'),
     row('Avg. office actions per granted patent', (s) => {
       const e = s.advanced?.prosecutionEfficiency;
       return cell(e?.averageOfficeActionsPerGrantedPatent, decimal, e?.officeActionDenominator, comparisonBenchmark(s, 'officeActionsPerPatent', e?.averageOfficeActionsPerGrantedPatent));
-    }),
+    }, 'lower'),
     row('RCE rate', (s) => {
       const e = s.advanced?.prosecutionEfficiency;
       return cell(e?.rceRate, reportPercent, e?.rceDenominator, comparisonBenchmark(s, 'rceRate', e?.rceRate));
-    }),
+    }, 'lower'),
     row('Examiner interview rate', (s) => cell(s.advanced?.prosecutionEfficiency.examinerInterviewRate, reportPercent, s.advanced?.prosecutionEfficiency.interviewDenominator)),
     row('Allowed with <=2 office actions', (s) => {
       const e = s.advanced?.prosecutionEfficiency;
       return cell(e?.allowedWithTwoOrFewerActionsRate, reportPercent, e?.allowedWithHistory, comparisonBenchmark(s, 'allowedWithTwoActionsRate', e?.allowedWithTwoOrFewerActionsRate, true));
-    }),
+    }, 'higher'),
     row('Overall allowance rate', (s) => {
       const p = s.advanced?.portfolioInsights;
       return cell(p?.overallAllowanceRate, reportPercent, p?.knownFinalOutcomes, comparisonBenchmark(s, 'allowanceRate', p?.overallAllowanceRate, true));
-    }),
+    }, 'higher'),
   ];
 }

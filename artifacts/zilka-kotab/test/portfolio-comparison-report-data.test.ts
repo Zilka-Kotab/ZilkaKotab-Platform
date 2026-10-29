@@ -2,9 +2,9 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { jsPDF } from 'jspdf';
 import type { PublicFirmBenchmarkLinesItem, PublicPortfolioAdvancedAnalysis } from '@workspace/api-client-react';
-import { comparisonBenchmark, comparisonReportRows, type ComparisonReportSide } from '../src/components/ai-tools/portfolio-comparison-report-data';
+import { comparisonBenchmark, comparisonCompanyLabel, comparisonReportRows, comparisonWinner, type ComparisonReportSide } from '../src/components/ai-tools/portfolio-comparison-report-data';
 import { COMPARISON_COLORS, drawComparisonCharts } from '../src/components/ai-tools/portfolio-comparison-pdf-charts';
-import { drawComparisonTable } from '../src/components/ai-tools/portfolio-comparison-pdf-table';
+import { comparisonTableColumns, drawComparisonTable } from '../src/components/ai-tools/portfolio-comparison-pdf-table';
 
 const line = (metric: PublicFirmBenchmarkLinesItem['metric'], value: number): PublicFirmBenchmarkLinesItem =>
   ({ metric, value, unit: metric === 'timeToGrantYears' ? 'years' : metric === 'officeActionsPerPatent' ? 'count' : 'percent', denominator: 123, companyDenominator: 50, coverage: .8 });
@@ -84,8 +84,8 @@ test('charts use company names and full-scope grant trends, not recent-grant lis
   const pdf = new jsPDF({ unit: 'pt', format: 'letter' });
   drawComparisonCharts(pdf, [a, b], 300);
   const content = pdf.output();
-  assert.ok(content.includes('(First Company)'));
-  assert.ok(content.includes('(Second Company)'));
+  assert.ok(content.includes('(FIRST COMPANY)'));
+  assert.ok(content.includes('(SECOND COMPANY)'));
   assert.ok(content.includes('(GRANT TREND)'));
   assert.ok(content.includes('(777)'));
   assert.ok(!content.includes('(999)'));
@@ -110,11 +110,70 @@ test('six-column table has separate firm values, merged section labels and no sa
   ]);
   const content = pdf.output();
   assert.equal(bottom, 286);
-  for (const label of ['SECTION', 'METRIC', 'First Company', 'Second Company', 'ZILKA-KOTAB', 'BENCHMARK', 'PORTFOLIO', 'AT A GLANCE', 'PROSECUTION', 'EFFICIENCY', '90.0%', '95.0%', '1.5']) {
+  for (const label of ['SECTION', 'METRIC', 'FIRST COMPANY', 'SECOND COMPANY', 'ZILKA-KOTAB', 'BENCHMARK', 'PORTFOLIO', 'AT A GLANCE', 'PROSECUTION', 'EFFICIENCY', '90.0%', '95.0%', '1.5']) {
     assert.ok(content.includes(`(${label})`), label);
   }
   assert.ok(!content.includes('n='));
   assert.ok(!content.includes('cover'));
   assert.equal(content.split('(PROSECUTION)').length - 1, 1);
   assert.equal(content.split('(PORTFOLIO)').length - 1, 1);
+});
+test('benchmark columns appear independently only for sides with qualifying improvements', () => {
+  for (const [first, second] of [[false, false], [true, false], [false, true], [true, true]]) {
+    const rows = comparisonReportRows([
+      side('First', 1, first ? [line('allowanceRate', 90)] : []),
+      side('Second', 2, second ? [line('allowanceRate', 95)] : []),
+    ]);
+    const columns = comparisonTableColumns(rows);
+    assert.equal(columns.length, 4 + Number(first) + Number(second));
+    assert.deepEqual(columns.filter((c) => c.kind === 'benchmark').map((c) => c.side),
+      [first ? 0 : -1, second ? 1 : -1].filter((i) => i >= 0));
+    assert.equal(columns.reduce((width, c) => width + c.width, 0), 540);
+    assert.equal(columns.at(-1)!.x + columns.at(-1)!.width, 576);
+    columns.forEach((c, i) => { if (i) assert.equal(c.x, columns[i - 1].x + columns[i - 1].width); });
+  }
+});
+test('tied or inferior firm lines cannot introduce otherwise empty benchmark columns', () => {
+  const rows = comparisonReportRows([side('First', 1, [line('allowanceRate', 80)]), side('Second', 2, [line('allowanceRate', 70)])]);
+  assert.equal(comparisonTableColumns(rows).length, 4);
+});
+test('winning cells use metric direction, never assume higher is always better', () => {
+  const a = side('First', 1), b = side('Second', 2);
+  b.advanced!.portfolioInsights.averageTimeToGrantMonths = 48;
+  b.advanced!.portfolioInsights.overallAllowanceRate = 90;
+  b.advanced!.prosecutionEfficiency.averageOfficeActionsPerGrantedPatent = 1.5;
+  b.advanced!.prosecutionEfficiency.rceRate = 40;
+  b.advanced!.prosecutionEfficiency.allowedWithTwoOrFewerActionsRate = 80;
+  assert.deepEqual(comparisonReportRows([a, b]).map(comparisonWinner),
+    [undefined, undefined, undefined, 0, 1, 0, undefined, 1, 1]);
+});
+test('missing, tied and visually identical rounded metrics have no winner', () => {
+  const a = side('First', 1), b = side('Second', 2);
+  assert.ok(comparisonReportRows([a, b]).every((row) => comparisonWinner(row) == null));
+  b.advanced!.portfolioInsights.overallAllowanceRate = 80.01;
+  assert.equal(comparisonWinner(comparisonReportRows([a, b])[8]), undefined);
+  b.advanced = undefined;
+  assert.ok(comparisonReportRows([a, b]).every((row) => comparisonWinner(row) == null));
+});
+test('company display capitalization does not mutate original search identities', () => {
+  const a = side('sion power', 1);
+  assert.equal(comparisonCompanyLabel(a.portfolio.companyName), 'SION POWER');
+  assert.equal(a.portfolio.companyName, 'sion power');
+});
+test('chart legends place the second company to the right at the same height', () => {
+  const a = side('ONE', 1), b = side('TWO', 2);
+  a.portfolio.filingTrends = b.portfolio.filingTrends = [];
+  const pdf = new jsPDF({ unit: 'pt', format: 'letter' });
+  const labels: { name: string; x: number; y: number }[] = [];
+  const original = pdf.text.bind(pdf);
+  pdf.text = ((value: string, x: number, y: number, options: object) => {
+    if (value === 'ONE' || value === 'TWO') labels.push({ name: value, x, y });
+    return original(value, x, y, options);
+  }) as typeof pdf.text;
+  drawComparisonCharts(pdf, [a, b], 300);
+  assert.equal(labels.length, 4);
+  for (let i = 0; i < labels.length; i += 2) {
+    assert.equal(labels[i].y, labels[i + 1].y);
+    assert.ok(labels[i + 1].x > labels[i].x);
+  }
 });
