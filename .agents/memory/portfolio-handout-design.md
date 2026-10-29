@@ -26,3 +26,9 @@ Keep essential PDF generation code and the approved footer available to an alrea
 **Why:** Both tools failed to export when an open tab referenced an older PDF-library chunk removed by a newer publish. The missing JavaScript URL returned the SPA's HTML with HTTP 200, so a successful HTTP status alone did not establish asset availability.
 
 **How to apply:** Preserve the eager PDF dependency and bundled footer unless another explicit asset-retention strategy is provided. This trades some initial bundle size for reliable downloads without forcing a reload that would discard the user's analysis.
+
+The standalone portfolio comparison tool exports one consolidated report for both companies, using the standard portfolio questions and approved footer. Include a side-by-side data table and comparison visuals. Show qualifying firm advantages separately for each company's matched cohort.
+
+**Why:** The user replaced the earlier per-company PDF chooser with a consolidated comparison and specifically requested firm outperformance where supported against either or both companies.
+
+**How to apply:** Do not restore the individual-company chooser for comparison exports. Keep missing metrics unavailable, retain metric-specific sample sizes, and never merge two differently technology-matched firm benchmarks into one universal firm rate.

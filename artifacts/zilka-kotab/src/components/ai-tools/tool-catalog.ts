@@ -1,6 +1,7 @@
 import type { ComponentType } from 'react';
 import { PortfolioAnalyzer } from './PortfolioAnalyzer';
 import { ExaminerIntelligence } from './ExaminerIntelligence';
+import { PortfolioComparisonTool } from './PortfolioComparisonTool';
 
 export type AiToolDefinition = {
   key: string;
@@ -20,6 +21,14 @@ export const aiTools = [
     actionLabel: 'Open portfolio tool',
     reviewLabel: 'portfolio',
     component: PortfolioAnalyzer,
+  },
+  {
+    key: 'portfolio-comparison',
+    name: 'Patent Portfolio Comparison',
+    description: 'Compare two companies’ portfolios, filing trends, technology areas, and prosecution efficiency.',
+    actionLabel: 'Open comparison tool',
+    reviewLabel: 'portfolio comparison',
+    component: PortfolioComparisonTool,
   },
   {
     key: 'examiner-intelligence',

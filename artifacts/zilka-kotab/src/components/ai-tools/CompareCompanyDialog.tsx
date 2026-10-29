@@ -48,7 +48,7 @@ export function CompareCompanyDialog({ open, onOpenChange, primary, onCompare }:
         <div>
           <div className="zk-eyebrow">Portfolio comparison</div>
           <DialogTitle className="mt-2 font-display text-2xl font-semibold leading-tight">Compare against another company</DialogTitle>
-          <DialogDescription className="mt-2">Your current result for <strong className="text-foreground">{primary.companyName}</strong> stays as it is while you search.</DialogDescription>
+          <DialogDescription className="mt-2">Search for a second company to compare with <strong className="text-foreground">{primary.companyName}</strong>. Its selected applicant scope stays unchanged.</DialogDescription>
           <p className="mt-2 break-words text-xs text-muted-foreground" data-testid="text-compare-primary-scope">Current scope: {pn.length} applicant name{pn.length === 1 ? '' : 's'}{pn.length ? ' (' + pn.slice(0, 3).join('; ') + (pn.length > 3 ? '; …' : '') + ')' : ''}.</p>
         </div>
         <form onSubmit={onSubmit}>

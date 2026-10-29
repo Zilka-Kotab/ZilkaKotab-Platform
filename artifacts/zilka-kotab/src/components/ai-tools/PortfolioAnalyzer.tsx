@@ -1,15 +1,12 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
 import { motion } from 'framer-motion';
-import { ArrowRight, GitCompareArrows, Search, X } from 'lucide-react';
+import { ArrowRight, Search, X } from 'lucide-react';
 import { useAnalyzePublicPortfolio, useAnalyzePublicPortfolioAdvanced } from '@workspace/api-client-react';
 import type { PublicPortfolioAnalysis } from '@workspace/api-client-react';
 import { AdvancedPortfolioMetrics } from './AdvancedPortfolioMetrics';
 import { PortfolioSnapshotPdfButton } from './PortfolioSnapshotPdfButton';
-import { SnapshotPdfChooser } from './SnapshotPdfChooser';
 import { RecentPortfolioRecords } from './RecentPortfolioRecords';
 import { MatchedApplicantNames } from './MatchedApplicantNames';
-import { CompareCompanyDialog } from './CompareCompanyDialog';
-import { PortfolioComparison } from './PortfolioComparison';
 import { advancedFor } from './portfolio-compare-utils';
 import { FirmInvolvementBadge } from './firm-benchmark';
 import { QuestionsWorthAsking, QuestionsContactCTA } from './QuestionsWorthAsking';
@@ -17,6 +14,14 @@ import { AliasField, NameDiscoveryPanel, SelectionControls, aliasPayload, parseA
 import { CoverageLedger, EmptyPanel, ErrorPanel, Metric, ResultSkeleton, errorMessage, fmtDate, fmtNum } from './shared';
 
 export function PortfolioAnalyzer() {
+  return <PortfolioSearch renderResult={(data) => <PortfolioResult data={data} />} />;
+}
+
+/** Shared applicant discovery keeps both portfolio tools on the same accepted scope. */
+export function PortfolioSearch({ renderResult, comparison = false }: {
+  renderResult: (data: PublicPortfolioAnalysis) => ReactNode;
+  comparison?: boolean;
+}) {
   const [company, setCompany] = useState('');
   const [submitted, setSubmitted] = useState('');
   const [selectedNames, setSelectedNames] = useState<string[] | null>(null);
@@ -37,13 +42,13 @@ export function PortfolioAnalyzer() {
   return (
     <div>
       <form onSubmit={onSubmit} className="zk-query">
-        <label htmlFor="portfolio-company" className="zk-query-label">Company or assignee name</label>
+        <label htmlFor="portfolio-company" className="zk-query-label">{comparison ? 'First company or assignee name' : 'Company or assignee name'}</label>
         <div className="zk-query-row">
           <Search className="h-5 w-5 shrink-0 text-muted-foreground" />
           <input id="portfolio-company" value={company} onChange={(e) => { setCompany(e.target.value); setSelectedNames(null); }} maxLength={120}
             placeholder="e.g. Rambus Inc." className="zk-query-input" autoComplete="organization" data-testid="input-portfolio-company" />
           <button type="submit" disabled={!valid || m.isPending} className="zk-btn-primary" data-testid="button-analyze-portfolio">
-            {m.isPending ? 'Analyzing' : 'Analyze portfolio'} <ArrowRight className="h-4 w-4" />
+            {m.isPending ? 'Analyzing' : comparison ? 'Select first company' : 'Analyze portfolio'} <ArrowRight className="h-4 w-4" />
           </button>
         </div>
         <p className="mt-2 text-xs text-muted-foreground">Searches public USPTO application data by applicant name. Related name variants are suggested automatically; add known DBA or former names below. Subsidiaries may need separate searches.</p>
@@ -57,28 +62,29 @@ export function PortfolioAnalyzer() {
           <ApplicantDialog candidates={m.data.applicantCandidates} discovery={m.data.nameDiscovery} selected={selectedNames ?? m.data.applicantCandidates.map((candidate) => candidate.name)}
             onChange={setSelectedNames} onCancel={() => m.reset()} onContinue={() => run(submitted, submittedAliases, selectedNames ?? m.data.applicantCandidates.map((candidate) => candidate.name))} />
         )}
-        {m.isSuccess && !m.isPending && !m.data.selectionRequired && <PortfolioResult key={`${m.data.coverage.retrievedAt}:${m.data.matchedApplicantNames.join('|')}`} data={m.data} />}
+        {m.isSuccess && !m.isPending && !m.data.selectionRequired && <div key={`${m.data.coverage.retrievedAt}:${m.data.matchedApplicantNames.join('|')}`}>{renderResult(m.data)}</div>}
         {m.isIdle && (
-          <EmptyPanel testId="empty-portfolio-idle" title="Enter a company to begin"
-            body="You will see identified grants and pending applications, a five-year filing trend, leading technology classes, and recent filings, each with its USPTO source." />
+          <EmptyPanel testId="empty-portfolio-idle" title={comparison ? 'Choose two companies to compare' : 'Enter a company to begin'}
+            body={comparison ? 'Start with the first company above, confirm its applicant names, then select a second company. Both portfolios and their prosecution metrics will appear side by side.' : 'You will see identified grants and pending applications, a five-year filing trend, leading technology classes, and recent filings, each with its USPTO source.'} />
         )}
       </div>
     </div>
   );
 }
 
-function ApplicantDialog({ candidates, discovery, selected, onChange, onCancel, onContinue }: {
+export function ApplicantDialog({ candidates, discovery, selected, onChange, onCancel, onContinue, title = 'Which applicant names should be included?' }: {
   candidates: { name: string; count: number }[];
   discovery?: PublicPortfolioAnalysis['nameDiscovery'];
   selected: string[];
   onChange: (names: string[]) => void;
   onCancel: () => void;
   onContinue: () => void;
+  title?: string;
 }) {
   return <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-2 sm:p-4" role="presentation">
     <section role="dialog" aria-modal="true" aria-labelledby="applicant-dialog-title" className="flex max-h-[calc(100dvh-1rem)] w-full max-w-lg flex-col overflow-y-auto rounded-sm border bg-background p-4 shadow-xl sm:p-6" data-testid="dialog-applicant-scope">
       <div className="zk-eyebrow">Confirm portfolio scope</div>
-      <h3 id="applicant-dialog-title" className="mt-2 font-display text-2xl font-semibold">Which applicant names should be included?</h3>
+      <h3 id="applicant-dialog-title" className="mt-2 font-display text-2xl font-semibold">{title}</h3>
       <p className="mt-2 text-sm text-muted-foreground">USPTO records use several potential legal applicant names. All returned names are selected. Clear any that belong to a different or unrelated entity.</p>
       <div className="mt-4"><SelectionControls total={candidates.length} selected={selected.length} onAll={() => onChange(candidates.map((c) => c.name))} onNone={() => onChange([])} testIdPrefix="applicant" /></div>
       <div className="mt-2 max-h-64 min-h-[6rem] space-y-2 overflow-y-auto">
@@ -105,20 +111,7 @@ function PortfolioResult({ data }: { data: PublicPortfolioAnalysis }) {
     const names = namesKey.split('|').filter(Boolean);
     if (names.length) advanced.mutate({ data: { selectedApplicantNames: names } });
   }, [namesKey]);
-  const [compareOpen, setCompareOpen] = useState(false);
-  const [second, setSecond] = useState<PublicPortfolioAnalysis | null>(null);
-  const secondAdvanced = useAnalyzePublicPortfolioAdvanced();
-  const secondAdvancedRef = useRef(secondAdvanced);
-  secondAdvancedRef.current = secondAdvanced;
-  const secondKey = second ? `${second.coverage.retrievedAt}:${second.matchedApplicantNames.join('|')}` : '';
-  useEffect(() => {
-    const req = secondAdvancedRef.current;
-    req.reset();
-    if (second && second.matchedApplicantNames.length) req.mutate({ data: { selectedApplicantNames: second.matchedApplicantNames } });
-  }, [secondKey]);
   const primaryAdvanced = advancedFor(advanced, data.matchedApplicantNames);
-  const secondAdvancedData = second ? advancedFor(secondAdvanced, second.matchedApplicantNames) : undefined;
-  const exitComparison = () => { setSecond(null); };
   const total = data.identifiedGrantedPatents + data.identifiedPendingApplications;
   if (total === 0 && data.recentApplications.length === 0) {
     return <div className="space-y-6">
@@ -130,11 +123,10 @@ function PortfolioResult({ data }: { data: PublicPortfolioAnalysis }) {
     </div>;
   }
   const waitingForPrimary = data.matchedApplicantNames.length > 0 && !primaryAdvanced && !advanced.isError;
-  const waitingForComparison = second && second.matchedApplicantNames.length > 0 && !secondAdvancedData && !secondAdvanced.isError;
-  if (waitingForPrimary || waitingForComparison) {
+  if (waitingForPrimary) {
     return <div aria-busy="true" data-testid="portfolio-complete-loading">
       <p role="status" className="mb-4 text-sm text-muted-foreground">
-        {second ? 'Preparing both portfolios' : 'Preparing your complete portfolio'} — loading prosecution histories and efficiency metrics. All results will appear together when ready.
+        Preparing your complete portfolio — loading prosecution histories and efficiency metrics. All results will appear together when ready.
       </p>
       <ResultSkeleton />
     </div>;
@@ -148,31 +140,17 @@ function PortfolioResult({ data }: { data: PublicPortfolioAnalysis }) {
         <div className="mt-1 flex flex-wrap items-center justify-between gap-4">
           <h3 className="font-display text-3xl font-semibold" data-testid="text-portfolio-company">{data.companyName}</h3>
           <div className="flex flex-wrap items-start gap-3">
-            {second
-              ? <SnapshotPdfChooser options={[
-                  { portfolio: data, advanced: primaryAdvanced, advancedPending: advanced.isPending },
-                  { portfolio: second, advanced: secondAdvancedData, advancedPending: secondAdvanced.isPending },
-                ]} />
-              : <PortfolioSnapshotPdfButton portfolio={data} advanced={primaryAdvanced} />}
-            <button type="button" onClick={() => setCompareOpen(true)} className="zk-btn-primary inline-flex items-center gap-2 shadow-md ring-1 ring-[hsl(var(--zk-brass)/0.5)]" data-testid="button-compare-company">
-              <GitCompareArrows className="h-4 w-4" /> {second ? 'Change comparison company' : 'Compare against another company'}
-            </button>
+            <PortfolioSnapshotPdfButton portfolio={data} advanced={primaryAdvanced} />
           </div>
         </div>
         {data.matchedApplicantNames.length > 0 && (
           <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
             <MatchedApplicantNames names={data.matchedApplicantNames} />
-            {!second && <FirmInvolvementBadge fb={primaryAdvanced?.firmBenchmark} testId="badge-firm-involvement" />}
+            <FirmInvolvementBadge fb={primaryAdvanced?.firmBenchmark} testId="badge-firm-involvement" />
           </div>
         )}
         {data.nameDiscovery && <div className="mt-3"><NameDiscoveryPanel discovery={data.nameDiscovery} testId="panel-name-discovery-result" /></div>}
       </header>
-      <CompareCompanyDialog open={compareOpen} onOpenChange={setCompareOpen} primary={data} onCompare={setSecond} />
-
-      {second ? (
-        <PortfolioComparison a={{ data, advanced: primaryAdvanced, request: advanced }} b={{ data: second, advanced: secondAdvancedData, request: secondAdvanced }}
-          onReplace={() => setCompareOpen(true)} onExit={exitComparison} />
-      ) : <>
       <div className="grid grid-cols-1 gap-px overflow-hidden rounded-sm border bg-border sm:grid-cols-2 xl:grid-cols-4">
         <Metric emphasis label="Granted — status unverified" value={data.identifiedGrantedPatents} note="The USPTO application status does not confirm current in-force status." testId="metric-granted" />
         <Metric label="Identified pending" value={data.identifiedPendingApplications} testId="metric-pending" />
@@ -250,7 +228,6 @@ function PortfolioResult({ data }: { data: PublicPortfolioAnalysis }) {
           <p className="mt-3 text-xs leading-relaxed text-muted-foreground"><strong className="font-semibold text-foreground">Legal status limitation.</strong> USPTO status text reflects prosecution records only. It does not confirm maintenance-fee payment, ownership after assignment, expiration, or enforceability. This is not a legal opinion.</p>
         </>} />
       <QuestionsContactCTA />
-      </>}
     </motion.div>
   );
 }
