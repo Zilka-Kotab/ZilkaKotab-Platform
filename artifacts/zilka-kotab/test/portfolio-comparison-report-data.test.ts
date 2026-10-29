@@ -102,7 +102,7 @@ test('old or missing grant data stays unavailable, not a false zero trend', () =
 test('comparison uses blue and exact muted burgundy, never firm gold as a company color', () => {
   assert.deepEqual(COMPARISON_COLORS, [[34, 69, 108], [150, 63, 82]]);
 });
-test('six-column table has separate firm values, merged section labels and no sample annotations', () => {
+test('comparison table omits firm benchmarks even when supplied and preserves merged section labels', () => {
   const pdf = new jsPDF({ unit: 'pt', format: 'letter' });
   const bottom = drawComparisonTable(pdf, [
     side('First Company', 123, [line('allowanceRate', 90), line('officeActionsPerPatent', 1.5)]),
@@ -110,32 +110,38 @@ test('six-column table has separate firm values, merged section labels and no sa
   ]);
   const content = pdf.output();
   assert.equal(bottom, 286);
-  for (const label of ['SECTION', 'METRIC', 'FIRST COMPANY', 'SECOND COMPANY', 'ZILKA-KOTAB', 'BENCHMARK', 'PORTFOLIO', 'AT A GLANCE', 'PROSECUTION', 'EFFICIENCY', '90.0%', '95.0%', '1.5']) {
+  for (const label of ['SECTION', 'METRIC', 'FIRST COMPANY', 'SECOND COMPANY', 'PORTFOLIO', 'AT A GLANCE', 'PROSECUTION', 'EFFICIENCY']) {
     assert.ok(content.includes(`(${label})`), label);
+  }
+  for (const label of ['ZILKA-KOTAB', 'BENCHMARK', '90.0%', '95.0%', '1.5']) {
+    assert.ok(!content.includes(`(${label})`), label);
   }
   assert.ok(!content.includes('n='));
   assert.ok(!content.includes('cover'));
   assert.equal(content.split('(PROSECUTION)').length - 1, 1);
   assert.equal(content.split('(PORTFOLIO)').length - 1, 1);
 });
-test('benchmark columns appear independently only for sides with qualifying improvements', () => {
-  for (const [first, second] of [[false, false], [true, false], [false, true], [true, true]]) {
-    const rows = comparisonReportRows([
-      side('First', 1, first ? [line('allowanceRate', 90)] : []),
-      side('Second', 2, second ? [line('allowanceRate', 95)] : []),
-    ]);
-    const columns = comparisonTableColumns(rows);
-    assert.equal(columns.length, 4 + Number(first) + Number(second));
-    assert.deepEqual(columns.filter((c) => c.kind === 'benchmark').map((c) => c.side),
-      [first ? 0 : -1, second ? 1 : -1].filter((i) => i >= 0));
-    assert.equal(columns.reduce((width, c) => width + c.width, 0), 540);
-    assert.equal(columns.at(-1)!.x + columns.at(-1)!.width, 576);
-    columns.forEach((c, i) => { if (i) assert.equal(c.x, columns[i - 1].x + columns[i - 1].width); });
-  }
+test('comparison uses four columns with equal company widths and no benchmark space', () => {
+  const columns = comparisonTableColumns();
+  assert.deepEqual(columns.map((c) => c.kind), ['section', 'metric', 'company', 'company']);
+  assert.equal(columns[2].width, 146);
+  assert.equal(columns[3].width, 146);
+  assert.equal(columns.reduce((width, c) => width + c.width, 0), 540);
+  assert.equal(columns.at(-1)!.x + columns.at(-1)!.width, 576);
+  columns.forEach((c, i) => { if (i) assert.equal(c.x, columns[i - 1].x + columns[i - 1].width); });
 });
-test('tied or inferior firm lines cannot introduce otherwise empty benchmark columns', () => {
-  const rows = comparisonReportRows([side('First', 1, [line('allowanceRate', 80)]), side('Second', 2, [line('allowanceRate', 70)])]);
-  assert.equal(comparisonTableColumns(rows).length, 4);
+test('table headers use the same heading size as the merged section labels', () => {
+  const pdf = new jsPDF({ unit: 'pt', format: 'letter' });
+  const sizes = new Map<string, number>();
+  const original = pdf.text.bind(pdf);
+  pdf.text = ((value: string, x: number, y: number, options: object) => {
+    sizes.set(value, pdf.getFontSize());
+    return original(value, x, y, options);
+  }) as typeof pdf.text;
+  drawComparisonTable(pdf, [side('FIRST', 1), side('SECOND', 2)]);
+  for (const label of ['SECTION', 'METRIC', 'FIRST', 'SECOND', 'PORTFOLIO', 'AT A GLANCE', 'EFFICIENCY']) {
+    assert.equal(sizes.get(label), 8.2, label);
+  }
 });
 test('winning cells use metric direction, never assume higher is always better', () => {
   const a = side('First', 1), b = side('Second', 2);

@@ -27,11 +27,11 @@ Keep essential PDF generation code and the approved footer available to an alrea
 
 **How to apply:** Preserve the eager PDF dependency and bundled footer unless another explicit asset-retention strategy is provided. This trades some initial bundle size for reliable downloads without forcing a reload that would discard the user's analysis.
 
-The standalone portfolio comparison tool exports one consolidated report for both companies, using the standard portfolio questions and approved footer. Include a side-by-side data table and comparison visuals. Show qualifying firm advantages separately for each company's matched cohort.
+The standalone portfolio comparison tool exports one consolidated report for both companies, using the standard portfolio questions and approved footer. Include a side-by-side data table and comparison visuals, without firm benchmarks.
 
 **Why:** The user replaced the earlier per-company PDF chooser with a consolidated comparison and specifically requested firm outperformance where supported against either or both companies.
 
-**How to apply:** Do not restore the individual-company chooser for comparison exports. Keep missing metrics unavailable and sample limitations in the caveats. Never merge two differently technology-matched firm benchmarks into one universal firm rate.
+**How to apply:** Do not restore the individual-company chooser for comparison exports. Keep missing metrics unavailable and sample limitations in the caveats. The later company-only comparison rule below supersedes the original firm-benchmark request.
 
 The comparison handout separates granted/pending/expired statistics from six prosecution-efficiency metrics: grant time, office-action average, RCE, interview, allowed within two actions, and allowance rate. Pair filing and grant trends with company-name legends.
 
@@ -39,8 +39,8 @@ The comparison handout separates granted/pending/expired statistics from six pro
 
 **How to apply:** Use full-scope grant-date aggregate counts for grant trends, not filing-year counts or recent-grant sample lengths. Preserve the approved questions and footer.
 
-Comparison PDFs use merged section and metric columns plus two company columns. Each adjacent firm-benchmark column is optional and appears only with at least one qualifying improvement against that company. Values omit sample/coverage annotations.
+Comparison PDFs use exactly four columns: merged section, metric, and two equal-width company columns. Never include ZK benchmark columns or values in comparison PDFs. Values omit sample/coverage annotations.
 
-**Why:** The user requested compact columns, removed “n=” and coverage labels, and rejected empty firm columns and full-column shading. Bronze/gold identifies the firm, not a comparison company.
+**Why:** The user found even conditionally displayed ZK benchmarks confusing and explicitly removed them from future comparison tables. This does not remove benchmarks from the standalone portfolio analyzer.
 
-**How to apply:** Redistribute freed column width, retain proper units, and keep caveats below. Use uppercase company display labels and side-by-side legends beside chart headings. Keep blue vs. burgundy #963F52; reserve gold for firm values, without full-column shading. Highlight directional efficiency advantages individually; do not rank neutral counts, interview frequency, missing data, or ties as better.
+**How to apply:** Use the merged-section heading size for table headers, retain proper units, and keep caveats below without firm-benchmark explanations. Use uppercase company labels and side-by-side legends. Keep blue vs. burgundy #963F52. Highlight directional efficiency advantages individually; do not rank neutral counts, interview frequency, missing data, or ties as better.
