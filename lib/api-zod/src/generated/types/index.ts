@@ -7,6 +7,21 @@
  */
 
 export * from './firmBenchmarkStatus';
+export * from './firmBillingInput';
+export * from './firmBillingInputKind';
+export * from './firmBillingItem';
+export * from './firmBillingLedger';
+export * from './firmBillingUpdate';
+export * from './firmCsvInput';
+export * from './firmCsvPreviewRow';
+export * from './firmCsvResult';
+export * from './firmOperationResult';
+export * from './firmOperations';
+export * from './firmPayment';
+export * from './firmPaymentInput';
+export * from './firmStaff';
+export * from './firmWorkflowRow';
+export * from './firmWorkflowUpdate';
 export * from './healthStatus';
 export * from './publicApplicantCandidate';
 export * from './publicCompanyNameDiscovery';

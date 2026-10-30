@@ -6,6 +6,7 @@ import authRouter from "./auth";
 import portalRouter from "./portal";
 import patentMonitorRouter from "./patent-monitor";
 import internalWorkflowRouter from "./internal-workflow";
+import firmOperationsRouter from "./firm-operations";
 import publicPatentToolsRouter from "./public-patent-tools";
 
 const router: IRouter = Router();
@@ -17,6 +18,7 @@ router.use(authRouter);
 router.use(publicPatentToolsRouter);
 router.use(portalRouter);
 router.use(patentMonitorRouter);
+router.use(firmOperationsRouter);
 router.use(internalWorkflowRouter);
 
 export default router;

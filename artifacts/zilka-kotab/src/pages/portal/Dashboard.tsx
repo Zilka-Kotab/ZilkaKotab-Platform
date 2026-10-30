@@ -38,7 +38,7 @@ export default function PortalDashboard() {
       <div className="mx-auto flex min-h-[70dvh] max-w-3xl items-center justify-center p-5 sm:p-8">
         <div className="portal-card w-full rounded-2xl border bg-card p-8 text-center">
           <CircleAlert className="mx-auto h-8 w-8 text-destructive" />
-          <h1 className="mt-4 font-display text-2xl font-semibold">Dashboard unavailable</h1>
+          <h1 className="mt-4 font-display text-2xl font-semibold">Firm Portal unavailable</h1>
           <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-muted-foreground">We could not retrieve your private workspace summary. Your access has not changed.</p>
           <button type="button" onClick={() => refetch()} data-testid="button-retry-dashboard" className="portal-action mt-6 inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90"><RefreshCw className="h-4 w-4" /> Try again</button>
         </div>
@@ -55,7 +55,7 @@ export default function PortalDashboard() {
 
   return (
     <div className="min-h-[100dvh]">
-      <SEO title="Dashboard" description="Zilka-Kotab Portal Dashboard" url="/portal" />
+      <SEO title="Firm Portal" description="Zilka-Kotab Firm Portal" url="/portal" />
       <div className="mx-auto max-w-[1240px] px-5 py-7 sm:px-8 sm:py-10 lg:px-10">
         <header className="relative overflow-hidden rounded-2xl border border-[#315778] bg-[#173c61] px-6 py-7 text-[#f4f7f9] shadow-[0_20px_48px_-30px_rgba(23,60,97,.8)] sm:px-9 sm:py-9">
           <div className="pointer-events-none absolute -right-20 -top-28 h-72 w-72 rounded-full border-[34px] border-[#c49a49]/15" />
@@ -70,6 +70,10 @@ export default function PortalDashboard() {
             <span className="hidden h-3 w-px bg-[#456782] sm:block" />
             <span>Confidential workspace</span>
           </div>
+          {canUseInternalWorkflow && <div className="relative mt-4 flex flex-wrap gap-2">
+            <Link href="/portal/internal-workflow" data-testid="link-open-workflow-home" className="portal-action inline-flex items-center rounded-lg bg-[#c49a49] px-3 py-2 text-xs font-semibold text-[#173c61] hover:bg-[#d4ab5c]">Open workflow</Link>
+            <Link href="/portal/internal-workflow?upload=1" data-testid="link-upload-csv-home" className="portal-action inline-flex items-center rounded-lg border border-[#c49a49]/60 px-3 py-2 text-xs font-semibold text-[#f7d58d] hover:bg-[#c49a49]/10">Upload CSV</Link>
+          </div>}
         </header>
 
         <section className="mt-5 grid gap-3 sm:grid-cols-3" aria-label="Workspace summary">
@@ -137,7 +141,7 @@ export default function PortalDashboard() {
                 {canUseInternalWorkflow && (
                   <Link href="/portal/internal-workflow" data-testid="link-tool-internal-workflow-dashboard" className="portal-action portal-focus group flex items-center gap-3 rounded-xl border border-[#d5c79f] bg-[#fffdf8] p-3 hover:border-[#ad8b43] hover:bg-[#fbf7ec]">
                     <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-[#f4ecd5] text-[#795f25]"><BriefcaseBusiness className="h-4 w-4" /></span>
-                    <span className="min-w-0 flex-1"><span className="block truncate text-sm font-semibold">Internal Workflow &amp; Docketing</span><span className="mt-0.5 block truncate text-xs text-muted-foreground">AppColl matter imports and firm operations</span></span>
+                    <span className="min-w-0 flex-1"><span className="block truncate text-sm font-semibold">Workflow dashboard</span><span className="mt-0.5 block truncate text-xs text-muted-foreground">Open workspace</span></span>
                     <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground group-hover:text-primary" />
                   </Link>
                 )}

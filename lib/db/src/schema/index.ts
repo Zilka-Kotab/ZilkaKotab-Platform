@@ -22,4 +22,5 @@ export * from "./portal";
 export * from "./patent-monitor";
 export * from "./internal-access";
 export * from "./internal-workflow";
+export * from "./firm-operations";
 export * from "./firm-benchmark";

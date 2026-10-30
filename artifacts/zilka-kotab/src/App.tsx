@@ -36,6 +36,8 @@ import PortalToolDetail from '@/pages/portal/ToolDetail';
 import PortalAdmin from '@/pages/portal/Admin';
 import ProjectWorkspace from '@/pages/portal/ProjectWorkspace';
 import InternalWorkflow from '@/pages/portal/InternalWorkflow';
+import FirmBilling from '@/pages/portal/FirmBilling';
+import FirmSettings from '@/pages/portal/FirmSettings';
 
 const queryClient = new QueryClient();
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, '');
@@ -137,6 +139,12 @@ function Router() {
       </Route>
       <Route path="/portal/internal-workflow">
         <ProtectedPortalRoute component={InternalWorkflow} requiredRoles={['ATTORNEY', 'PARALEGAL', 'ADMIN']} />
+      </Route>
+      <Route path="/portal/billing">
+        <ProtectedPortalRoute component={FirmBilling} requiredRoles={['ATTORNEY', 'PARALEGAL', 'ADMIN']} />
+      </Route>
+      <Route path="/portal/settings">
+        <ProtectedPortalRoute component={FirmSettings} requiredRoles={['ATTORNEY', 'PARALEGAL', 'ADMIN']} />
       </Route>
       {/* Public Routes */}
       <Route>

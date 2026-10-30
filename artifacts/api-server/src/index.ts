@@ -3,6 +3,7 @@ import { pool } from "@workspace/db";
 import { logger } from "./lib/logger";
 import { scheduleFirmRefresh } from "./lib/firm-benchmark-store";
 import { ensureInitialAdminAuthorization, ensurePatentMonitorTool } from "./lib/bootstrap";
+import { ensureFirmOperationsSchema } from "./lib/firm-operations-schema";
 
 const rawPort = process.env["PORT"];
 
@@ -23,6 +24,7 @@ pool.on("error", (err) => {
 });
 
 async function start() {
+  await ensureFirmOperationsSchema();
   await ensureInitialAdminAuthorization();
   await ensurePatentMonitorTool();
   app.listen(port, (err) => {

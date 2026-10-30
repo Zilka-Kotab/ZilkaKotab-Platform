@@ -1,12 +1,10 @@
-import { usePortalAccess, usePortalTools } from '@/lib/hooks-portal';
-import { BriefcaseBusiness, Loader2, Wrench, ChevronRight } from 'lucide-react';
+import { usePortalTools } from '@/lib/hooks-portal';
+import { Loader2, Wrench, ChevronRight } from 'lucide-react';
 import { Link } from 'wouter';
 import { SEO } from '@/components/SEO';
 
 export default function PortalTools() {
   const { data, isLoading, error } = usePortalTools();
-  const { data: accessData } = usePortalAccess();
-  const canUseInternalWorkflow = ['ADMIN', 'ATTORNEY', 'PARALEGAL'].includes(accessData?.user?.role ?? '');
 
   if (isLoading) {
     return (
@@ -41,34 +39,6 @@ export default function PortalTools() {
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {canUseInternalWorkflow && (
-          <Link
-            href="/portal/internal-workflow"
-            data-testid="link-tool-internal-workflow"
-            className="group flex h-full flex-col rounded-xl border border-[#d5c79f] bg-[#fffdf8] p-6 shadow-sm transition-all hover:border-[#ad8b43] hover:shadow-md"
-          >
-            <div className="mb-4 flex items-start justify-between">
-              <span className="grid h-10 w-10 place-items-center rounded-lg bg-[#f4ecd5] text-[#795f25]">
-                <BriefcaseBusiness className="h-5 w-5" />
-              </span>
-              <ChevronRight className="h-5 w-5 text-muted-foreground transition-colors group-hover:text-primary" />
-            </div>
-            <h3 className="text-lg font-semibold text-foreground">Internal Workflow &amp; Docketing</h3>
-            <p className="mt-2 flex-1 text-sm text-muted-foreground">
-              Import AppColl matter records, review changes, and manage the firm’s internal operations workspace.
-            </p>
-            <span className="mt-5 inline-flex w-fit items-center rounded-md bg-primary px-3 py-2 text-xs font-semibold text-white">
-              Open Tool
-            </span>
-            <div className="mt-6 flex items-center justify-between border-t border-[#e8dfc9] pt-4 text-xs">
-              <span className="inline-flex items-center gap-1.5 font-medium text-emerald-700">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-600" />
-                Operational
-              </span>
-              <span className="font-semibold uppercase tracking-wide text-[#795f25]">Internal</span>
-            </div>
-          </Link>
-        )}
         {data.tools.map(tool => (
             <Link key={tool.publicId} href={`/portal/tools/${tool.slug}`} className="group rounded-xl border border-border bg-white p-6 shadow-sm transition-all hover:shadow-md hover:border-primary flex flex-col h-full">
             <div className="flex items-start justify-between mb-4">
@@ -85,7 +55,7 @@ export default function PortalTools() {
             </div>
           </Link>
         ))}
-        {data.tools.length === 0 && !canUseInternalWorkflow && (
+        {data.tools.length === 0 && (
           <div className="col-span-full rounded-xl border border-dashed border-border p-12 text-center">
             <Wrench className="mx-auto h-12 w-12 text-muted-foreground/50 mb-4" />
             <h3 className="text-lg font-medium text-foreground mb-1">No tools available</h3>

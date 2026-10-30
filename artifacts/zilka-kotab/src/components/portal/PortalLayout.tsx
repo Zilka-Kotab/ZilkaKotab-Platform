@@ -2,7 +2,7 @@ import { ReactNode } from 'react';
 import { Link, useLocation } from 'wouter';
 import { useAuth } from '@workspace/entra-auth-web';
 import { usePortalAccess } from '@/lib/hooks-portal';
-import { LayoutDashboard, Users, Wrench, Settings, LogOut, Loader2, ShieldAlert } from 'lucide-react';
+import { LayoutDashboard, Users, Wrench, Settings, LogOut, Loader2, ShieldAlert, ClipboardList, Receipt, SlidersHorizontal } from 'lucide-react';
 import { SEO } from '@/components/SEO';
 
 interface PortalLayoutProps {
@@ -71,12 +71,16 @@ export function PortalLayout({ children }: PortalLayoutProps) {
   const isAttorney = role === 'ATTORNEY';
   const isParalegal = role === 'PARALEGAL';
   const isAdmin = role === 'ADMIN';
+  const isStaff = isAdmin || isAttorney || isParalegal;
 
   const navItems = [
-    { label: 'Dashboard', href: '/portal', icon: <LayoutDashboard className="h-5 w-5" />, visible: true },
+    { label: 'Firm Portal', href: '/portal', icon: <LayoutDashboard className="h-5 w-5" />, visible: true },
+    { label: 'Workflow', href: '/portal/internal-workflow', icon: <ClipboardList className="h-5 w-5" />, visible: isStaff },
+    { label: 'Time & Billing', href: '/portal/billing', icon: <Receipt className="h-5 w-5" />, visible: isStaff },
     { label: 'My Clients', href: '/portal/clients', icon: <Users className="h-5 w-5" />, visible: isAttorney },
     { label: 'Tools', href: '/portal/tools', icon: <Wrench className="h-5 w-5" />, visible: isClient || isAttorney || isParalegal || isAdmin },
     { label: 'Admin', href: '/portal/admin', icon: <Settings className="h-5 w-5" />, visible: isAdmin },
+    { label: 'Settings', href: '/portal/settings', icon: <SlidersHorizontal className="h-5 w-5" />, visible: isStaff },
   ].filter(item => item.visible);
 
   return (

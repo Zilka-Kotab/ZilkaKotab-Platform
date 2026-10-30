@@ -8,6 +8,8 @@
 - [Portfolio metric evidence](portfolio-metric-evidence.md) — traceable metrics, representative cohorts, positive-only firm benchmarks, and transparent DBA/former-name coverage.
 - [Examiner intelligence scope](examiner-intelligence.md) — the public examiner tool serves patent prosecution attorneys; prioritize transparent, reproducible metrics over speculative recommendations.
 - [Internal workflow data boundaries](internal-workflow-data-boundaries.md) — AppColl owns docket fields; internal assignments and billing stay separate in the authenticated portal.
+- [Firm flat-fee billing](firm-billing-process.md) — pre-billing keeps work active; preserve one ledger entry, pre-billing/completion dates, invoices, receipts and month/quarter totals.
+- [Generated scalar validation](api-scalar-codegen.md) — check date and UUID runtime schemas; calendar dates must stay strings and generated validators must match installed Zod.
 - [Contact delivery environments](contact-delivery-environments.md) — use Microsoft 365 HTTPS mail, not SMTP fallback; distinguish acceptance, inbox receipt, and live-site verification.
 - [Patent intelligence handouts](portfolio-handout-design.md) — shared one-page branding; examiner questions are customized, portfolio questions and firm/QR artwork stay fixed.
 - [Weekly background refresh](weekly-background-refresh.md) — Autoscale timers stop while idle; use a Scheduled Deployment for a strict weekly refresh.

@@ -13,6 +13,99 @@ tags:
   - name: public-patent-tools
     description: Public USPTO-backed patent intelligence tools
 paths:
+  /portal/operations:
+    get:
+      operationId: getFirmOperations
+      responses:
+        "200":
+          description: Authorized staff workflow
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FirmOperations" }
+  /portal/operations/rows/{id}:
+    patch:
+      operationId: updateFirmWorkflowRow
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/FirmWorkflowUpdate" }
+      responses:
+        "200":
+          description: Saved
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FirmOperationResult" }
+  /portal/operations/import:
+    post:
+      operationId: importFirmWorkflowCsv
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/FirmCsvInput" }
+      responses:
+        "200":
+          description: Import result
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FirmCsvResult" }
+  /portal/operations/billing:
+    get:
+      operationId: getFirmBilling
+      responses:
+        "200":
+          description: Authorized billing ledger
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FirmBillingLedger" }
+    post:
+      operationId: createFirmBillingItem
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/FirmBillingInput" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FirmOperationResult" }
+  /portal/operations/billing/{id}:
+    patch:
+      operationId: updateFirmBillingItem
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/FirmBillingUpdate" }
+      responses:
+        "200":
+          description: Saved
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FirmOperationResult" }
+  /portal/operations/billing/{id}/payments:
+    post:
+      operationId: recordFirmPayment
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/FirmPaymentInput" }
+      responses:
+        "201":
+          description: Receipt recorded
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FirmOperationResult" }
   /portal/admin/firm-benchmark:
     get:
       operationId: getFirmBenchmarkStatus
@@ -165,6 +258,144 @@ paths:
           description: Inquiry delivery unavailable
 components:
   schemas:
+    FirmOperationResult:
+      type: object
+      required: [publicId]
+      properties:
+        publicId: { type: string }
+    FirmCsvInput:
+      type: object
+      required: [fileName, csvText, preview]
+      properties:
+        fileName: { type: string, minLength: 1, maxLength: 240 }
+        csvText: { type: string, minLength: 1, maxLength: 8000000 }
+        preview: { type: boolean }
+    FirmCsvResult:
+      type: object
+      required: [added, updated, errors, rows, applied]
+      properties:
+        added: { type: integer }
+        updated: { type: integer }
+        applied: { type: boolean }
+        errors: { type: array, items: { type: string } }
+        rows:
+          type: array
+          items: { $ref: "#/components/schemas/FirmCsvPreviewRow" }
+    FirmCsvPreviewRow:
+      type: object
+      required: [externalId, matter, title, client]
+      properties:
+        externalId: { type: string }
+        matter: { type: string }
+        title: { type: string }
+        client: { type: string }
+    FirmWorkflowUpdate:
+      type: object
+      required: [revision]
+      properties:
+        revision: { type: integer, minimum: 0 }
+        assignedToId: { type: [integer, "null"] }
+        strategySentOn: { type: [string, "null"], pattern: '^\d{4}-\d{2}-\d{2}$' }
+        clientApprovalSentOn: { type: [string, "null"], pattern: '^\d{4}-\d{2}-\d{2}$' }
+        paralegalSentOn: { type: [string, "null"], pattern: '^\d{4}-\d{2}-\d{2}$' }
+        filedOn: { type: [string, "null"], pattern: '^\d{4}-\d{2}-\d{2}$' }
+        prebillOn: { type: string, pattern: '^\d{4}-\d{2}-\d{2}$', description: "Create a pre-billing entry while keeping this task active." }
+        notes: { type: string, maxLength: 10000 }
+    FirmWorkflowRow:
+      type: object
+      required: [publicId, source, title, client, matter, dueDate, sourceOwner, sourceStatus, assignedToId, strategySentOn, clientApprovalSentOn, paralegalSentOn, filedOn, notes, revision, prebilledOn, prebillVoided]
+      properties:
+        publicId: { type: string }
+        source: { type: string }
+        title: { type: string }
+        client: { type: string }
+        matter: { type: string }
+        dueDate: { type: [string, "null"] }
+        sourceOwner: { type: string }
+        sourceStatus: { type: string }
+        assignedToId: { type: [integer, "null"] }
+        strategySentOn: { type: [string, "null"] }
+        clientApprovalSentOn: { type: [string, "null"] }
+        paralegalSentOn: { type: [string, "null"] }
+        filedOn: { type: [string, "null"] }
+        prebilledOn: { type: [string, "null"] }
+        prebillVoided: { type: boolean }
+        notes: { type: string }
+        revision: { type: integer }
+    FirmOperations:
+      type: object
+      required: [rows, staff, canImport]
+      properties:
+        rows: { type: array, items: { $ref: "#/components/schemas/FirmWorkflowRow" } }
+        staff: { type: array, items: { $ref: "#/components/schemas/FirmStaff" } }
+        canImport: { type: boolean }
+    FirmStaff:
+      type: object
+      required: [id, name, role]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        role: { type: string }
+    FirmBillingInput:
+      type: object
+      required: [kind, workDate, client, matter, description, amountCents, notes, code, jurisdiction, subjectMatter, associate, shareBasisPoints]
+      properties:
+        kind: { type: string, enum: [FEE, EXPENSE, REIMBURSEMENT] }
+        workDate: { type: string, pattern: '^\d{4}-\d{2}-\d{2}$' }
+        client: { type: string, maxLength: 500 }
+        matter: { type: string, maxLength: 500 }
+        description: { type: string, minLength: 1, maxLength: 5000 }
+        amountCents: { type: integer, minimum: 0, maximum: 1000000000 }
+        notes: { type: string, maxLength: 10000 }
+        code: { type: string, maxLength: 100 }
+        jurisdiction: { type: string, maxLength: 100 }
+        subjectMatter: { type: string, maxLength: 1000 }
+        associate: { type: string, maxLength: 240 }
+        shareBasisPoints: { type: integer, minimum: 0, maximum: 10000 }
+    FirmBillingUpdate:
+      allOf:
+        - { $ref: "#/components/schemas/FirmBillingInput" }
+        - type: object
+          required: [revision, invoiceNumber, invoiceDate, voided]
+          properties:
+            revision: { type: integer, minimum: 0 }
+            invoiceNumber: { type: string, maxLength: 240 }
+            invoiceDate: { type: [string, "null"], pattern: '^\d{4}-\d{2}-\d{2}$' }
+            voided: { type: boolean }
+    FirmPaymentInput:
+      type: object
+      required: [amountCents, receivedOn, reference, requestId]
+      properties:
+        amountCents: { type: integer, minimum: 1, maximum: 1000000000 }
+        receivedOn: { type: string, pattern: '^\d{4}-\d{2}-\d{2}$' }
+        reference: { type: string, maxLength: 1000 }
+        requestId: { type: string, pattern: '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$' }
+    FirmBillingItem:
+      allOf:
+        - { $ref: "#/components/schemas/FirmBillingUpdate" }
+        - type: object
+          required: [publicId, workflowPublicId, ownerName, paidCents, payments, prebilledOn, completedOn]
+          properties:
+            publicId: { type: string }
+            workflowPublicId: { type: [string, "null"] }
+            prebilledOn: { type: [string, "null"] }
+            completedOn: { type: [string, "null"] }
+            ownerName: { type: string }
+            paidCents: { type: integer }
+            payments: { type: array, items: { $ref: "#/components/schemas/FirmPayment" } }
+    FirmPayment:
+      type: object
+      required: [publicId, amountCents, receivedOn, reference]
+      properties:
+        publicId: { type: string }
+        amountCents: { type: integer }
+        receivedOn: { type: string }
+        reference: { type: string }
+    FirmBillingLedger:
+      type: object
+      required: [items]
+      properties:
+        items: { type: array, items: { $ref: "#/components/schemas/FirmBillingItem" } }
     FirmBenchmarkStatus:
       type: object
       required: [state, applicationCount, completedCustomerNumbers, totalCustomerNumbers, startedAt, completedAt, error]

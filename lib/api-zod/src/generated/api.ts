@@ -8,6 +8,286 @@
 import * as zod from 'zod';
 
 
+export const GetFirmOperationsResponse = zod.object({
+  "rows": zod.array(zod.object({
+  "publicId": zod.string(),
+  "source": zod.string(),
+  "title": zod.string(),
+  "client": zod.string(),
+  "matter": zod.string(),
+  "dueDate": zod.string().nullable(),
+  "sourceOwner": zod.string(),
+  "sourceStatus": zod.string(),
+  "assignedToId": zod.number().nullable(),
+  "strategySentOn": zod.string().nullable(),
+  "clientApprovalSentOn": zod.string().nullable(),
+  "paralegalSentOn": zod.string().nullable(),
+  "filedOn": zod.string().nullable(),
+  "prebilledOn": zod.string().nullable(),
+  "prebillVoided": zod.boolean(),
+  "notes": zod.string(),
+  "revision": zod.number()
+})),
+  "staff": zod.array(zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "role": zod.string()
+})),
+  "canImport": zod.boolean()
+})
+
+
+export const UpdateFirmWorkflowRowParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const updateFirmWorkflowRowBodyRevisionMin = 0;
+
+export const updateFirmWorkflowRowBodyStrategySentOnRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
+export const updateFirmWorkflowRowBodyClientApprovalSentOnRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
+export const updateFirmWorkflowRowBodyParalegalSentOnRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
+export const updateFirmWorkflowRowBodyFiledOnRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
+export const updateFirmWorkflowRowBodyPrebillOnRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
+export const updateFirmWorkflowRowBodyNotesMax = 10000;
+
+
+
+export const UpdateFirmWorkflowRowBody = zod.object({
+  "revision": zod.number().min(updateFirmWorkflowRowBodyRevisionMin),
+  "assignedToId": zod.number().nullish(),
+  "strategySentOn": zod.string().regex(updateFirmWorkflowRowBodyStrategySentOnRegExp).nullish(),
+  "clientApprovalSentOn": zod.string().regex(updateFirmWorkflowRowBodyClientApprovalSentOnRegExp).nullish(),
+  "paralegalSentOn": zod.string().regex(updateFirmWorkflowRowBodyParalegalSentOnRegExp).nullish(),
+  "filedOn": zod.string().regex(updateFirmWorkflowRowBodyFiledOnRegExp).nullish(),
+  "prebillOn": zod.string().regex(updateFirmWorkflowRowBodyPrebillOnRegExp).optional().describe('Create a pre-billing entry while keeping this task active.'),
+  "notes": zod.string().max(updateFirmWorkflowRowBodyNotesMax).optional()
+})
+
+export const UpdateFirmWorkflowRowResponse = zod.object({
+  "publicId": zod.string()
+})
+
+
+export const importFirmWorkflowCsvBodyFileNameMax = 240;
+
+export const importFirmWorkflowCsvBodyCsvTextMax = 8000000;
+
+
+
+export const ImportFirmWorkflowCsvBody = zod.object({
+  "fileName": zod.string().min(1).max(importFirmWorkflowCsvBodyFileNameMax),
+  "csvText": zod.string().min(1).max(importFirmWorkflowCsvBodyCsvTextMax),
+  "preview": zod.boolean()
+})
+
+export const ImportFirmWorkflowCsvResponse = zod.object({
+  "added": zod.number(),
+  "updated": zod.number(),
+  "applied": zod.boolean(),
+  "errors": zod.array(zod.string()),
+  "rows": zod.array(zod.object({
+  "externalId": zod.string(),
+  "matter": zod.string(),
+  "title": zod.string(),
+  "client": zod.string()
+}))
+})
+
+
+export const getFirmBillingResponseItemsItemOneOneWorkDateRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
+export const getFirmBillingResponseItemsItemOneOneClientMax = 500;
+
+export const getFirmBillingResponseItemsItemOneOneMatterMax = 500;
+
+export const getFirmBillingResponseItemsItemOneOneDescriptionMax = 5000;
+
+export const getFirmBillingResponseItemsItemOneOneAmountCentsMin = 0;
+export const getFirmBillingResponseItemsItemOneOneAmountCentsMax = 1000000000;
+
+export const getFirmBillingResponseItemsItemOneOneNotesMax = 10000;
+
+export const getFirmBillingResponseItemsItemOneOneCodeMax = 100;
+
+export const getFirmBillingResponseItemsItemOneOneJurisdictionMax = 100;
+
+export const getFirmBillingResponseItemsItemOneOneSubjectMatterMax = 1000;
+
+export const getFirmBillingResponseItemsItemOneOneAssociateMax = 240;
+
+export const getFirmBillingResponseItemsItemOneOneShareBasisPointsMin = 0;
+export const getFirmBillingResponseItemsItemOneOneShareBasisPointsMax = 10000;
+
+export const getFirmBillingResponseItemsItemOneTwoRevisionMin = 0;
+
+export const getFirmBillingResponseItemsItemOneTwoInvoiceNumberMax = 240;
+
+export const getFirmBillingResponseItemsItemOneTwoInvoiceDateRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
+
+
+export const GetFirmBillingResponse = zod.object({
+  "items": zod.array(zod.object({
+  "kind": zod.enum(['FEE', 'EXPENSE', 'REIMBURSEMENT']),
+  "workDate": zod.string().regex(getFirmBillingResponseItemsItemOneOneWorkDateRegExp),
+  "client": zod.string().max(getFirmBillingResponseItemsItemOneOneClientMax),
+  "matter": zod.string().max(getFirmBillingResponseItemsItemOneOneMatterMax),
+  "description": zod.string().min(1).max(getFirmBillingResponseItemsItemOneOneDescriptionMax),
+  "amountCents": zod.number().min(getFirmBillingResponseItemsItemOneOneAmountCentsMin).max(getFirmBillingResponseItemsItemOneOneAmountCentsMax),
+  "notes": zod.string().max(getFirmBillingResponseItemsItemOneOneNotesMax),
+  "code": zod.string().max(getFirmBillingResponseItemsItemOneOneCodeMax),
+  "jurisdiction": zod.string().max(getFirmBillingResponseItemsItemOneOneJurisdictionMax),
+  "subjectMatter": zod.string().max(getFirmBillingResponseItemsItemOneOneSubjectMatterMax),
+  "associate": zod.string().max(getFirmBillingResponseItemsItemOneOneAssociateMax),
+  "shareBasisPoints": zod.number().min(getFirmBillingResponseItemsItemOneOneShareBasisPointsMin).max(getFirmBillingResponseItemsItemOneOneShareBasisPointsMax)
+}).and(zod.object({
+  "revision": zod.number().min(getFirmBillingResponseItemsItemOneTwoRevisionMin),
+  "invoiceNumber": zod.string().max(getFirmBillingResponseItemsItemOneTwoInvoiceNumberMax),
+  "invoiceDate": zod.string().regex(getFirmBillingResponseItemsItemOneTwoInvoiceDateRegExp).nullable(),
+  "voided": zod.boolean()
+})).and(zod.object({
+  "publicId": zod.string(),
+  "workflowPublicId": zod.string().nullable(),
+  "prebilledOn": zod.string().nullable(),
+  "completedOn": zod.string().nullable(),
+  "ownerName": zod.string(),
+  "paidCents": zod.number(),
+  "payments": zod.array(zod.object({
+  "publicId": zod.string(),
+  "amountCents": zod.number(),
+  "receivedOn": zod.string(),
+  "reference": zod.string()
+}))
+})))
+})
+
+
+export const createFirmBillingItemBodyWorkDateRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
+export const createFirmBillingItemBodyClientMax = 500;
+
+export const createFirmBillingItemBodyMatterMax = 500;
+
+export const createFirmBillingItemBodyDescriptionMax = 5000;
+
+export const createFirmBillingItemBodyAmountCentsMin = 0;
+export const createFirmBillingItemBodyAmountCentsMax = 1000000000;
+
+export const createFirmBillingItemBodyNotesMax = 10000;
+
+export const createFirmBillingItemBodyCodeMax = 100;
+
+export const createFirmBillingItemBodyJurisdictionMax = 100;
+
+export const createFirmBillingItemBodySubjectMatterMax = 1000;
+
+export const createFirmBillingItemBodyAssociateMax = 240;
+
+export const createFirmBillingItemBodyShareBasisPointsMin = 0;
+export const createFirmBillingItemBodyShareBasisPointsMax = 10000;
+
+
+
+export const CreateFirmBillingItemBody = zod.object({
+  "kind": zod.enum(['FEE', 'EXPENSE', 'REIMBURSEMENT']),
+  "workDate": zod.string().regex(createFirmBillingItemBodyWorkDateRegExp),
+  "client": zod.string().max(createFirmBillingItemBodyClientMax),
+  "matter": zod.string().max(createFirmBillingItemBodyMatterMax),
+  "description": zod.string().min(1).max(createFirmBillingItemBodyDescriptionMax),
+  "amountCents": zod.number().min(createFirmBillingItemBodyAmountCentsMin).max(createFirmBillingItemBodyAmountCentsMax),
+  "notes": zod.string().max(createFirmBillingItemBodyNotesMax),
+  "code": zod.string().max(createFirmBillingItemBodyCodeMax),
+  "jurisdiction": zod.string().max(createFirmBillingItemBodyJurisdictionMax),
+  "subjectMatter": zod.string().max(createFirmBillingItemBodySubjectMatterMax),
+  "associate": zod.string().max(createFirmBillingItemBodyAssociateMax),
+  "shareBasisPoints": zod.number().min(createFirmBillingItemBodyShareBasisPointsMin).max(createFirmBillingItemBodyShareBasisPointsMax)
+})
+
+export const CreateFirmBillingItemResponse = zod.object({
+  "publicId": zod.string()
+})
+
+
+export const UpdateFirmBillingItemParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const updateFirmBillingItemBodyOneWorkDateRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
+export const updateFirmBillingItemBodyOneClientMax = 500;
+
+export const updateFirmBillingItemBodyOneMatterMax = 500;
+
+export const updateFirmBillingItemBodyOneDescriptionMax = 5000;
+
+export const updateFirmBillingItemBodyOneAmountCentsMin = 0;
+export const updateFirmBillingItemBodyOneAmountCentsMax = 1000000000;
+
+export const updateFirmBillingItemBodyOneNotesMax = 10000;
+
+export const updateFirmBillingItemBodyOneCodeMax = 100;
+
+export const updateFirmBillingItemBodyOneJurisdictionMax = 100;
+
+export const updateFirmBillingItemBodyOneSubjectMatterMax = 1000;
+
+export const updateFirmBillingItemBodyOneAssociateMax = 240;
+
+export const updateFirmBillingItemBodyOneShareBasisPointsMin = 0;
+export const updateFirmBillingItemBodyOneShareBasisPointsMax = 10000;
+
+export const updateFirmBillingItemBodyTwoRevisionMin = 0;
+
+export const updateFirmBillingItemBodyTwoInvoiceNumberMax = 240;
+
+export const updateFirmBillingItemBodyTwoInvoiceDateRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
+
+
+export const UpdateFirmBillingItemBody = zod.object({
+  "kind": zod.enum(['FEE', 'EXPENSE', 'REIMBURSEMENT']),
+  "workDate": zod.string().regex(updateFirmBillingItemBodyOneWorkDateRegExp),
+  "client": zod.string().max(updateFirmBillingItemBodyOneClientMax),
+  "matter": zod.string().max(updateFirmBillingItemBodyOneMatterMax),
+  "description": zod.string().min(1).max(updateFirmBillingItemBodyOneDescriptionMax),
+  "amountCents": zod.number().min(updateFirmBillingItemBodyOneAmountCentsMin).max(updateFirmBillingItemBodyOneAmountCentsMax),
+  "notes": zod.string().max(updateFirmBillingItemBodyOneNotesMax),
+  "code": zod.string().max(updateFirmBillingItemBodyOneCodeMax),
+  "jurisdiction": zod.string().max(updateFirmBillingItemBodyOneJurisdictionMax),
+  "subjectMatter": zod.string().max(updateFirmBillingItemBodyOneSubjectMatterMax),
+  "associate": zod.string().max(updateFirmBillingItemBodyOneAssociateMax),
+  "shareBasisPoints": zod.number().min(updateFirmBillingItemBodyOneShareBasisPointsMin).max(updateFirmBillingItemBodyOneShareBasisPointsMax)
+}).and(zod.object({
+  "revision": zod.number().min(updateFirmBillingItemBodyTwoRevisionMin),
+  "invoiceNumber": zod.string().max(updateFirmBillingItemBodyTwoInvoiceNumberMax),
+  "invoiceDate": zod.string().regex(updateFirmBillingItemBodyTwoInvoiceDateRegExp).nullable(),
+  "voided": zod.boolean()
+}))
+
+export const UpdateFirmBillingItemResponse = zod.object({
+  "publicId": zod.string()
+})
+
+
+export const RecordFirmPaymentParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const recordFirmPaymentBodyAmountCentsMax = 1000000000;
+
+export const recordFirmPaymentBodyReceivedOnRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
+export const recordFirmPaymentBodyReferenceMax = 1000;
+
+export const recordFirmPaymentBodyRequestIdRegExp = new RegExp('^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$');
+
+
+export const RecordFirmPaymentBody = zod.object({
+  "amountCents": zod.number().min(1).max(recordFirmPaymentBodyAmountCentsMax),
+  "receivedOn": zod.string().regex(recordFirmPaymentBodyReceivedOnRegExp),
+  "reference": zod.string().max(recordFirmPaymentBodyReferenceMax),
+  "requestId": zod.string().regex(recordFirmPaymentBodyRequestIdRegExp)
+})
+
+export const RecordFirmPaymentResponse = zod.object({
+  "publicId": zod.string()
+})
+
+
 export const GetFirmBenchmarkStatusResponse = zod.object({
   "state": zod.string(),
   "applicationCount": zod.number(),

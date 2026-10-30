@@ -21,6 +21,15 @@ import type {
 
 import type {
   FirmBenchmarkStatus,
+  FirmBillingInput,
+  FirmBillingLedger,
+  FirmBillingUpdate,
+  FirmCsvInput,
+  FirmCsvResult,
+  FirmOperationResult,
+  FirmOperations,
+  FirmPaymentInput,
+  FirmWorkflowUpdate,
   HealthStatus,
   PublicExaminerAnalysis,
   PublicExaminerInput,
@@ -59,6 +68,476 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   }
   return result;
 };
+
+export const getGetFirmOperationsUrl = () => {
+
+
+
+
+  return `/api/portal/operations`
+}
+
+export const getFirmOperations = async ( options?: RequestInit): Promise<FirmOperations> => {
+
+  return customFetch<FirmOperations>(getGetFirmOperationsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetFirmOperationsQueryKey = () => {
+    return [
+    `/api/portal/operations`
+    ] as const;
+    }
+
+
+export const getGetFirmOperationsQueryOptions = <TData = Awaited<ReturnType<typeof getFirmOperations>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getFirmOperations>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetFirmOperationsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getFirmOperations>>> = ({ signal }) => getFirmOperations({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getFirmOperations>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetFirmOperationsQueryResult = NonNullable<Awaited<ReturnType<typeof getFirmOperations>>>
+export type GetFirmOperationsQueryError = ErrorType<unknown>
+
+
+
+export function useGetFirmOperations<TData = Awaited<ReturnType<typeof getFirmOperations>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getFirmOperations>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetFirmOperationsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getUpdateFirmWorkflowRowUrl = (id: string,) => {
+
+
+
+
+  return `/api/portal/operations/rows/${id}`
+}
+
+export const updateFirmWorkflowRow = async (id: string,
+    firmWorkflowUpdate: FirmWorkflowUpdate, options?: RequestInit): Promise<FirmOperationResult> => {
+
+  return customFetch<FirmOperationResult>(getUpdateFirmWorkflowRowUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(firmWorkflowUpdate)
+  }
+);}
+
+
+
+
+
+export const getUpdateFirmWorkflowRowMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateFirmWorkflowRow>>, TError,{id: string;data: BodyType<FirmWorkflowUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateFirmWorkflowRow>>, TError,{id: string;data: BodyType<FirmWorkflowUpdate>}, TContext> => {
+
+const mutationKey = ['updateFirmWorkflowRow'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateFirmWorkflowRow>>, {id: string;data: BodyType<FirmWorkflowUpdate>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateFirmWorkflowRow(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateFirmWorkflowRowMutationResult = NonNullable<Awaited<ReturnType<typeof updateFirmWorkflowRow>>>
+    export type UpdateFirmWorkflowRowMutationBody = BodyType<FirmWorkflowUpdate>
+    export type UpdateFirmWorkflowRowMutationError = ErrorType<unknown>
+
+    export const useUpdateFirmWorkflowRow = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateFirmWorkflowRow>>, TError,{id: string;data: BodyType<FirmWorkflowUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateFirmWorkflowRow>>,
+        TError,
+        {id: string;data: BodyType<FirmWorkflowUpdate>},
+        TContext
+      > => {
+      return useMutation(getUpdateFirmWorkflowRowMutationOptions(options));
+    }
+
+export const getImportFirmWorkflowCsvUrl = () => {
+
+
+
+
+  return `/api/portal/operations/import`
+}
+
+export const importFirmWorkflowCsv = async (firmCsvInput: FirmCsvInput, options?: RequestInit): Promise<FirmCsvResult> => {
+
+  return customFetch<FirmCsvResult>(getImportFirmWorkflowCsvUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(firmCsvInput)
+  }
+);}
+
+
+
+
+
+export const getImportFirmWorkflowCsvMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof importFirmWorkflowCsv>>, TError,{data: BodyType<FirmCsvInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof importFirmWorkflowCsv>>, TError,{data: BodyType<FirmCsvInput>}, TContext> => {
+
+const mutationKey = ['importFirmWorkflowCsv'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof importFirmWorkflowCsv>>, {data: BodyType<FirmCsvInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  importFirmWorkflowCsv(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ImportFirmWorkflowCsvMutationResult = NonNullable<Awaited<ReturnType<typeof importFirmWorkflowCsv>>>
+    export type ImportFirmWorkflowCsvMutationBody = BodyType<FirmCsvInput>
+    export type ImportFirmWorkflowCsvMutationError = ErrorType<unknown>
+
+    export const useImportFirmWorkflowCsv = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof importFirmWorkflowCsv>>, TError,{data: BodyType<FirmCsvInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof importFirmWorkflowCsv>>,
+        TError,
+        {data: BodyType<FirmCsvInput>},
+        TContext
+      > => {
+      return useMutation(getImportFirmWorkflowCsvMutationOptions(options));
+    }
+
+export const getGetFirmBillingUrl = () => {
+
+
+
+
+  return `/api/portal/operations/billing`
+}
+
+export const getFirmBilling = async ( options?: RequestInit): Promise<FirmBillingLedger> => {
+
+  return customFetch<FirmBillingLedger>(getGetFirmBillingUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetFirmBillingQueryKey = () => {
+    return [
+    `/api/portal/operations/billing`
+    ] as const;
+    }
+
+
+export const getGetFirmBillingQueryOptions = <TData = Awaited<ReturnType<typeof getFirmBilling>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getFirmBilling>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetFirmBillingQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getFirmBilling>>> = ({ signal }) => getFirmBilling({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getFirmBilling>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetFirmBillingQueryResult = NonNullable<Awaited<ReturnType<typeof getFirmBilling>>>
+export type GetFirmBillingQueryError = ErrorType<unknown>
+
+
+
+export function useGetFirmBilling<TData = Awaited<ReturnType<typeof getFirmBilling>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getFirmBilling>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetFirmBillingQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateFirmBillingItemUrl = () => {
+
+
+
+
+  return `/api/portal/operations/billing`
+}
+
+export const createFirmBillingItem = async (firmBillingInput: FirmBillingInput, options?: RequestInit): Promise<FirmOperationResult> => {
+
+  return customFetch<FirmOperationResult>(getCreateFirmBillingItemUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(firmBillingInput)
+  }
+);}
+
+
+
+
+
+export const getCreateFirmBillingItemMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createFirmBillingItem>>, TError,{data: BodyType<FirmBillingInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createFirmBillingItem>>, TError,{data: BodyType<FirmBillingInput>}, TContext> => {
+
+const mutationKey = ['createFirmBillingItem'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createFirmBillingItem>>, {data: BodyType<FirmBillingInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createFirmBillingItem(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateFirmBillingItemMutationResult = NonNullable<Awaited<ReturnType<typeof createFirmBillingItem>>>
+    export type CreateFirmBillingItemMutationBody = BodyType<FirmBillingInput>
+    export type CreateFirmBillingItemMutationError = ErrorType<unknown>
+
+    export const useCreateFirmBillingItem = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createFirmBillingItem>>, TError,{data: BodyType<FirmBillingInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createFirmBillingItem>>,
+        TError,
+        {data: BodyType<FirmBillingInput>},
+        TContext
+      > => {
+      return useMutation(getCreateFirmBillingItemMutationOptions(options));
+    }
+
+export const getUpdateFirmBillingItemUrl = (id: string,) => {
+
+
+
+
+  return `/api/portal/operations/billing/${id}`
+}
+
+export const updateFirmBillingItem = async (id: string,
+    firmBillingUpdate: FirmBillingUpdate, options?: RequestInit): Promise<FirmOperationResult> => {
+
+  return customFetch<FirmOperationResult>(getUpdateFirmBillingItemUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(firmBillingUpdate)
+  }
+);}
+
+
+
+
+
+export const getUpdateFirmBillingItemMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateFirmBillingItem>>, TError,{id: string;data: BodyType<FirmBillingUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateFirmBillingItem>>, TError,{id: string;data: BodyType<FirmBillingUpdate>}, TContext> => {
+
+const mutationKey = ['updateFirmBillingItem'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateFirmBillingItem>>, {id: string;data: BodyType<FirmBillingUpdate>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateFirmBillingItem(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateFirmBillingItemMutationResult = NonNullable<Awaited<ReturnType<typeof updateFirmBillingItem>>>
+    export type UpdateFirmBillingItemMutationBody = BodyType<FirmBillingUpdate>
+    export type UpdateFirmBillingItemMutationError = ErrorType<unknown>
+
+    export const useUpdateFirmBillingItem = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateFirmBillingItem>>, TError,{id: string;data: BodyType<FirmBillingUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateFirmBillingItem>>,
+        TError,
+        {id: string;data: BodyType<FirmBillingUpdate>},
+        TContext
+      > => {
+      return useMutation(getUpdateFirmBillingItemMutationOptions(options));
+    }
+
+export const getRecordFirmPaymentUrl = (id: string,) => {
+
+
+
+
+  return `/api/portal/operations/billing/${id}/payments`
+}
+
+export const recordFirmPayment = async (id: string,
+    firmPaymentInput: FirmPaymentInput, options?: RequestInit): Promise<FirmOperationResult> => {
+
+  return customFetch<FirmOperationResult>(getRecordFirmPaymentUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(firmPaymentInput)
+  }
+);}
+
+
+
+
+
+export const getRecordFirmPaymentMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof recordFirmPayment>>, TError,{id: string;data: BodyType<FirmPaymentInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof recordFirmPayment>>, TError,{id: string;data: BodyType<FirmPaymentInput>}, TContext> => {
+
+const mutationKey = ['recordFirmPayment'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof recordFirmPayment>>, {id: string;data: BodyType<FirmPaymentInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  recordFirmPayment(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RecordFirmPaymentMutationResult = NonNullable<Awaited<ReturnType<typeof recordFirmPayment>>>
+    export type RecordFirmPaymentMutationBody = BodyType<FirmPaymentInput>
+    export type RecordFirmPaymentMutationError = ErrorType<unknown>
+
+    export const useRecordFirmPayment = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof recordFirmPayment>>, TError,{id: string;data: BodyType<FirmPaymentInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof recordFirmPayment>>,
+        TError,
+        {id: string;data: BodyType<FirmPaymentInput>},
+        TContext
+      > => {
+      return useMutation(getRecordFirmPaymentMutationOptions(options));
+    }
 
 export const getGetFirmBenchmarkStatusUrl = () => {
 

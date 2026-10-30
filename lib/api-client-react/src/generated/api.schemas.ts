@@ -5,6 +5,207 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+export interface FirmOperationResult {
+  publicId: string;
+}
+
+export interface FirmCsvInput {
+  /**
+     * @minLength 1
+     * @maxLength 240
+     */
+  fileName: string;
+  /**
+     * @minLength 1
+     * @maxLength 8000000
+     */
+  csvText: string;
+  preview: boolean;
+}
+
+export interface FirmCsvPreviewRow {
+  externalId: string;
+  matter: string;
+  title: string;
+  client: string;
+}
+
+export interface FirmCsvResult {
+  added: number;
+  updated: number;
+  applied: boolean;
+  errors: string[];
+  rows: FirmCsvPreviewRow[];
+}
+
+export interface FirmWorkflowUpdate {
+  /** @minimum 0 */
+  revision: number;
+  /** @nullable */
+  assignedToId?: number | null;
+  /**
+     * @nullable
+     * @pattern ^\d{4}-\d{2}-\d{2}$
+     */
+  strategySentOn?: string | null;
+  /**
+     * @nullable
+     * @pattern ^\d{4}-\d{2}-\d{2}$
+     */
+  clientApprovalSentOn?: string | null;
+  /**
+     * @nullable
+     * @pattern ^\d{4}-\d{2}-\d{2}$
+     */
+  paralegalSentOn?: string | null;
+  /**
+     * @nullable
+     * @pattern ^\d{4}-\d{2}-\d{2}$
+     */
+  filedOn?: string | null;
+  /**
+     * Create a pre-billing entry while keeping this task active.
+     * @pattern ^\d{4}-\d{2}-\d{2}$
+     */
+  prebillOn?: string;
+  /** @maxLength 10000 */
+  notes?: string;
+}
+
+export interface FirmWorkflowRow {
+  publicId: string;
+  source: string;
+  title: string;
+  client: string;
+  matter: string;
+  /** @nullable */
+  dueDate: string | null;
+  sourceOwner: string;
+  sourceStatus: string;
+  /** @nullable */
+  assignedToId: number | null;
+  /** @nullable */
+  strategySentOn: string | null;
+  /** @nullable */
+  clientApprovalSentOn: string | null;
+  /** @nullable */
+  paralegalSentOn: string | null;
+  /** @nullable */
+  filedOn: string | null;
+  /** @nullable */
+  prebilledOn: string | null;
+  prebillVoided: boolean;
+  notes: string;
+  revision: number;
+}
+
+export interface FirmStaff {
+  id: number;
+  name: string;
+  role: string;
+}
+
+export interface FirmOperations {
+  rows: FirmWorkflowRow[];
+  staff: FirmStaff[];
+  canImport: boolean;
+}
+
+export type FirmBillingInputKind = typeof FirmBillingInputKind[keyof typeof FirmBillingInputKind];
+
+
+export const FirmBillingInputKind = {
+  FEE: 'FEE',
+  EXPENSE: 'EXPENSE',
+  REIMBURSEMENT: 'REIMBURSEMENT',
+} as const;
+
+export interface FirmBillingInput {
+  kind: FirmBillingInputKind;
+  /** @pattern ^\d{4}-\d{2}-\d{2}$ */
+  workDate: string;
+  /** @maxLength 500 */
+  client: string;
+  /** @maxLength 500 */
+  matter: string;
+  /**
+     * @minLength 1
+     * @maxLength 5000
+     */
+  description: string;
+  /**
+     * @minimum 0
+     * @maximum 1000000000
+     */
+  amountCents: number;
+  /** @maxLength 10000 */
+  notes: string;
+  /** @maxLength 100 */
+  code: string;
+  /** @maxLength 100 */
+  jurisdiction: string;
+  /** @maxLength 1000 */
+  subjectMatter: string;
+  /** @maxLength 240 */
+  associate: string;
+  /**
+     * @minimum 0
+     * @maximum 10000
+     */
+  shareBasisPoints: number;
+}
+
+export type FirmBillingUpdate = FirmBillingInput & ({
+  /** @minimum 0 */
+  revision: number;
+  /** @maxLength 240 */
+  invoiceNumber: string;
+  /**
+     * @nullable
+     * @pattern ^\d{4}-\d{2}-\d{2}$
+     */
+  invoiceDate: string | null;
+  voided: boolean;
+});
+
+export interface FirmPaymentInput {
+  /**
+     * @minimum 1
+     * @maximum 1000000000
+     */
+  amountCents: number;
+  /** @pattern ^\d{4}-\d{2}-\d{2}$ */
+  receivedOn: string;
+  /** @maxLength 1000 */
+  reference: string;
+  /** @pattern ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$ */
+  requestId: string;
+}
+
+export interface FirmPayment {
+  publicId: string;
+  amountCents: number;
+  receivedOn: string;
+  reference: string;
+}
+
+export type FirmBillingItem = FirmBillingUpdate & ({
+  publicId: string;
+  /** @nullable */
+  workflowPublicId: string | null;
+  /** @nullable */
+  prebilledOn: string | null;
+  /** @nullable */
+  completedOn: string | null;
+  ownerName: string;
+  paidCents: number;
+  payments: FirmPayment[];
+});
+
+export interface FirmBillingLedger {
+  items: FirmBillingItem[];
+}
+
 export interface FirmBenchmarkStatus {
   state: string;
   applicationCount: number;
