@@ -232,7 +232,8 @@ router.post("/portal/admin/users", async (req, res) => {
     role: nextRole,
     status,
     active: status === "ACTIVE",
-  }).returning();
+  }).onConflictDoNothing({ target: portalUsersTable.email }).returning();
+  if (!created) return void res.status(409).json({ error: "A user with this email already exists. Manage their access in Admin instead." });
   await replaceAssignments(created.id, created.role, publicIds(req.body?.clientAssignments));
   await replaceProjects(created.id, publicIds(req.body?.projectIds));
   await audit(req, "USER_CREATED", null, created, created.id);

@@ -19,6 +19,10 @@ export const GetFirmOperationsResponse = zod.object({
   "sourceOwner": zod.string(),
   "sourceStatus": zod.string(),
   "assignedToId": zod.number().nullable(),
+  "status": zod.enum(['Unassigned', 'Assigned', 'Strategy', 'Client Review', 'Drafting', 'Proofing', 'Ready to File', 'Filed', 'On Hold', 'Revisions', 'Client Approved']),
+  "statusDate": zod.string().nullable(),
+  "statusNote": zod.string(),
+  "historyCount": zod.number(),
   "strategySentOn": zod.string().nullable(),
   "clientApprovalSentOn": zod.string().nullable(),
   "paralegalSentOn": zod.string().nullable(),
@@ -43,6 +47,9 @@ export const UpdateFirmWorkflowRowParams = zod.object({
 
 export const updateFirmWorkflowRowBodyRevisionMin = 0;
 
+export const updateFirmWorkflowRowBodyStatusDateRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
+export const updateFirmWorkflowRowBodyStatusNoteMax = 10000;
+
 export const updateFirmWorkflowRowBodyStrategySentOnRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
 export const updateFirmWorkflowRowBodyClientApprovalSentOnRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
 export const updateFirmWorkflowRowBodyParalegalSentOnRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
@@ -55,6 +62,9 @@ export const updateFirmWorkflowRowBodyNotesMax = 10000;
 export const UpdateFirmWorkflowRowBody = zod.object({
   "revision": zod.number().min(updateFirmWorkflowRowBodyRevisionMin),
   "assignedToId": zod.number().nullish(),
+  "status": zod.enum(['Unassigned', 'Assigned', 'Strategy', 'Client Review', 'Drafting', 'Proofing', 'Ready to File', 'Filed', 'On Hold', 'Revisions', 'Client Approved']).optional(),
+  "statusDate": zod.string().regex(updateFirmWorkflowRowBodyStatusDateRegExp).optional(),
+  "statusNote": zod.string().max(updateFirmWorkflowRowBodyStatusNoteMax).optional(),
   "strategySentOn": zod.string().regex(updateFirmWorkflowRowBodyStrategySentOnRegExp).nullish(),
   "clientApprovalSentOn": zod.string().regex(updateFirmWorkflowRowBodyClientApprovalSentOnRegExp).nullish(),
   "paralegalSentOn": zod.string().regex(updateFirmWorkflowRowBodyParalegalSentOnRegExp).nullish(),
@@ -65,6 +75,22 @@ export const UpdateFirmWorkflowRowBody = zod.object({
 
 export const UpdateFirmWorkflowRowResponse = zod.object({
   "publicId": zod.string()
+})
+
+
+export const GetFirmStatusHistoryParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const GetFirmStatusHistoryResponse = zod.object({
+  "events": zod.array(zod.object({
+  "publicId": zod.string(),
+  "status": zod.string(),
+  "statusDate": zod.string(),
+  "note": zod.string(),
+  "actorName": zod.string(),
+  "recordedAt": zod.string()
+}))
 })
 
 

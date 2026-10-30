@@ -29,6 +29,7 @@ import type {
   FirmOperationResult,
   FirmOperations,
   FirmPaymentInput,
+  FirmStatusHistory,
   FirmWorkflowUpdate,
   HealthStatus,
   PublicExaminerAnalysis,
@@ -205,6 +206,77 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       > => {
       return useMutation(getUpdateFirmWorkflowRowMutationOptions(options));
     }
+
+export const getGetFirmStatusHistoryUrl = (id: string,) => {
+
+
+
+
+  return `/api/portal/operations/rows/${id}/history`
+}
+
+export const getFirmStatusHistory = async (id: string, options?: RequestInit): Promise<FirmStatusHistory> => {
+
+  return customFetch<FirmStatusHistory>(getGetFirmStatusHistoryUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetFirmStatusHistoryQueryKey = (id: string,) => {
+    return [
+    `/api/portal/operations/rows/${id}/history`
+    ] as const;
+    }
+
+
+export const getGetFirmStatusHistoryQueryOptions = <TData = Awaited<ReturnType<typeof getFirmStatusHistory>>, TError = ErrorType<unknown>>(id: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getFirmStatusHistory>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetFirmStatusHistoryQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getFirmStatusHistory>>> = ({ signal }) => getFirmStatusHistory(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getFirmStatusHistory>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetFirmStatusHistoryQueryResult = NonNullable<Awaited<ReturnType<typeof getFirmStatusHistory>>>
+export type GetFirmStatusHistoryQueryError = ErrorType<unknown>
+
+
+
+export function useGetFirmStatusHistory<TData = Awaited<ReturnType<typeof getFirmStatusHistory>>, TError = ErrorType<unknown>>(
+ id: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getFirmStatusHistory>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetFirmStatusHistoryQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 
 export const getImportFirmWorkflowCsvUrl = () => {
 

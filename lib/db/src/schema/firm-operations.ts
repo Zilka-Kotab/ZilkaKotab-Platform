@@ -10,6 +10,9 @@ export const firmWorkflowRowsTable = pgTable("firm_workflow_rows", {
   docketTaskId: integer("docket_task_id").references(() => internalWorkflowDocketTasksTable.id),
   internalTaskId: integer("internal_task_id").references(() => internalWorkflowTasksTable.id),
   assignedToId: integer("assigned_to_id").references(() => portalUsersTable.id),
+  status: text("status").notNull().default("Unassigned"),
+  statusDate: date("status_date", { mode: "string" }),
+  statusNote: text("status_note").notNull().default(""),
   strategySentOn: date("strategy_sent_on", { mode: "string" }),
   clientApprovalSentOn: date("client_approval_sent_on", { mode: "string" }),
   paralegalSentOn: date("paralegal_sent_on", { mode: "string" }),
@@ -17,6 +20,18 @@ export const firmWorkflowRowsTable = pgTable("firm_workflow_rows", {
   notes: text("notes").notNull().default(""),
   revision: integer("revision").notNull().default(0),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const firmWorkflowStatusHistoryTable = pgTable("firm_workflow_status_history", {
+  id: serial("id").primaryKey(),
+  publicId: uuid("public_id").defaultRandom().notNull().unique(),
+  workflowRowId: integer("workflow_row_id").notNull().references(() => firmWorkflowRowsTable.id),
+  status: text("status").notNull(),
+  statusDate: date("status_date", { mode: "string" }).notNull(),
+  note: text("note").notNull().default(""),
+  actorId: integer("actor_id").references(() => portalUsersTable.id),
+  migrationKey: text("migration_key").unique(),
+  recordedAt: timestamp("recorded_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
 export const firmBillingItemsTable = pgTable("firm_billing_items", {

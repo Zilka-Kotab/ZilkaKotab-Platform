@@ -38,6 +38,17 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/FirmOperationResult" }
+  /portal/operations/rows/{id}/history:
+    get:
+      operationId: getFirmStatusHistory
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Status occurrences for an authorized task
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FirmStatusHistory" }
   /portal/operations/import:
     post:
       operationId: importFirmWorkflowCsv
@@ -295,6 +306,9 @@ components:
       properties:
         revision: { type: integer, minimum: 0 }
         assignedToId: { type: [integer, "null"] }
+        status: { $ref: "#/components/schemas/FirmWorkflowStatus" }
+        statusDate: { type: string, pattern: '^\d{4}-\d{2}-\d{2}$' }
+        statusNote: { type: string, maxLength: 10000 }
         strategySentOn: { type: [string, "null"], pattern: '^\d{4}-\d{2}-\d{2}$' }
         clientApprovalSentOn: { type: [string, "null"], pattern: '^\d{4}-\d{2}-\d{2}$' }
         paralegalSentOn: { type: [string, "null"], pattern: '^\d{4}-\d{2}-\d{2}$' }
@@ -303,7 +317,7 @@ components:
         notes: { type: string, maxLength: 10000 }
     FirmWorkflowRow:
       type: object
-      required: [publicId, source, title, client, matter, dueDate, sourceOwner, sourceStatus, assignedToId, strategySentOn, clientApprovalSentOn, paralegalSentOn, filedOn, notes, revision, prebilledOn, prebillVoided]
+      required: [publicId, source, title, client, matter, dueDate, sourceOwner, sourceStatus, assignedToId, strategySentOn, clientApprovalSentOn, paralegalSentOn, filedOn, notes, revision, prebilledOn, prebillVoided, status, statusDate, statusNote, historyCount]
       properties:
         publicId: { type: string }
         source: { type: string }
@@ -314,6 +328,10 @@ components:
         sourceOwner: { type: string }
         sourceStatus: { type: string }
         assignedToId: { type: [integer, "null"] }
+        status: { $ref: "#/components/schemas/FirmWorkflowStatus" }
+        statusDate: { type: [string, "null"] }
+        statusNote: { type: string }
+        historyCount: { type: integer }
         strategySentOn: { type: [string, "null"] }
         clientApprovalSentOn: { type: [string, "null"] }
         paralegalSentOn: { type: [string, "null"] }
@@ -322,6 +340,24 @@ components:
         prebillVoided: { type: boolean }
         notes: { type: string }
         revision: { type: integer }
+    FirmWorkflowStatus:
+      type: string
+      enum: [Unassigned, Assigned, Strategy, Client Review, Drafting, Proofing, Ready to File, Filed, On Hold, Revisions, Client Approved]
+    FirmStatusHistory:
+      type: object
+      required: [events]
+      properties:
+        events: { type: array, items: { $ref: "#/components/schemas/FirmStatusEvent" } }
+    FirmStatusEvent:
+      type: object
+      required: [publicId, status, statusDate, note, actorName, recordedAt]
+      properties:
+        publicId: { type: string }
+        status: { type: string }
+        statusDate: { type: string }
+        note: { type: string }
+        actorName: { type: string }
+        recordedAt: { type: string }
     FirmOperations:
       type: object
       required: [rows, staff, canImport]

@@ -17,6 +17,35 @@ export async function ensureFirmOperationsSchema() {
         notes text NOT NULL DEFAULT '', revision integer NOT NULL DEFAULT 0,
         updated_at timestamptz NOT NULL DEFAULT now()
       );
+      ALTER TABLE firm_workflow_rows ADD COLUMN IF NOT EXISTS status text;
+      ALTER TABLE firm_workflow_rows ADD COLUMN IF NOT EXISTS status_date date;
+      ALTER TABLE firm_workflow_rows ADD COLUMN IF NOT EXISTS status_note text NOT NULL DEFAULT '';
+      CREATE TABLE IF NOT EXISTS firm_workflow_status_history (
+        id serial PRIMARY KEY, public_id uuid NOT NULL DEFAULT gen_random_uuid() UNIQUE,
+        workflow_row_id integer NOT NULL REFERENCES firm_workflow_rows(id),
+        status text NOT NULL, status_date date NOT NULL, note text NOT NULL DEFAULT '',
+        actor_id integer REFERENCES portal_users(id), migration_key text UNIQUE,
+        recorded_at timestamptz NOT NULL DEFAULT now()
+      );
+      CREATE INDEX IF NOT EXISTS firm_status_history_row_idx ON firm_workflow_status_history(workflow_row_id, id);
+      INSERT INTO firm_workflow_status_history(workflow_row_id,status,status_date,note,migration_key)
+      SELECT r.id, v.stage, v.day, 'Preserved from the previous milestone tracker', r.id::text || ':' || v.stage
+      FROM firm_workflow_rows r CROSS JOIN LATERAL (VALUES
+        ('Strategy',r.strategy_sent_on),('Client Review',r.client_approval_sent_on),
+        ('Ready to File',r.paralegal_sent_on),('Filed',r.filed_on)
+      ) v(stage,day) WHERE r.status IS NULL AND v.day IS NOT NULL
+      ON CONFLICT(migration_key) DO NOTHING;
+      UPDATE firm_workflow_rows SET
+        status = CASE WHEN filed_on IS NOT NULL THEN 'Filed'
+          WHEN paralegal_sent_on IS NOT NULL THEN 'Ready to File'
+          WHEN client_approval_sent_on IS NOT NULL THEN 'Client Review'
+          WHEN strategy_sent_on IS NOT NULL THEN 'Strategy'
+          WHEN assigned_to_id IS NOT NULL THEN 'Assigned' ELSE 'Unassigned' END,
+        status_date = COALESCE(filed_on,paralegal_sent_on,client_approval_sent_on,strategy_sent_on),
+        status_note = notes
+      WHERE status IS NULL;
+      ALTER TABLE firm_workflow_rows ALTER COLUMN status SET DEFAULT 'Unassigned';
+      ALTER TABLE firm_workflow_rows ALTER COLUMN status SET NOT NULL;
       CREATE TABLE IF NOT EXISTS firm_billing_items (
         id serial PRIMARY KEY, public_id uuid NOT NULL DEFAULT gen_random_uuid() UNIQUE,
         workflow_row_id integer REFERENCES firm_workflow_rows(id),

@@ -5,12 +5,18 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { FirmWorkflowStatus } from './firmWorkflowStatus';
 
 export interface FirmWorkflowUpdate {
   /** @minimum 0 */
   revision: number;
   /** @nullable */
   assignedToId?: number | null;
+  status?: FirmWorkflowStatus;
+  /** @pattern ^\d{4}-\d{2}-\d{2}$ */
+  statusDate?: string;
+  /** @maxLength 10000 */
+  statusNote?: string;
   /**
      * @nullable
      * @pattern ^\d{4}-\d{2}-\d{2}$

@@ -9,8 +9,14 @@ AppColl is authoritative for docket and matter fields, and its task export is th
 
 **How to apply:** Match MatterID or AttorneyRef when available; allow task-only CSV imports without a prerequisite matter-import screen. Keep source-owned versus firm-owned fields separate, enforce internal access server-side, and never delete internal progress when a source row is missing.
 
-The workflow is a single spreadsheet-like interface with due date, assignee dropdown, strategy completed/sent, action sent for client approval, sent to paralegal for filing, and filed/completed dates. Management summaries belong above that sheet. Workflow is a global portal area, not a tool card. Notifications and preferences belong under Settings.
+Dashboard is the global staff area, with Workflow, Time & Billing and Settings as its tabs. Workflow is a single sheet with due date, assignee, current status, date reached and stage note. Management summaries belong above that sheet.
 
-**Why:** The user explicitly rejected the separate internal work queue, matter-import, management and notification screens as too complex compared with their existing Excel process.
+**Why:** The user explicitly rejected separate queues and multiple milestone/date columns as too complex. They want stages to be skipped, revisited and repeated, including separate Client Review rounds for strategy and final documents.
 
-**How to apply:** Keep tracking, assigning and viewing progress together; use a simple Upload CSV entry point. Do not restore six-section navigation. Automatic AppColl email ingestion remains future work.
+**How to apply:** Keep tracking, assigning and viewing progress together; use a simple Upload CSV entry point. Never enforce a one-way sequence or require every stage. Preserve each explicit status occurrence with its own reached date and note, including repeated identical statuses, in expandable history. Filed completes work; returning to an earlier status reopens it without deleting invoices or receipts. Preserve older milestone data rather than dropping it. Automatic AppColl email ingestion remains future work.
+
+New assignees receive actual portal access through administrator-approved accounts, not assignment-only placeholders. Non-admin dashboards include only tasks they own/contribute to in AppColl, or are assigned to internally; sharing a client or matter alone does not qualify. Administrators retain the firm-wide assignment view.
+
+**Why:** The user explicitly said new assignees have full portal access, but their dashboard should show only owner/contributor assignments from AppColl or internal dashboard assignments.
+
+**How to apply:** Provision active users only through administrator controls, retaining Microsoft identity verification. Apply task-level assignment scope on the server to both rows and history. Resolve imported identities conservatively; ambiguous duplicate names must not grant task access.

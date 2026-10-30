@@ -1,11 +1,12 @@
 import { Router } from "express";
-import { and, eq, inArray, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { createHash } from "node:crypto";
 import {
-  db, portalUsersTable, attorneyClientsTable, clientsTable,
+  db, portalUsersTable,
   internalWorkflowMattersTable as matters, internalWorkflowDocketTasksTable as docket,
   internalWorkflowTasksTable as internal, firmWorkflowRowsTable as rows,
   firmBillingItemsTable as bills, firmPaymentsTable as payments,
+  firmWorkflowStatusHistoryTable as history, internalWorkflowContributorsTable as contributors,
 } from "@workspace/db";
 import {
   UpdateFirmWorkflowRowBody as updateFirmWorkflowRowBody,
@@ -16,6 +17,7 @@ import {
 } from "@workspace/api-zod";
 import { requirePortalAccess } from "../middlewares/portalAccess";
 import { calendarDate, readFirmCsv } from "../lib/firm-operations-csv";
+import { appCollParticipants, assignedStaffIds } from "../lib/firm-workflow-identity";
 
 const router = Router();
 type User = typeof portalUsersTable.$inferSelect;
@@ -31,26 +33,20 @@ router.use("/portal/operations", requirePortalAccess, (req, res, next) => {
 });
 
 async function sources(user: User) {
-  const [dockets, internals, saved, staff] = await Promise.all([
+  const [dockets, internals, saved, staff, participation] = await Promise.all([
     db.select({ task: docket, matter: matters }).from(docket).innerJoin(matters, eq(docket.matterId, matters.id)),
     db.select({ task: internal, matter: matters }).from(internal).leftJoin(matters, eq(internal.matterId, matters.id)),
     db.select().from(rows),
     db.select({ id: portalUsersTable.id, name: portalUsersTable.name, email: portalUsersTable.email, role: portalUsersTable.role })
       .from(portalUsersTable).where(and(eq(portalUsersTable.status, "ACTIVE"), eq(portalUsersTable.active, true), inArray(portalUsersTable.role, ["ADMIN", "ATTORNEY", "PARALEGAL"]))),
+    db.select().from(contributors).where(eq(contributors.userId, user.id)),
   ]);
-  const names = new Set<string>();
-  if (user.role === "ATTORNEY") {
-    const clients = await db.select({ name: clientsTable.name }).from(attorneyClientsTable).innerJoin(clientsTable, eq(attorneyClientsTable.clientId, clientsTable.id)).where(eq(attorneyClientsTable.attorneyUserId, user.id));
-    clients.forEach((c) => names.add(c.name.trim().toLowerCase()));
-  }
   const savedByKey = new Map(saved.map((r) => [r.sourceKey, r]));
-  const canMatter = (m: typeof matters.$inferSelect | null) => !!m && (
-    user.role === "ATTORNEY" ? names.has(m.client.trim().toLowerCase()) :
-      user.role === "PARALEGAL" && (same(m.paralegal, user.name) || same(m.paralegal, user.email)));
-  const visibleDockets = dockets.filter(({ task, matter }) => user.role === "ADMIN" || canMatter(matter) ||
-    savedByKey.get(`docket:${task.id}`)?.assignedToId === user.id || same(task.assignedPractitioner, user.email) || same(task.assignedPractitioner, user.name));
-  const visibleInternals = internals.filter(({ task, matter }) => user.role === "ADMIN" || canMatter(matter) ||
-    [task.createdById, task.assignedById, task.assignedToId, task.responsibleAttorneyId, savedByKey.get(`internal:${task.id}`)?.assignedToId].includes(user.id));
+  const visibleDockets = dockets.filter(({ task }) => user.role === "ADMIN" ||
+    savedByKey.get(`docket:${task.id}`)?.assignedToId === user.id || appCollParticipants(task.assignedPractitioner, task.rawRecord, staff).includes(user.id));
+  const visibleInternals = internals.filter(({ task }) => user.role === "ADMIN" ||
+    [task.assignedToId, task.responsibleAttorneyId, savedByKey.get(`internal:${task.id}`)?.assignedToId].includes(user.id) ||
+    participation.some((c) => c.taskId === task.id));
   return { dockets: visibleDockets, internals: visibleInternals, staff };
 }
 
@@ -59,13 +55,17 @@ async function ensureWorkflow(user: User) {
   const defaults = [
     ...source.dockets.map(({ task }) => ({
       sourceKey: `docket:${task.id}`, docketTaskId: task.id,
-      assignedToId: source.staff.find((s) => same(task.assignedPractitioner, s.name) || same(task.assignedPractitioner, s.email))?.id ?? null,
+      assignedToId: assignedStaffIds(task.assignedPractitioner, source.staff).length === 1 ? assignedStaffIds(task.assignedPractitioner, source.staff)[0]! : null,
+      status: !/cancel|withdraw|delete/i.test(task.status) && task.completedDate ? "Filed" : assignedStaffIds(task.assignedPractitioner, source.staff).length ? "Assigned" : "Unassigned",
+      statusDate: !/cancel|withdraw|delete/i.test(task.status) ? task.completedDate : null,
       // A canceled task is not completed legal work and must never create a fee.
       filedOn: /cancel|withdraw|delete/i.test(task.status) ? null : task.completedDate,
     })),
     ...source.internals.map(({ task }) => ({
       sourceKey: `internal:${task.id}`, internalTaskId: task.id, assignedToId: task.assignedToId,
       filedOn: ["FINALIZED", "COMPLETED"].includes(task.workflowStatus) && task.finalizedAt ? task.finalizedAt.toISOString().slice(0, 10) : null,
+      status: ["FINALIZED", "COMPLETED"].includes(task.workflowStatus) && task.finalizedAt ? "Filed" : task.assignedToId ? "Assigned" : "Unassigned",
+      statusDate: ["FINALIZED", "COMPLETED"].includes(task.workflowStatus) && task.finalizedAt ? task.finalizedAt.toISOString().slice(0, 10) : null,
     })),
   ];
   for (let i = 0; i < defaults.length; i += 200) {
@@ -98,8 +98,21 @@ async function ensureWorkflow(user: User) {
   }
   const linked = trackers.length ? await db.select({ workflowRowId: bills.workflowRowId, prebilledOn: bills.prebilledOn, voided: bills.voided }).from(bills).where(inArray(bills.workflowRowId, trackers.map((r) => r.id))) : [];
   const billingByRow = new Map(linked.map((b) => [b.workflowRowId, b]));
-  return { result: result.map((r) => ({ ...r, prebilledOn: billingByRow.get(r.id)?.prebilledOn ?? null, prebillVoided: billingByRow.get(r.id)?.voided ?? false })), staff: source.staff.map(({ email: _email, ...s }) => s) };
+  const counts = trackers.length ? await db.select({ rowId: history.workflowRowId, count: sql<number>`count(*)::int` }).from(history).where(inArray(history.workflowRowId, trackers.map((r) => r.id))).groupBy(history.workflowRowId) : [];
+  const countByRow = new Map(counts.map((c) => [c.rowId, c.count]));
+  return { result: result.map((r) => ({ ...r, historyCount: countByRow.get(r.id) ?? 0, prebilledOn: billingByRow.get(r.id)?.prebilledOn ?? null, prebillVoided: billingByRow.get(r.id)?.voided ?? false })), staff: source.staff.map(({ email: _email, ...s }) => s) };
 }
+
+router.get("/portal/operations/rows/:id/history", async (req, res, next) => {
+  try {
+    const workspace = await ensureWorkflow(req.portalUser!);
+    const row = workspace.result.find((r) => r.publicId === req.params.id);
+    if (!row) throw fail(404, "Task not found or access has changed.");
+    const events = await db.select({ publicId: history.publicId, status: history.status, statusDate: history.statusDate, note: history.note, actorName: portalUsersTable.name, recordedAt: history.recordedAt })
+      .from(history).leftJoin(portalUsersTable, eq(history.actorId, portalUsersTable.id)).where(eq(history.workflowRowId, row.id)).orderBy(desc(history.id));
+    res.json({ events: events.map((e) => ({ ...e, actorName: e.actorName ?? "Preserved milestone history", recordedAt: e.recordedAt.toISOString() })) });
+  } catch (err) { next(err); }
+});
 
 router.get("/portal/operations", async (req, res, next) => {
   try {
@@ -114,7 +127,10 @@ router.patch("/portal/operations/rows/:id", async (req, res, next) => {
     if (!uuid.test(String(req.params.id)) || !parsed.success) return void res.status(400).json({ error: "Invalid workflow update." });
     const data = parsed.data;
     if (!Number.isInteger(data.revision)) throw fail(400, "Invalid revision.");
-    for (const key of ["strategySentOn", "clientApprovalSentOn", "paralegalSentOn", "filedOn", "prebillOn"] as const) {
+    if ((data.statusDate !== undefined || data.statusNote !== undefined) && !data.status) throw fail(400, "Choose the status for this dated update.");
+    if (data.status && !data.statusDate) throw fail(400, "Enter the date this status was reached.");
+    if (data.status && data.filedOn !== undefined) throw fail(400, "Use the status reached date, not a separate completion field.");
+    for (const key of ["strategySentOn", "clientApprovalSentOn", "paralegalSentOn", "filedOn", "prebillOn", "statusDate"] as const) {
       if (data[key] != null && !validDate(data[key])) throw fail(400, "Enter a valid calendar date.");
     }
     const user = req.portalUser!, workspace = await ensureWorkflow(user);
@@ -125,15 +141,30 @@ router.patch("/portal/operations/rows/:id", async (req, res, next) => {
       const [locked] = await tx.select().from(rows).where(eq(rows.id, current.id)).for("update");
       if (!locked || locked.revision !== data.revision) throw fail(409, "This task changed. Refresh before saving; your entries have not been applied.");
       const [bill] = await tx.select().from(bills).where(eq(bills.workflowRowId, current.id)).for("update");
-      if (data.prebillOn && (locked.filedOn || data.filedOn)) throw fail(409, "Only active work can be pre-billed. Completed work is already in billing.");
+      let stage = data.status;
+      let reached = data.statusDate;
+      // Compatibility for older callers; new UI uses only a single status/date/note update.
+      if (!stage && data.filedOn !== undefined) {
+        stage = data.filedOn ? "Filed" : (data.assignedToId ?? locked.assignedToId) ? "Assigned" : "Unassigned";
+        reached = data.filedOn ?? new Date().toISOString().slice(0, 10);
+      } else if (!stage && data.assignedToId !== undefined && ["Unassigned", "Assigned"].includes(locked.status)) {
+        stage = data.assignedToId ? "Assigned" : "Unassigned";
+        reached = new Date().toISOString().slice(0, 10);
+      }
+      const filedOn = stage ? (stage === "Filed" ? reached! : null) : data.filedOn;
+      const receipts = bill ? await tx.select().from(payments).where(eq(payments.billingItemId, bill.id)) : [];
+      const financiallyLocked = !!bill?.invoiceNumber || receipts.length > 0;
+      if (data.prebillOn && (locked.filedOn || filedOn)) throw fail(409, "Only active work can be pre-billed. Completed work is already in billing.");
       if (data.prebillOn && bill?.prebilledOn && bill.prebilledOn !== data.prebillOn) throw fail(409, "This task was already pre-billed. Its original pre-billing date is preserved.");
-      if (data.filedOn === null && locked.filedOn && bill && !bill.prebilledOn) {
-        const receipts = await tx.select().from(payments).where(eq(payments.billingItemId, bill.id));
-        if (bill.invoiceNumber || receipts.length) throw fail(409, "This work is already invoiced or paid. Resolve billing before reopening it.");
+      if (filedOn === null && locked.filedOn && bill && !bill.prebilledOn && !financiallyLocked) {
         await tx.update(bills).set({ voided: true, revision: bill.revision + 1 }).where(eq(bills.id, bill.id));
       }
-      const { revision: _rev, prebillOn, ...changes } = data;
-      const [updated] = await tx.update(rows).set({ ...changes, revision: locked.revision + 1, updatedAt: new Date() }).where(eq(rows.id, current.id)).returning();
+      const { revision: _rev, prebillOn, status: _status, statusDate: _date, statusNote: _note, ...changes } = data;
+      const [updated] = await tx.update(rows).set({
+        ...changes, ...(stage ? { status: stage, statusDate: reached!, statusNote: data.statusNote ?? "", filedOn } : {}),
+        revision: locked.revision + 1, updatedAt: new Date(),
+      }).where(eq(rows.id, current.id)).returning();
+      if (stage) await tx.insert(history).values({ workflowRowId: locked.id, status: stage, statusDate: reached!, note: data.statusNote ?? "", actorId: user.id });
       if (prebillOn) {
         if (bill) {
           if (!bill.prebilledOn && !bill.voided) throw fail(409, "This task already has a billing entry.");
@@ -143,9 +174,9 @@ router.patch("/portal/operations/rows/:id", async (req, res, next) => {
             revision: bill.revision + 1,
           }).where(eq(bills.id, bill.id));
         } else await tx.insert(bills).values({ workflowRowId: current.id, ownerId: updated!.assignedToId ?? user.id, client: current.client, matter: current.matter, description: current.title, workDate: prebillOn, prebilledOn: prebillOn }).onConflictDoNothing({ target: bills.workflowRowId });
-      } else if (bill?.prebilledOn) {
-        // Completion is independent from pre-billing/invoicing/payment. Preserve its financial dates and identity.
-        if (data.filedOn !== undefined && data.filedOn !== locked.filedOn) await tx.update(bills).set({ revision: bill.revision + 1 }).where(eq(bills.id, bill.id));
+      } else if (bill && (bill.prebilledOn || financiallyLocked)) {
+        // Repeated stages and reopening never delete invoices/receipts or change the original charge date.
+        if (filedOn !== undefined && filedOn !== locked.filedOn) await tx.update(bills).set({ revision: bill.revision + 1 }).where(eq(bills.id, bill.id));
       } else if (updated!.filedOn && (!bill || !locked.filedOn)) {
         if (bill) await tx.update(bills).set({ voided: false, workDate: updated!.filedOn, revision: bill.revision + 1 }).where(eq(bills.id, bill.id));
         else await tx.insert(bills).values({ workflowRowId: current.id, ownerId: updated!.assignedToId ?? user.id, client: current.client, matter: current.matter, description: current.title, workDate: updated!.filedOn }).onConflictDoNothing({ target: bills.workflowRowId });

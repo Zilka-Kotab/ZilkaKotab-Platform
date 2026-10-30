@@ -1,6 +1,7 @@
 import { FormEvent, Fragment, useMemo, useRef, useState } from 'react';
 import { AlertTriangle, Download, Plus, RefreshCw, X } from 'lucide-react';
 import { SEO } from '@/components/SEO';
+import { DashboardTabs } from '@/components/portal/DashboardTabs';
 import { StaffOnly, errorText, fieldClass } from '@/components/portal/StaffOnly';
 import InternalWorkflowOperations from './InternalWorkflowOperations';
 import { useCreateFirmBilling, useFirmBilling, useRecordFirmPayment, useUpdateFirmBilling } from '@/lib/hooks-firm-operations';
@@ -14,7 +15,7 @@ const KIND_LABEL: Record<BillingKind, string> = { FEE: 'Flat fee', EXPENSE: 'Exp
 const today = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
 
 export default function FirmBilling() {
-  return <StaffOnly><BillingLedger /></StaffOnly>;
+  return <StaffOnly><DashboardTabs /><BillingLedger /></StaffOnly>;
 }
 
 function BillingLedger() {

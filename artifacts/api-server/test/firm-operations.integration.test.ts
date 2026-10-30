@@ -6,7 +6,7 @@ import { eq, inArray } from "drizzle-orm";
 import {
   db, pool, portalUsersTable, firmWorkflowRowsTable as rows, firmBillingItemsTable as bills,
   firmPaymentsTable as payments, internalWorkflowDocketTasksTable as docket,
-  internalWorkflowMattersTable as matters,
+  internalWorkflowMattersTable as matters, firmWorkflowStatusHistoryTable as history,
 } from "@workspace/db";
 import operations from "../src/routes/firm-operations";
 import { ensureFirmOperationsSchema } from "../src/lib/firm-operations-schema";
@@ -82,7 +82,7 @@ test("CSV -> assignment -> milestones -> one billing row -> invoice -> partial r
     assert.equal((await request(`/billing/${bill.publicId}/payments`, "POST", pay, attorney!)).status, 409);
     data.invoiceNumber = "TEST-INV"; data.invoiceDate = "2026-03-31" as any; data.revision++;
     assert.equal((await request(`/billing/${bill.publicId}`, "PATCH", data, attorney!)).status, 200);
-    assert.equal((await request(`/rows/${row.publicId}`, "PATCH", { revision: row.revision, filedOn: null }, attorney!)).status, 409);
+    assert.equal((await request(`/rows/${row.publicId}`, "PATCH", { revision: row.revision, filedOn: null }, attorney!)).status, 200, "reopening work preserves its issued invoice");
     assert.equal((await request(`/billing/${bill.publicId}/payments`, "POST", pay, attorney!)).status, 201);
     assert.equal((await request(`/billing/${bill.publicId}/payments`, "POST", pay, attorney!)).status, 201, "receipt retry is idempotent");
     assert.equal((await request(`/billing/${bill.publicId}/payments`, "POST", { ...pay, requestId: randomUUID(), amountCents: 100001 }, attorney!)).status, 409);
@@ -136,10 +136,41 @@ test("CSV -> assignment -> milestones -> one billing row -> invoice -> partial r
     preRow = await getPreRow();
     assert.equal((await request(`/rows/${preRow.publicId}`, "PATCH", { revision: preRow.revision, filedOn: "2026-03-26" }, attorney!)).status, 200);
     assert.equal((await getPreBill()).length, 1);
+    // Stages can be skipped, moved backward, or repeated; each occurrence retains its own note/date.
+    const setStage = async (status: string, statusDate: string, statusNote: string) => {
+      preRow = await getPreRow();
+      const result = await request(`/rows/${preRow.publicId}`, "PATCH", { revision: preRow.revision, status, statusDate, statusNote }, attorney!);
+      assert.equal(result.status, 200, JSON.stringify(result.body));
+    };
+    await setStage("Client Review", "2026-04-01", "Review first strategy");
+    await setStage("Proofing", "2026-04-02", "First proof");
+    await setStage("Drafting", "2026-04-03", "Back to drafting");
+    await setStage("Client Review", "2026-04-04", "Review final response");
+    await setStage("Client Review", "2026-04-05", "Another review round");
+    const events = (await request(`/rows/${preRow.publicId}/history`, "GET", undefined, attorney!)).body.events;
+    assert.deepEqual(events.slice(0, 5).map((e: any) => e.status), ["Client Review", "Client Review", "Drafting", "Proofing", "Client Review"]);
+    assert.equal(events[0].note, "Another review round");
+    assert.equal(events[1].note, "Review final response");
+    assert.equal(events[4].note, "Review first strategy");
+    assert.equal((await getPreRow()).statusDate, "2026-04-05");
+    await setStage("Filed", "2026-04-06", "Filed after repeat reviews");
+    assert.equal((await getPreBill()).length, 1);
+    assert.equal((await getPreBill())[0].workDate, "2026-02-10");
+    assert.equal((await getPreBill())[0].completedOn, "2026-04-06");
+    assert.equal((await getPreBill())[0].paidCents, 25000);
     // Unrelated attorneys cannot see this financial record or task.
     const other = await db.insert(portalUsersTable).values({ email: `${marker}-other@example.invalid`, name: `${marker} Other`, role: "ATTORNEY", status: "ACTIVE", active: true, microsoftTenantId: randomUUID(), microsoftObjectId: randomUUID() }).returning();
     users.push(other[0]!);
     assert.equal((await request("", "GET", undefined, other[0]!)).body.rows.some((r: any) => r.publicId === row.publicId), false);
+    assert.equal((await request(`/rows/${preRow.publicId}/history`, "GET", undefined, other[0]!)).status, 404);
+    // AppColl contributor membership grants task-only access; revocation takes effect on the next request.
+    const contributorCsv = taskCsv.replace(marker, `${marker}-prebill`).replace("TaskStatus,ClosedOn", "TaskStatus,ClosedOn,Contributors") + "," + other[0]!.email;
+    const contributorImport = await request("/import", "POST", { ...payload, csvText: contributorCsv, preview: false });
+    assert.equal(contributorImport.body.applied, true);
+    assert.equal((await request("", "GET", undefined, other[0]!)).body.rows.some((r: any) => r.publicId === preRow.publicId), true);
+    assert.equal((await request("", "GET", undefined, other[0]!)).body.rows.some((r: any) => r.publicId === row.publicId), false, "sharing a matter is not a task assignment");
+    await request("/import", "POST", { ...payload, csvText: taskCsv.replace(marker, `${marker}-prebill`), preview: false });
+    assert.equal((await request(`/rows/${preRow.publicId}/history`, "GET", undefined, other[0]!)).status, 404);
     assert.equal((await request(`/billing/${bill.publicId}/payments`, "POST", pay, other[0]!)).status, 404);
   } finally {
     await new Promise<void>((resolve, reject) => server.close((err) => err ? reject(err) : resolve()));
@@ -151,6 +182,7 @@ test("CSV -> assignment -> milestones -> one billing row -> invoice -> partial r
     const taskIds = await db.select({ id: docket.id }).from(docket).where(inArray(docket.externalTaskId, [marker, `${marker}-prebill`]));
     if (taskIds.length) {
       const rowIds = await db.select({ id: rows.id }).from(rows).where(inArray(rows.docketTaskId, taskIds.map((t) => t.id)));
+      if (rowIds.length) await db.delete(history).where(inArray(history.workflowRowId, rowIds.map((r) => r.id)));
       if (rowIds.length) await db.delete(bills).where(inArray(bills.workflowRowId, rowIds.map((r) => r.id)));
       await db.delete(rows).where(inArray(rows.docketTaskId, taskIds.map((t) => t.id)));
       await db.delete(docket).where(inArray(docket.externalTaskId, [marker, `${marker}-prebill`]));

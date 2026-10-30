@@ -28,7 +28,7 @@ import AiTools from '@/pages/AiTools';
 import SignInPage from '@/pages/SignIn';
 import NotFound from '@/pages/not-found';
 
-import PortalDashboard from '@/pages/portal/Dashboard';
+import PortalHome from '@/pages/portal/PortalHome';
 import PortalClients from '@/pages/portal/Clients';
 import PortalClientDetail from '@/pages/portal/ClientDetail';
 import PortalTools from '@/pages/portal/Tools';
@@ -117,7 +117,7 @@ function Router() {
     <Switch>
       {/* Portal Routes */}
       <Route path="/portal">
-        <ProtectedPortalRoute component={PortalDashboard} />
+        <ProtectedPortalRoute component={PortalHome} />
       </Route>
       <Route path="/portal/clients">
         <ProtectedPortalRoute component={PortalClients} />

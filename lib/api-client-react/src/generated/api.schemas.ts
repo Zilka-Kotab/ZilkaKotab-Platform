@@ -38,11 +38,33 @@ export interface FirmCsvResult {
   rows: FirmCsvPreviewRow[];
 }
 
+export type FirmWorkflowStatus = typeof FirmWorkflowStatus[keyof typeof FirmWorkflowStatus];
+
+
+export const FirmWorkflowStatus = {
+  Unassigned: 'Unassigned',
+  Assigned: 'Assigned',
+  Strategy: 'Strategy',
+  Client_Review: 'Client Review',
+  Drafting: 'Drafting',
+  Proofing: 'Proofing',
+  Ready_to_File: 'Ready to File',
+  Filed: 'Filed',
+  On_Hold: 'On Hold',
+  Revisions: 'Revisions',
+  Client_Approved: 'Client Approved',
+} as const;
+
 export interface FirmWorkflowUpdate {
   /** @minimum 0 */
   revision: number;
   /** @nullable */
   assignedToId?: number | null;
+  status?: FirmWorkflowStatus;
+  /** @pattern ^\d{4}-\d{2}-\d{2}$ */
+  statusDate?: string;
+  /** @maxLength 10000 */
+  statusNote?: string;
   /**
      * @nullable
      * @pattern ^\d{4}-\d{2}-\d{2}$
@@ -84,6 +106,11 @@ export interface FirmWorkflowRow {
   sourceStatus: string;
   /** @nullable */
   assignedToId: number | null;
+  status: FirmWorkflowStatus;
+  /** @nullable */
+  statusDate: string | null;
+  statusNote: string;
+  historyCount: number;
   /** @nullable */
   strategySentOn: string | null;
   /** @nullable */
@@ -97,6 +124,19 @@ export interface FirmWorkflowRow {
   prebillVoided: boolean;
   notes: string;
   revision: number;
+}
+
+export interface FirmStatusEvent {
+  publicId: string;
+  status: string;
+  statusDate: string;
+  note: string;
+  actorName: string;
+  recordedAt: string;
+}
+
+export interface FirmStatusHistory {
+  events: FirmStatusEvent[];
 }
 
 export interface FirmStaff {

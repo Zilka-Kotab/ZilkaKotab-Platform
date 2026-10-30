@@ -2,7 +2,8 @@ import { ReactNode } from 'react';
 import { Link, useLocation } from 'wouter';
 import { useAuth } from '@workspace/entra-auth-web';
 import { usePortalAccess } from '@/lib/hooks-portal';
-import { LayoutDashboard, Users, Wrench, Settings, LogOut, Loader2, ShieldAlert, ClipboardList, Receipt, SlidersHorizontal } from 'lucide-react';
+import { LayoutDashboard, Users, Wrench, Settings, LogOut, Loader2, ShieldAlert } from 'lucide-react';
+import { isDashboardRoute } from '@/components/portal/DashboardTabs';
 import { SEO } from '@/components/SEO';
 
 interface PortalLayoutProps {
@@ -74,13 +75,10 @@ export function PortalLayout({ children }: PortalLayoutProps) {
   const isStaff = isAdmin || isAttorney || isParalegal;
 
   const navItems = [
-    { label: 'Firm Portal', href: '/portal', icon: <LayoutDashboard className="h-5 w-5" />, visible: true },
-    { label: 'Workflow', href: '/portal/internal-workflow', icon: <ClipboardList className="h-5 w-5" />, visible: isStaff },
-    { label: 'Time & Billing', href: '/portal/billing', icon: <Receipt className="h-5 w-5" />, visible: isStaff },
-    { label: 'My Clients', href: '/portal/clients', icon: <Users className="h-5 w-5" />, visible: isAttorney },
-    { label: 'Tools', href: '/portal/tools', icon: <Wrench className="h-5 w-5" />, visible: isClient || isAttorney || isParalegal || isAdmin },
-    { label: 'Admin', href: '/portal/admin', icon: <Settings className="h-5 w-5" />, visible: isAdmin },
-    { label: 'Settings', href: '/portal/settings', icon: <SlidersHorizontal className="h-5 w-5" />, visible: isStaff },
+    { label: isStaff ? 'Dashboard' : 'Firm Portal', href: isStaff ? '/portal/internal-workflow' : '/portal', icon: <LayoutDashboard className="h-5 w-5" />, visible: true, group: isStaff },
+    { group: false, label: 'My Clients', href: '/portal/clients', icon: <Users className="h-5 w-5" />, visible: isAttorney },
+    { group: false, label: 'Tools', href: '/portal/tools', icon: <Wrench className="h-5 w-5" />, visible: isClient || isAttorney || isParalegal || isAdmin },
+    { group: false, label: 'Admin', href: '/portal/admin', icon: <Settings className="h-5 w-5" />, visible: isAdmin },
   ].filter(item => item.visible);
 
   return (
@@ -108,7 +106,7 @@ export function PortalLayout({ children }: PortalLayoutProps) {
 
             <nav className="space-y-1.5">
               {navItems.map((item) => {
-                const isActive = location === item.href || (item.href !== '/portal' && location.startsWith(item.href));
+                const isActive = item.group ? isDashboardRoute(location) : location === item.href || (item.href !== '/portal' && location.startsWith(item.href));
                 return (
                   <Link
                     key={item.href}
@@ -147,7 +145,7 @@ export function PortalLayout({ children }: PortalLayoutProps) {
             </div>
             <nav className="mt-3 flex gap-1 overflow-x-auto pb-0.5">
               {navItems.map((item) => {
-                const isActive = location === item.href || (item.href !== '/portal' && location.startsWith(item.href));
+                const isActive = item.group ? isDashboardRoute(location) : location === item.href || (item.href !== '/portal' && location.startsWith(item.href));
                 return <Link key={item.href} href={item.href} className={`flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold ${isActive ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`}>{item.icon}{item.label}</Link>;
               })}
             </nav>

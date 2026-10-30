@@ -5,6 +5,7 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { FirmWorkflowStatus } from './firmWorkflowStatus';
 
 export interface FirmWorkflowRow {
   publicId: string;
@@ -18,6 +19,11 @@ export interface FirmWorkflowRow {
   sourceStatus: string;
   /** @nullable */
   assignedToId: number | null;
+  status: FirmWorkflowStatus;
+  /** @nullable */
+  statusDate: string | null;
+  statusNote: string;
+  historyCount: number;
   /** @nullable */
   strategySentOn: string | null;
   /** @nullable */

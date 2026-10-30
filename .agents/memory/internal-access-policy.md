@@ -10,3 +10,7 @@ Durable identity is the validated Microsoft `tid + oid` pair. Email/UPN is displ
 **Why:** The user explicitly chose Microsoft Entra ID for a law-firm portal containing confidential client resources, with no Clerk, Replit Auth, public registration, domain-wide admission, or access granted solely by successful authentication. The user later requested a dedicated Paralegal role for internal task workflows.
 
 **How to apply:** Every private API must verify an Active portal user by `tid + oid` and independently enforce client, tool, and project access server-side. Only an ACTIVE, unbound record may bind once by server-verified email. Attorneys are limited to assigned clients; paralegals have no client/project access by default and can use internal workflow matters matching their AppColl paralegal assignment plus tasks they participate in; client users require their own project permissions. Deactivation or assignment removal must take effect on the next request.
+
+For the staff Dashboard, use the narrower task-assignment policy: non-admins see AppColl tasks where they are owner/contributor or tasks explicitly assigned to them internally, not every task belonging to an assigned client/matter. Settings may let an administrator provision an ACTIVE attorney/paralegal for portal access and assignments, but must not grant client/project access implicitly.
+
+**Why:** The user clarified dashboard visibility and requested real login access when adding assignees, without changing authentication providers or requesting broader confidential-data access.
