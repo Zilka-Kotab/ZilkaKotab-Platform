@@ -4,11 +4,12 @@ import { SEO } from '@/components/SEO';
 import { DashboardTabs } from '@/components/portal/DashboardTabs';
 import { StaffOnly, errorText, fieldClass } from '@/components/portal/StaffOnly';
 import InternalWorkflowOperations from './InternalWorkflowOperations';
+import { usePortalAccess } from '@/lib/hooks-portal';
 import { useCreateFirmBilling, useFirmBilling, useRecordFirmPayment, useUpdateFirmBilling } from '@/lib/hooks-firm-operations';
 import type { FirmBillingInput, FirmBillingItem } from '@/lib/hooks-firm-operations';
 import {
   MONTHS, QUARTERS, RAW_HEADERS, SUMMARY_HEADERS, balanceCents, centsToDollarInput, dollarsToCents, filterByPeriod, formatUsd,
-  isLocked, itemsForYear, monthlyTotals, netCents, quarterTotals, rawRows, summaryRows, yearTotals, yearsIn, type BillingKind, type SummaryTotals,
+  hasAllocations, isLocked, itemsForYear, splitOf, monthlyTotals, netCents, quarterTotals, rawRows, summaryRows, yearTotals, yearsIn, type BillingKind, type SummaryTotals,
 } from '@/lib/firm-billing-summary';
 
 const KIND_LABEL: Record<BillingKind, string> = { FEE: 'Flat fee', EXPENSE: 'Expense', REIMBURSEMENT: 'Reimbursement to firm' };
@@ -20,6 +21,8 @@ export default function FirmBilling() {
 
 function BillingLedger() {
   const ledger = useFirmBilling();
+  const isAdmin = usePortalAccess().data?.user?.role === 'ADMIN';
+  const netLabel = isAdmin ? 'total allocated' : 'your allocation';
   const items = useMemo(() => ledger.data?.items ?? [], [ledger.data]);
   const years = useMemo(() => yearsIn(items), [items]);
   const [year, setYear] = useState(new Date().getFullYear());
@@ -48,7 +51,7 @@ function BillingLedger() {
       raw.addRow([...RAW_HEADERS]).font = { bold: true };
       // Plain string/number values only: ExcelJS writes strings as text, never as formulas.
       rawRows(itemsForYear(items, year)).forEach((r) => raw.addRow(r));
-      [11, 14, 17, 18].forEach((c) => { raw.getColumn(c).numFmt = '$#,##0.00'; });
+      [11, 14, 17, 18, 27, 29, 30].forEach((c) => { raw.getColumn(c).numFmt = '$#,##0.00'; });
       raw.getColumn(12).numFmt = '0.00%';
       raw.columns.forEach((c) => { c.width = 16; });
       const sum = wb.addWorksheet('Monthly summary');
@@ -89,7 +92,7 @@ function BillingLedger() {
 
       <section aria-label="Period totals" className="mt-4 grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-border bg-border md:grid-cols-4 xl:grid-cols-7">
         {([
-          ['Fees gross', period.feeGrossCents, 'by work date'], ['Fees net', period.feeNetCents, 'gross x share'], ['Expenses', period.expenseCents, 'by work date'],
+          ['Fees gross', period.feeGrossCents, 'by work date'], ['Fees net', period.feeNetCents, `${netLabel} or legacy share`], ['Expenses', period.expenseCents, 'by work date'],
           ['Reimbursements', period.reimbursementCents, 'to firm, by work date'], ['Invoiced', period.invoicedCents, 'by invoice date'],
           ['Received', period.receivedCents, 'fees+expenses, by payment date'], ['Reimb. received', period.reimbursementReceivedCents, 'by payment date'],
         ] as const).map(([label, cents, basis]) => (
@@ -103,7 +106,7 @@ function BillingLedger() {
       <p className="mt-1 text-[11px] text-muted-foreground">{month === null ? `All of ${year}` : `${MONTHS[month]} ${year}`}. Voided entries are excluded from every total.</p>
       <p data-testid="text-prebilling-legend" className="mt-2 text-xs text-muted-foreground"><strong>* Pre-billed:</strong> added to billing before completion. Work stays active until filed; the asterisk and pre-billing date remain afterward. Invoice dates are tracked separately. Completion does not create a second charge or move the original billables to another month.</p>
 
-      {editing && <BillingEditor key={editing === 'new' ? 'new' : editing.publicId} item={editing === 'new' ? null : editing} onClose={() => setEditing(null)} />}
+      {editing && <BillingEditor key={editing === 'new' ? 'new' : editing.publicId} item={editing === 'new' ? null : editing} netLabel={netLabel} onClose={() => setEditing(null)} />}
       {paying && <PaymentForm key={paying.publicId} item={paying} onClose={() => setPaying(null)} />}
 
       <div className="mt-5 overflow-x-auto rounded-xl border border-border bg-card">
@@ -111,7 +114,7 @@ function BillingLedger() {
         : ledger.isError ? <div className="p-8 text-center" role="alert"><AlertTriangle className="mx-auto h-6 w-6 text-rose-700" /><p className="mt-2 text-sm">{errorText(ledger.error, 'The ledger could not be loaded.')}</p><button onClick={() => void ledger.refetch()} data-testid="button-retry-billing" className="mt-3 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground">Retry</button></div>
         : visible.length === 0 ? <div className="p-10 text-center"><p className="font-display text-lg font-semibold">No entries for this period</p><p className="mt-1 text-sm text-muted-foreground">Pre-billed tasks, filed workflow rows and manual entries appear here by billing/work date.</p></div>
         : <table className="w-full min-w-[1320px] text-left text-sm">
-          <thead className="bg-muted/60 text-[11px] uppercase tracking-wide text-muted-foreground"><tr>{['Billing / work date', 'Type', 'Client / matter', 'Item', 'Actual completion', 'Gross', 'Share', 'Net', 'Invoice', 'Paid', 'Balance', ''].map((h) => <th key={h} scope="col" className="border-b border-border px-2 py-2 font-semibold">{h}</th>)}</tr></thead>
+          <thead className="bg-muted/60 text-[11px] uppercase tracking-wide text-muted-foreground"><tr>{['Billing / work date', 'Type', 'Client / matter', 'Item', 'Actual completion', 'Gross', 'Share / split', isAdmin ? 'Net (allocated)' : 'Net (yours)', 'Invoice', 'Paid', 'Balance', ''].map((h) => <th key={h} scope="col" className="border-b border-border px-2 py-2 font-semibold">{h}</th>)}</tr></thead>
           <tbody>{visible.map((i) => {
             const locked = isLocked(i);
             const canPay = !i.voided && balanceCents(i) > 0 && (i.kind === 'REIMBURSEMENT' || !!i.invoiceNumber);
@@ -123,7 +126,7 @@ function BillingLedger() {
                 <td className="max-w-[260px] px-2 py-2"><p className="line-clamp-2">{i.description}</p><p className="text-xs text-muted-foreground">{[i.code, i.jurisdiction, i.associate || i.ownerName].filter(Boolean).join(' · ')}</p></td>
                 <td data-testid={`text-completion-${i.publicId}`} className="whitespace-nowrap px-2 py-2 text-xs">{i.completedOn ? <span className="font-mono">{i.completedOn}</span> : i.workflowPublicId ? <span className="font-semibold text-amber-800">Active · not completed</span> : <span className="text-muted-foreground">n/a</span>}</td>
                 <td className="px-2 py-2 tabular-nums">{formatUsd(i.amountCents)}</td>
-                <td className="px-2 py-2 tabular-nums">{i.kind === 'FEE' ? `${(i.shareBasisPoints / 100).toFixed(2)}%` : 'n/a'}</td>
+                <td className="px-2 py-2 text-xs tabular-nums" data-testid={`text-split-${i.publicId}`}>{i.kind !== 'FEE' ? 'n/a' : hasAllocations(i) ? (() => { const sp = splitOf(i); return <><span className="block">{sp.ownerName || 'Owner'} {formatUsd(sp.owner)}</span>{sp.assigneeName && <span className="block">{sp.assigneeName} {formatUsd(sp.assignee)}</span>}<span className="block text-muted-foreground">Firm {formatUsd(sp.firm)}</span></>; })() : `${(i.shareBasisPoints / 100).toFixed(2)}%`}</td>
                 <td className="px-2 py-2 tabular-nums">{i.kind === 'FEE' ? formatUsd(netCents(i)) : 'n/a'}</td>
                 <td className="px-2 py-2 text-xs">{i.invoiceNumber ? <><p className="font-medium">{i.invoiceNumber}</p><p className="text-muted-foreground">{i.invoiceDate}</p></> : <span className="text-muted-foreground">Not invoiced</span>}</td>
                 <td className="px-2 py-2 tabular-nums">{i.payments.length ? <button onClick={() => setOpenHistory(openHistory === i.publicId ? null : i.publicId)} data-testid={`button-history-${i.publicId}`} className="underline decoration-dotted">{formatUsd(i.paidCents)}</button> : formatUsd(0)}</td>
@@ -174,7 +177,7 @@ const toForm = (i: FirmBillingItem | null): Form => i ? {
   jurisdiction: i.jurisdiction, subjectMatter: i.subjectMatter, associate: i.associate, sharePercent: String(i.shareBasisPoints / 100), invoiceNumber: i.invoiceNumber, invoiceDate: i.invoiceDate ?? '',
 } : { kind: 'FEE', workDate: today(), client: '', matter: '', description: '', amount: '', notes: '', code: '', jurisdiction: '', subjectMatter: '', associate: '', sharePercent: '100', invoiceNumber: '', invoiceDate: '' };
 
-function BillingEditor({ item, onClose }: { item: FirmBillingItem | null; onClose: () => void }) {
+function BillingEditor({ item, onClose, netLabel }: { item: FirmBillingItem | null; onClose: () => void; netLabel: string }) {
   const create = useCreateFirmBilling();
   const update = useUpdateFirmBilling();
   const [form, setForm] = useState<Form>(() => toForm(item));
@@ -209,31 +212,37 @@ function BillingEditor({ item, onClose }: { item: FirmBillingItem | null; onClos
     } catch (reason) { setError(errorText(reason, 'This entry could not be saved.')); }
   };
 
-  const lockFin = locked || voided;
+  const allocated = !!item && hasAllocations(item);
+  const lockFin = locked || voided || allocated;
   return (
     <form onSubmit={(e) => void submit(e)} data-testid="form-billing" className="mt-5 rounded-xl border border-primary/30 bg-card p-4">
       <div className="flex items-start justify-between gap-3">
         <div><h2 className="font-semibold">{item ? (voided ? 'Voided entry (audit history)' : 'Edit entry') : 'New ledger entry'}</h2>
-          <p className="text-xs text-muted-foreground">{lockFin ? 'Invoiced, paid or voided: kind, date and amounts are locked.' : 'Flat amounts in US dollars. Reimbursements are recovery receipts to the firm, tracked separately from client billables.'}</p></div>
+          {allocated && item && <div className="mt-1 rounded-md border border-primary/20 bg-primary/5 px-2.5 py-1.5 text-xs" data-testid="text-allocation-backed">
+            <p className="font-semibold">Allocation-backed fee. Edit the amount and split in Workflow, Billing pane.</p>
+            <p className="mt-0.5 tabular-nums">Gross {formatUsd(item.amountCents)} · {(item.allocations ?? []).map((a) => `${a.role === 'OWNER' ? 'Owner' : 'Assignee'} ${a.name} ${formatUsd(a.amountCents)}`).join(' · ')} · Firm remainder {formatUsd(splitOf(item).firm)}{item.allocatedNetCents != null ? ` · Net (${netLabel}) ${formatUsd(item.allocatedNetCents)}` : ''}</p>
+            <p className="mt-0.5 text-muted-foreground">Invoice number, invoice date and receipts are still recorded here.</p>
+          </div>}
+          <p className="text-xs text-muted-foreground">{allocated ? 'Kind, date, amount and split come from the workflow billing draft.' : lockFin ? 'Invoiced, paid or voided: kind, date and amounts are locked.' : 'Flat amounts in US dollars. Reimbursements are recovery receipts to the firm, tracked separately from client billables.'}</p></div>
         <button type="button" onClick={onClose} aria-label="Close editor" data-testid="button-close-editor" className="rounded-md p-1 text-muted-foreground hover:bg-muted"><X className="h-4 w-4" /></button>
       </div>
       <fieldset disabled={voided} className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <label className="text-xs font-medium">Type<select required disabled={lockFin} data-testid="select-billing-kind" value={form.kind} onChange={set('kind')} className={`${fieldClass} mt-1`}>{(Object.keys(KIND_LABEL) as BillingKind[]).map((k) => <option key={k} value={k}>{KIND_LABEL[k]}</option>)}</select></label>
         <label className="text-xs font-medium">Billing / work date<input required type="date" disabled={lockFin} data-testid="input-billing-date" value={form.workDate} onChange={set('workDate')} className={`${fieldClass} mt-1`} /></label>
         <label className="text-xs font-medium">Amount (USD)<input required inputMode="decimal" disabled={lockFin} data-testid="input-billing-amount" value={form.amount} onChange={set('amount')} placeholder="0.00" className={`${fieldClass} mt-1`} /></label>
-        {form.kind === 'FEE' ? <label className="text-xs font-medium">Net share %<input required type="number" min="0" max="100" step="0.01" disabled={lockFin} data-testid="input-billing-share" value={form.sharePercent} onChange={set('sharePercent')} className={`${fieldClass} mt-1`} /></label> : <div />}
-        <label className="text-xs font-medium">Client<input maxLength={500} data-testid="input-billing-client" value={form.client} onChange={set('client')} className={`${fieldClass} mt-1`} /></label>
-        <label className="text-xs font-medium">Matter<input maxLength={500} data-testid="input-billing-matter" value={form.matter} onChange={set('matter')} className={`${fieldClass} mt-1`} /></label>
-        <label className="text-xs font-medium sm:col-span-2">Item<input required maxLength={5000} data-testid="input-billing-description" value={form.description} onChange={set('description')} className={`${fieldClass} mt-1`} /></label>
+        {form.kind === 'FEE' ? <label className="text-xs font-medium">{allocated ? 'Owner share %' : 'Net share %'}<input required type="number" min="0" max="100" step="0.01" disabled={lockFin} data-testid="input-billing-share" value={form.sharePercent} onChange={set('sharePercent')} className={`${fieldClass} mt-1`} /></label> : <div />}
+        <label className="text-xs font-medium">Client<input disabled={allocated} maxLength={500} data-testid="input-billing-client" value={form.client} onChange={set('client')} className={`${fieldClass} mt-1`} /></label>
+        <label className="text-xs font-medium">Matter<input disabled={allocated} maxLength={500} data-testid="input-billing-matter" value={form.matter} onChange={set('matter')} className={`${fieldClass} mt-1`} /></label>
+        <label className="text-xs font-medium sm:col-span-2">Item<input required maxLength={5000} disabled={allocated} data-testid="input-billing-description" value={form.description} onChange={set('description')} className={`${fieldClass} mt-1`} /></label>
       </fieldset>
       <details className="mt-3" open={!!item}>
         <summary className="cursor-pointer text-xs font-semibold text-muted-foreground">Details: code, jurisdiction, subject matter, associate, notes, invoice</summary>
         <fieldset disabled={voided} className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <label className="text-xs font-medium">Code<input maxLength={100} data-testid="input-billing-code" value={form.code} onChange={set('code')} className={`${fieldClass} mt-1`} /></label>
-          <label className="text-xs font-medium">Jurisdiction<input maxLength={100} data-testid="input-billing-jurisdiction" value={form.jurisdiction} onChange={set('jurisdiction')} className={`${fieldClass} mt-1`} /></label>
-          <label className="text-xs font-medium">Subject matter<input maxLength={1000} data-testid="input-billing-subject" value={form.subjectMatter} onChange={set('subjectMatter')} className={`${fieldClass} mt-1`} /></label>
-          <label className="text-xs font-medium">Associate<input maxLength={240} data-testid="input-billing-associate" value={form.associate} onChange={set('associate')} className={`${fieldClass} mt-1`} /></label>
-          <label className="text-xs font-medium sm:col-span-2 lg:col-span-4">Notes<textarea maxLength={10000} rows={2} data-testid="input-billing-notes" value={form.notes} onChange={set('notes')} className="mt-1 w-full rounded-md border border-border bg-background p-2 text-sm" /></label>
+          <label className="text-xs font-medium">Code<input maxLength={100} disabled={allocated} data-testid="input-billing-code" value={form.code} onChange={set('code')} className={`${fieldClass} mt-1`} /></label>
+          <label className="text-xs font-medium">Jurisdiction<input maxLength={100} disabled={allocated} data-testid="input-billing-jurisdiction" value={form.jurisdiction} onChange={set('jurisdiction')} className={`${fieldClass} mt-1`} /></label>
+          <label className="text-xs font-medium">Subject matter<input maxLength={1000} disabled={allocated} data-testid="input-billing-subject" value={form.subjectMatter} onChange={set('subjectMatter')} className={`${fieldClass} mt-1`} /></label>
+          <label className="text-xs font-medium">Associate<input disabled={allocated} maxLength={240} data-testid="input-billing-associate" value={form.associate} onChange={set('associate')} className={`${fieldClass} mt-1`} /></label>
+          <label className="text-xs font-medium sm:col-span-2 lg:col-span-4">Notes<textarea disabled={allocated} maxLength={10000} rows={2} data-testid="input-billing-notes" value={form.notes} onChange={set('notes')} className="mt-1 w-full rounded-md border border-border bg-background p-2 text-sm" /></label>
           {item && <>
             <label className="text-xs font-medium">Invoice number<input maxLength={240} disabled={item.paidCents > 0} data-testid="input-invoice-number" value={form.invoiceNumber} onChange={set('invoiceNumber')} className={`${fieldClass} mt-1`} /></label>
             <label className="text-xs font-medium">Invoice date<input type="date" disabled={item.paidCents > 0} data-testid="input-invoice-date" value={form.invoiceDate} onChange={set('invoiceDate')} className={`${fieldClass} mt-1`} /></label>

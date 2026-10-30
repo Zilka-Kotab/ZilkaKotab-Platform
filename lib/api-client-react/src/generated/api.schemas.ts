@@ -38,6 +38,54 @@ export interface FirmCsvResult {
   rows: FirmCsvPreviewRow[];
 }
 
+export interface FirmWorkflowBilling {
+  /** @nullable */
+  scheduleId: string | null;
+  /** @nullable */
+  entryId: string | null;
+  /** @maxLength 100 */
+  code: string;
+  /** @maxLength 100 */
+  jurisdiction: string;
+  /** @maxLength 1000 */
+  subjectMatter: string;
+  /**
+     * @minLength 1
+     * @maxLength 2000
+     */
+  itemShort: string;
+  /** @maxLength 10000 */
+  description: string;
+  /** @maxLength 10000 */
+  details: string;
+  /** @maxLength 10000 */
+  notes: string;
+  /**
+     * @minimum 0
+     * @maximum 1000000000
+     */
+  amountCents: number;
+  ownerId: number;
+  /**
+     * @minimum 0
+     * @maximum 10000
+     */
+  ownerShareBasisPoints: number;
+  /**
+     * @minimum 0
+     * @maximum 1000000000
+     * @nullable
+     */
+  ownerFixedCents: number | null;
+  /** @nullable */
+  assigneeId: number | null;
+  /**
+     * @minimum 0
+     * @maximum 10000
+     */
+  assigneeShareBasisPoints: number;
+}
+
 export type FirmWorkflowStatus = typeof FirmWorkflowStatus[keyof typeof FirmWorkflowStatus];
 
 
@@ -58,6 +106,12 @@ export const FirmWorkflowStatus = {
 export interface FirmWorkflowUpdate {
   /** @minimum 0 */
   revision: number;
+  /**
+     * @nullable
+     * @pattern ^\d{4}-\d{2}-\d{2}$
+     */
+  priorityDeadline?: string | null;
+  billingDraft?: FirmWorkflowBilling;
   /** @nullable */
   assignedToId?: number | null;
   status?: FirmWorkflowStatus;
@@ -102,6 +156,12 @@ export interface FirmWorkflowRow {
   matter: string;
   /** @nullable */
   dueDate: string | null;
+  /** @nullable */
+  priorityDeadline?: string | null;
+  /** @nullable */
+  sourceOwnerId?: number | null;
+  billingDraft?: FirmWorkflowBilling | null;
+  billingLocked?: boolean;
   sourceOwner: string;
   sourceStatus: string;
   /** @nullable */
@@ -124,6 +184,93 @@ export interface FirmWorkflowRow {
   prebillVoided: boolean;
   notes: string;
   revision: number;
+}
+
+export type FirmFeeEntryRateType = typeof FirmFeeEntryRateType[keyof typeof FirmFeeEntryRateType];
+
+
+export const FirmFeeEntryRateType = {
+  FLAT: 'FLAT',
+  HOURLY: 'HOURLY',
+  APPROVAL: 'APPROVAL',
+  ADJUSTMENT: 'ADJUSTMENT',
+} as const;
+
+export interface FirmFeeEntry {
+  /**
+     * @minLength 1
+     * @maxLength 100
+     */
+  id: string;
+  /**
+     * @minLength 1
+     * @maxLength 100
+     */
+  code: string;
+  /** @maxLength 100 */
+  jurisdiction: string;
+  /** @maxLength 1000 */
+  subjectMatter: string;
+  /**
+     * @minLength 1
+     * @maxLength 2000
+     */
+  itemShort: string;
+  /** @maxLength 10000 */
+  description: string;
+  rateType: FirmFeeEntryRateType;
+  /** @maxLength 500 */
+  rateText: string;
+  /**
+     * @minimum 0
+     * @maximum 1000000000
+     * @nullable
+     */
+  amountCents: number | null;
+}
+
+export interface FirmFeeScheduleInput {
+  /**
+     * @minLength 1
+     * @maxLength 500
+     */
+  client: string;
+  /**
+     * @minLength 1
+     * @maxLength 240
+     */
+  name: string;
+  /** @maxLength 240 */
+  sourceFileName: string;
+  /**
+     * @minItems 1
+     * @maxItems 1000
+     */
+  entries: FirmFeeEntry[];
+}
+
+export type FirmFeeSchedule = FirmFeeScheduleInput & {
+  publicId: string;
+  createdAt: string;
+};
+
+export interface FirmFeeSchedules {
+  schedules: FirmFeeSchedule[];
+}
+
+export type FirmFeeAllocationRole = typeof FirmFeeAllocationRole[keyof typeof FirmFeeAllocationRole];
+
+
+export const FirmFeeAllocationRole = {
+  OWNER: 'OWNER',
+  ASSIGNEE: 'ASSIGNEE',
+} as const;
+
+export interface FirmFeeAllocation {
+  userId: number;
+  name: string;
+  role: FirmFeeAllocationRole;
+  amountCents: number;
 }
 
 export interface FirmStatusEvent {
@@ -238,6 +385,9 @@ export type FirmBillingItem = FirmBillingUpdate & ({
   /** @nullable */
   completedOn: string | null;
   ownerName: string;
+  allocations?: FirmFeeAllocation[];
+  /** @nullable */
+  allocatedNetCents?: number | null;
   paidCents: number;
   payments: FirmPayment[];
 });

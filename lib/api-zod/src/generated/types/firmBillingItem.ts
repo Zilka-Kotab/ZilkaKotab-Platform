@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { FirmBillingUpdate } from './firmBillingUpdate';
+import type { FirmFeeAllocation } from './firmFeeAllocation';
 import type { FirmPayment } from './firmPayment';
 
 export type FirmBillingItem = FirmBillingUpdate & ({
@@ -17,6 +18,9 @@ export type FirmBillingItem = FirmBillingUpdate & ({
   /** @nullable */
   completedOn: string | null;
   ownerName: string;
+  allocations?: FirmFeeAllocation[];
+  /** @nullable */
+  allocatedNetCents?: number | null;
   paidCents: number;
   payments: FirmPayment[];
 });

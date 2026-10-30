@@ -1,9 +1,16 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchPortal } from './api-portal';
+import type { FirmFeeSchedules, FirmFeeScheduleInput } from '@workspace/api-client-react';
 import type { FirmOperations, FirmWorkflowUpdate, FirmStatusHistory, FirmCsvInput, FirmCsvResult, FirmOperationResult, FirmBillingLedger, FirmBillingInput, FirmBillingUpdate, FirmPaymentInput } from '@workspace/api-client-react';
 export type { FirmWorkflowRow, FirmBillingItem, FirmBillingInput, FirmBillingUpdate, FirmPaymentInput, FirmCsvResult } from '@workspace/api-client-react';
 
 const key = ['portal', 'firm-operations'] as const;
+export function useFirmFeeSchedules() {
+  return useQuery({ queryKey: [...key, 'fee-schedules'], queryFn: () => fetchPortal<FirmFeeSchedules>('/operations/fee-schedules'), staleTime: 15000, refetchOnWindowFocus: true });
+}
+export function useCreateFirmFeeSchedule() {
+  return useSave((data: FirmFeeScheduleInput) => fetchPortal<FirmOperationResult>('/operations/fee-schedules', { method: 'POST', body: JSON.stringify(data) }));
+}
 export function useFirmOperations() {
   return useQuery({ queryKey: key, queryFn: () => fetchPortal<FirmOperations>('/operations'), refetchOnWindowFocus: true, staleTime: 15000 });
 }

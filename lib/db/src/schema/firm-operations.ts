@@ -1,4 +1,5 @@
-import { pgTable, serial, uuid, text, integer, date, timestamp, boolean, uniqueIndex } from "drizzle-orm/pg-core";
+import { pgTable, serial, uuid, text, integer, date, timestamp, boolean, uniqueIndex, jsonb } from "drizzle-orm/pg-core";
+import type { WorkflowBilling, FeeAllocation } from "./firm-fees";
 import { portalUsersTable } from "./portal";
 import { internalWorkflowDocketTasksTable, internalWorkflowTasksTable } from "./internal-workflow";
 
@@ -10,6 +11,8 @@ export const firmWorkflowRowsTable = pgTable("firm_workflow_rows", {
   docketTaskId: integer("docket_task_id").references(() => internalWorkflowDocketTasksTable.id),
   internalTaskId: integer("internal_task_id").references(() => internalWorkflowTasksTable.id),
   assignedToId: integer("assigned_to_id").references(() => portalUsersTable.id),
+  priorityDeadline: date("priority_deadline", { mode: "string" }),
+  billingDraft: jsonb("billing_draft").$type<WorkflowBilling>(),
   status: text("status").notNull().default("Unassigned"),
   statusDate: date("status_date", { mode: "string" }),
   statusNote: text("status_note").notNull().default(""),
@@ -52,6 +55,7 @@ export const firmBillingItemsTable = pgTable("firm_billing_items", {
   subjectMatter: text("subject_matter").notNull().default(""),
   associate: text("associate").notNull().default(""),
   shareBasisPoints: integer("share_basis_points").notNull().default(10000),
+  allocations: jsonb("allocations").$type<FeeAllocation[]>().notNull().default([]),
   invoiceNumber: text("invoice_number").notNull().default(""),
   invoiceDate: date("invoice_date", { mode: "string" }),
   voided: boolean("voided").notNull().default(false),

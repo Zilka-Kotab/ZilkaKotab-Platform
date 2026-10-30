@@ -5,11 +5,18 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { FirmWorkflowBilling } from './firmWorkflowBilling';
 import type { FirmWorkflowStatus } from './firmWorkflowStatus';
 
 export interface FirmWorkflowUpdate {
   /** @minimum 0 */
   revision: number;
+  /**
+     * @nullable
+     * @pattern ^\d{4}-\d{2}-\d{2}$
+     */
+  priorityDeadline?: string | null;
+  billingDraft?: FirmWorkflowBilling;
   /** @nullable */
   assignedToId?: number | null;
   status?: FirmWorkflowStatus;

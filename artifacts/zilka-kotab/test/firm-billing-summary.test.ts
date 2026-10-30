@@ -24,6 +24,19 @@ test('billables, invoices and cash use distinct calendar dates across quarter bo
   assert.equal(q[2].receivedCents, 60000);
   assert.equal(yearTotals(months).receivedCents, 100000);
 });
+test('allocated net uses the viewer share while gross and the charge remain singular', () => {
+  const allocations = [{ userId: 1, name: 'Owner', role: 'OWNER' as const, amountCents: 10000 }, { userId: 2, name: 'Assignee', role: 'ASSIGNEE' as const, amountCents: 40000 }];
+  const personal = item({ allocations, allocatedNetCents: 40000, shareBasisPoints: 1000 });
+  assert.equal(netCents(personal), 40000);
+  assert.equal(monthlyTotals([personal], 2026)[2].feeGrossCents, 100000);
+  assert.equal(monthlyTotals([personal], 2026)[2].feeNetCents, 40000);
+  const rows = rawRows([personal]);
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0][RAW_HEADERS.indexOf('OWNER AMOUNT')], 100);
+  assert.equal(rows[0][RAW_HEADERS.indexOf('ASSIGNEE AMOUNT')], 400);
+  assert.equal(rows[0][RAW_HEADERS.indexOf('FIRM REMAINDER')], 500);
+  assert.equal(netCents(item({ allocations, allocatedNetCents: 50000 })), 50000);
+});
 test('expenses and firm reimbursements are separate from flat-fee earnings', () => {
   const months = monthlyTotals([
     item({ kind: 'EXPENSE', amountCents: 7000 }),

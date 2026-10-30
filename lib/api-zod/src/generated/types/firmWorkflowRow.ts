@@ -5,6 +5,7 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { FirmWorkflowBilling } from './firmWorkflowBilling';
 import type { FirmWorkflowStatus } from './firmWorkflowStatus';
 
 export interface FirmWorkflowRow {
@@ -15,6 +16,12 @@ export interface FirmWorkflowRow {
   matter: string;
   /** @nullable */
   dueDate: string | null;
+  /** @nullable */
+  priorityDeadline?: string | null;
+  /** @nullable */
+  sourceOwnerId?: number | null;
+  billingDraft?: FirmWorkflowBilling | null;
+  billingLocked?: boolean;
   sourceOwner: string;
   sourceStatus: string;
   /** @nullable */

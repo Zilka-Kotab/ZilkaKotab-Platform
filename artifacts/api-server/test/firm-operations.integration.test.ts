@@ -7,6 +7,7 @@ import {
   db, pool, portalUsersTable, firmWorkflowRowsTable as rows, firmBillingItemsTable as bills,
   firmPaymentsTable as payments, internalWorkflowDocketTasksTable as docket,
   internalWorkflowMattersTable as matters, firmWorkflowStatusHistoryTable as history,
+  firmFeeSchedulesTable as schedules,
 } from "@workspace/db";
 import operations from "../src/routes/firm-operations";
 import { ensureFirmOperationsSchema } from "../src/lib/firm-operations-schema";
@@ -172,6 +173,68 @@ test("CSV -> assignment -> milestones -> one billing row -> invoice -> partial r
     await request("/import", "POST", { ...payload, csvText: taskCsv.replace(marker, `${marker}-prebill`), preview: false });
     assert.equal((await request(`/rows/${preRow.publicId}/history`, "GET", undefined, other[0]!)).status, 404);
     assert.equal((await request(`/billing/${bill.publicId}/payments`, "POST", pay, other[0]!)).status, 404);
+
+    // Client-specific schedules preserve duplicate codes and do not create charges on draft save.
+    const entry = { id: "one", code: "PAT402", jurisdiction: "US", subjectMatter: "Allowance", itemShort: "Issue fee", description: "Process payment", rateType: "FLAT", rateText: "$1,000", amountCents: 100000 };
+    const scheduleInput = { client: marker, name: "Reviewed fees", sourceFileName: "fees.docx", entries: [entry, { ...entry, id: "two", itemShort: "Continuation recommendation", amountCents: 50000 }] };
+    assert.equal((await request("/fee-schedules", "POST", scheduleInput, attorney!)).status, 403);
+    assert.equal((await request("/fee-schedules", "POST", { ...scheduleInput, entries: [{ ...entry, rateType: "HOURLY" }] })).status, 400);
+    const scheduleResult = await request("/fee-schedules", "POST", scheduleInput);
+    assert.equal(scheduleResult.status, 201, JSON.stringify(scheduleResult.body));
+    const scheduleId = scheduleResult.body.publicId;
+    const visibleSchedules = (await request("/fee-schedules", "GET", undefined, attorney!)).body.schedules;
+    assert.equal(visibleSchedules.find((s: any) => s.publicId === scheduleId).entries.length, 2);
+    assert.equal((await request("/fee-schedules", "GET", undefined, other[0]!)).body.schedules.some((s: any) => s.publicId === scheduleId), false);
+    const splitCsv = taskCsv.replace(marker, `${marker}-split`);
+    await request("/import", "POST", { ...payload, csvText: splitCsv, preview: false });
+    const getSplit = async () => (await request("")).body.rows.find((r: any) => r.title === "Office Action Response" && r.publicId !== row.publicId && r.publicId !== preRow.publicId && r.matter === marker);
+    let split = await getSplit();
+    const patchSplit = async (data: object) => {
+      split = await getSplit();
+      return request(`/rows/${split.publicId}`, "PATCH", { revision: split.revision, ...data });
+    };
+    assert.equal((await patchSplit({ priorityDeadline: "2026-03-31" })).status, 400);
+    assert.equal((await patchSplit({ priorityDeadline: "2026-02-30" })).status, 400);
+    assert.equal((await patchSplit({ priorityDeadline: "2026-03-15", assignedToId: attorney!.id })).status, 200);
+    split = await getSplit();
+    assert.equal(split.priorityDeadline, "2026-03-15");
+    assert.equal(split.dueDate, "2026-03-31");
+    assert.equal(split.statusDate, null, "assignment does not invent a status reached date");
+    assert.equal(split.status, "Assigned");
+    assert.equal((await patchSplit({ priorityDeadline: null })).status, 200);
+    assert.equal((await getSplit()).priorityDeadline, null);
+    const draft = { scheduleId, entryId: "one", code: "PAT402", jurisdiction: "US", subjectMatter: "Allowance", itemShort: "Issue fee", description: "Process payment", details: "Client requested", notes: "", amountCents: 100000, ownerId: other[0]!.id, ownerShareBasisPoints: 4000, ownerFixedCents: null, assigneeId: attorney!.id, assigneeShareBasisPoints: 4000 };
+    const markdown = await request("/fee-schedules", "POST", { ...scheduleInput, entries: [{ ...entry, rateType: "ADJUSTMENT", amountCents: null, rateText: "($ figure)" }] });
+    assert.equal(markdown.status, 201);
+    assert.equal((await patchSplit({ billingDraft: { ...draft, scheduleId: markdown.body.publicId } })).status, 400, "courtesy markdowns must never become additional positive charges");
+    assert.equal((await patchSplit({ billingDraft: { ...draft, ownerShareBasisPoints: 7000 } })).status, 400);
+    assert.equal((await patchSplit({ billingDraft: { ...draft, assigneeId: other[0]!.id } })).status, 400);
+    assert.equal((await patchSplit({ billingDraft: { ...draft, code: "WRONG" } })).status, 400);
+    assert.equal((await patchSplit({ billingDraft: draft })).status, 200);
+    assert.equal((await getSplit()).billingDraft.amountCents, 100000);
+    const splitBills = async (actor = admin!) => (await request("/billing", "GET", undefined, actor)).body.items.filter((b: any) => b.workflowPublicId === split.publicId);
+    assert.equal((await splitBills()).length, 0, "saving an active draft never creates a charge");
+    assert.equal((await patchSplit({ prebillOn: "2026-03-02" })).status, 200);
+    let splitBill = (await splitBills())[0];
+    assert.equal((await splitBills()).length, 1);
+    assert.equal(splitBill.amountCents, 100000);
+    assert.equal(splitBill.allocatedNetCents, 80000, "firm-wide net adds shares without duplicating gross");
+    assert.equal((await splitBills(attorney!))[0].allocatedNetCents, 40000);
+    assert.equal((await splitBills(other[0]!))[0].allocatedNetCents, 40000);
+    const invoice = { ...splitBill, invoiceNumber: `${marker}-INV`, invoiceDate: "2026-03-05" };
+    assert.equal((await request(`/billing/${splitBill.publicId}`, "PATCH", invoice)).status, 200);
+    assert.equal((await patchSplit({ billingDraft: { ...draft, amountCents: 120000 } })).status, 409);
+    assert.equal((await patchSplit({ billingDraft: { ...draft, notes: "Retain invoice and splits" } })).status, 200);
+    assert.equal((await patchSplit({ status: "Filed", statusDate: "2026-03-10", statusNote: "Filed" })).status, 200);
+    splitBill = (await splitBills())[0];
+    assert.equal((await splitBills()).length, 1);
+    assert.equal(splitBill.workDate, "2026-03-02");
+    assert.equal(splitBill.completedOn, "2026-03-10");
+    assert.equal(splitBill.amountCents, 100000);
+    await db.update(portalUsersTable).set({ active: false, status: "DEACTIVATED" }).where(eq(portalUsersTable.id, other[0]!.id));
+    assert.equal((await request("", "GET", undefined, attorney!)).status, 200, "historical inactive recipients do not break task loading");
+    assert.equal((await patchSplit({ status: "Drafting", statusDate: "2026-03-11" })).status, 200, "reopening preserves the historical split even if a recipient is inactive");
+    assert.equal((await splitBills())[0].invoiceNumber, `${marker}-INV`);
   } finally {
     await new Promise<void>((resolve, reject) => server.close((err) => err ? reject(err) : resolve()));
     const ownedBills = await db.select({ id: bills.id }).from(bills).where(inArray(bills.ownerId, users.map((u) => u.id)));
@@ -179,15 +242,16 @@ test("CSV -> assignment -> milestones -> one billing row -> invoice -> partial r
       await db.delete(payments).where(inArray(payments.billingItemId, ownedBills.map((b) => b.id)));
       await db.delete(bills).where(inArray(bills.id, ownedBills.map((b) => b.id)));
     }
-    const taskIds = await db.select({ id: docket.id }).from(docket).where(inArray(docket.externalTaskId, [marker, `${marker}-prebill`]));
+    const taskIds = await db.select({ id: docket.id }).from(docket).where(inArray(docket.externalTaskId, [marker, `${marker}-prebill`, `${marker}-split`]));
     if (taskIds.length) {
       const rowIds = await db.select({ id: rows.id }).from(rows).where(inArray(rows.docketTaskId, taskIds.map((t) => t.id)));
       if (rowIds.length) await db.delete(history).where(inArray(history.workflowRowId, rowIds.map((r) => r.id)));
       if (rowIds.length) await db.delete(bills).where(inArray(bills.workflowRowId, rowIds.map((r) => r.id)));
       await db.delete(rows).where(inArray(rows.docketTaskId, taskIds.map((t) => t.id)));
-      await db.delete(docket).where(inArray(docket.externalTaskId, [marker, `${marker}-prebill`]));
+      await db.delete(docket).where(inArray(docket.externalTaskId, [marker, `${marker}-prebill`, `${marker}-split`]));
     }
     await db.delete(matters).where(eq(matters.docketId, marker));
+    await db.delete(schedules).where(inArray(schedules.createdById, users.map((u) => u.id)));
     await db.delete(portalUsersTable).where(inArray(portalUsersTable.id, users.map((u) => u.id)));
     await pool.end();
   }

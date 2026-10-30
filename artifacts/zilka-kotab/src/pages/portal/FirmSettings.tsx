@@ -1,6 +1,7 @@
 import { SEO } from '@/components/SEO';
 import { StaffOnly } from '@/components/portal/StaffOnly';
 import { DashboardTabs } from '@/components/portal/DashboardTabs';
+import { FeeScheduleImport } from '@/components/portal/settings/FeeScheduleImport';
 import { AddPortalUser } from '@/components/portal/AddPortalUser';
 import { usePortalAccess } from '@/lib/hooks-portal';
 import { useFirmOperations } from '@/lib/hooks-firm-operations';
@@ -27,6 +28,7 @@ function SettingsPage() {
         <p className="mt-2 text-xs text-muted-foreground">Account details come from firm Microsoft sign-in and are managed by an administrator.</p>
 
         {user?.role === 'ADMIN' && <AddPortalUser />}
+        {user?.role === 'ADMIN' && <FeeScheduleImport />}
 
         <section aria-label="Active assignees" className="mt-6 rounded-xl border border-border bg-card p-4" data-testid="panel-assignees">
           <h2 className="font-semibold">Active assignees</h2>

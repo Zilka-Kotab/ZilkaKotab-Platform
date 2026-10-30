@@ -8,6 +8,133 @@
 import * as zod from 'zod';
 
 
+export const getFirmFeeSchedulesResponseSchedulesItemOneClientMax = 500;
+
+export const getFirmFeeSchedulesResponseSchedulesItemOneNameMax = 240;
+
+export const getFirmFeeSchedulesResponseSchedulesItemOneSourceFileNameMax = 240;
+
+export const getFirmFeeSchedulesResponseSchedulesItemOneEntriesItemIdMax = 100;
+
+export const getFirmFeeSchedulesResponseSchedulesItemOneEntriesItemCodeMax = 100;
+
+export const getFirmFeeSchedulesResponseSchedulesItemOneEntriesItemJurisdictionMax = 100;
+
+export const getFirmFeeSchedulesResponseSchedulesItemOneEntriesItemSubjectMatterMax = 1000;
+
+export const getFirmFeeSchedulesResponseSchedulesItemOneEntriesItemItemShortMax = 2000;
+
+export const getFirmFeeSchedulesResponseSchedulesItemOneEntriesItemDescriptionMax = 10000;
+
+export const getFirmFeeSchedulesResponseSchedulesItemOneEntriesItemRateTextMax = 500;
+
+export const getFirmFeeSchedulesResponseSchedulesItemOneEntriesItemAmountCentsMin = 0;
+export const getFirmFeeSchedulesResponseSchedulesItemOneEntriesItemAmountCentsMax = 1000000000;
+
+export const getFirmFeeSchedulesResponseSchedulesItemOneEntriesMax = 1000;
+
+
+
+export const GetFirmFeeSchedulesResponse = zod.object({
+  "schedules": zod.array(zod.object({
+  "client": zod.string().min(1).max(getFirmFeeSchedulesResponseSchedulesItemOneClientMax),
+  "name": zod.string().min(1).max(getFirmFeeSchedulesResponseSchedulesItemOneNameMax),
+  "sourceFileName": zod.string().max(getFirmFeeSchedulesResponseSchedulesItemOneSourceFileNameMax),
+  "entries": zod.array(zod.object({
+  "id": zod.string().min(1).max(getFirmFeeSchedulesResponseSchedulesItemOneEntriesItemIdMax),
+  "code": zod.string().min(1).max(getFirmFeeSchedulesResponseSchedulesItemOneEntriesItemCodeMax),
+  "jurisdiction": zod.string().max(getFirmFeeSchedulesResponseSchedulesItemOneEntriesItemJurisdictionMax),
+  "subjectMatter": zod.string().max(getFirmFeeSchedulesResponseSchedulesItemOneEntriesItemSubjectMatterMax),
+  "itemShort": zod.string().min(1).max(getFirmFeeSchedulesResponseSchedulesItemOneEntriesItemItemShortMax),
+  "description": zod.string().max(getFirmFeeSchedulesResponseSchedulesItemOneEntriesItemDescriptionMax),
+  "rateType": zod.enum(['FLAT', 'HOURLY', 'APPROVAL', 'ADJUSTMENT']),
+  "rateText": zod.string().max(getFirmFeeSchedulesResponseSchedulesItemOneEntriesItemRateTextMax),
+  "amountCents": zod.number().min(getFirmFeeSchedulesResponseSchedulesItemOneEntriesItemAmountCentsMin).max(getFirmFeeSchedulesResponseSchedulesItemOneEntriesItemAmountCentsMax).nullable()
+})).min(1).max(getFirmFeeSchedulesResponseSchedulesItemOneEntriesMax)
+}).and(zod.object({
+  "publicId": zod.string(),
+  "createdAt": zod.string()
+})))
+})
+
+
+export const createFirmFeeScheduleBodyClientMax = 500;
+
+export const createFirmFeeScheduleBodyNameMax = 240;
+
+export const createFirmFeeScheduleBodySourceFileNameMax = 240;
+
+export const createFirmFeeScheduleBodyEntriesItemIdMax = 100;
+
+export const createFirmFeeScheduleBodyEntriesItemCodeMax = 100;
+
+export const createFirmFeeScheduleBodyEntriesItemJurisdictionMax = 100;
+
+export const createFirmFeeScheduleBodyEntriesItemSubjectMatterMax = 1000;
+
+export const createFirmFeeScheduleBodyEntriesItemItemShortMax = 2000;
+
+export const createFirmFeeScheduleBodyEntriesItemDescriptionMax = 10000;
+
+export const createFirmFeeScheduleBodyEntriesItemRateTextMax = 500;
+
+export const createFirmFeeScheduleBodyEntriesItemAmountCentsMin = 0;
+export const createFirmFeeScheduleBodyEntriesItemAmountCentsMax = 1000000000;
+
+export const createFirmFeeScheduleBodyEntriesMax = 1000;
+
+
+
+export const CreateFirmFeeScheduleBody = zod.object({
+  "client": zod.string().min(1).max(createFirmFeeScheduleBodyClientMax),
+  "name": zod.string().min(1).max(createFirmFeeScheduleBodyNameMax),
+  "sourceFileName": zod.string().max(createFirmFeeScheduleBodySourceFileNameMax),
+  "entries": zod.array(zod.object({
+  "id": zod.string().min(1).max(createFirmFeeScheduleBodyEntriesItemIdMax),
+  "code": zod.string().min(1).max(createFirmFeeScheduleBodyEntriesItemCodeMax),
+  "jurisdiction": zod.string().max(createFirmFeeScheduleBodyEntriesItemJurisdictionMax),
+  "subjectMatter": zod.string().max(createFirmFeeScheduleBodyEntriesItemSubjectMatterMax),
+  "itemShort": zod.string().min(1).max(createFirmFeeScheduleBodyEntriesItemItemShortMax),
+  "description": zod.string().max(createFirmFeeScheduleBodyEntriesItemDescriptionMax),
+  "rateType": zod.enum(['FLAT', 'HOURLY', 'APPROVAL', 'ADJUSTMENT']),
+  "rateText": zod.string().max(createFirmFeeScheduleBodyEntriesItemRateTextMax),
+  "amountCents": zod.number().min(createFirmFeeScheduleBodyEntriesItemAmountCentsMin).max(createFirmFeeScheduleBodyEntriesItemAmountCentsMax).nullable()
+})).min(1).max(createFirmFeeScheduleBodyEntriesMax)
+})
+
+export const CreateFirmFeeScheduleResponse = zod.object({
+  "publicId": zod.string()
+})
+
+
+export const getFirmOperationsResponseRowsItemBillingDraftOneCodeMax = 100;
+
+export const getFirmOperationsResponseRowsItemBillingDraftOneJurisdictionMax = 100;
+
+export const getFirmOperationsResponseRowsItemBillingDraftOneSubjectMatterMax = 1000;
+
+export const getFirmOperationsResponseRowsItemBillingDraftOneItemShortMax = 2000;
+
+export const getFirmOperationsResponseRowsItemBillingDraftOneDescriptionMax = 10000;
+
+export const getFirmOperationsResponseRowsItemBillingDraftOneDetailsMax = 10000;
+
+export const getFirmOperationsResponseRowsItemBillingDraftOneNotesMax = 10000;
+
+export const getFirmOperationsResponseRowsItemBillingDraftOneAmountCentsMin = 0;
+export const getFirmOperationsResponseRowsItemBillingDraftOneAmountCentsMax = 1000000000;
+
+export const getFirmOperationsResponseRowsItemBillingDraftOneOwnerShareBasisPointsMin = 0;
+export const getFirmOperationsResponseRowsItemBillingDraftOneOwnerShareBasisPointsMax = 10000;
+
+export const getFirmOperationsResponseRowsItemBillingDraftOneOwnerFixedCentsMin = 0;
+export const getFirmOperationsResponseRowsItemBillingDraftOneOwnerFixedCentsMax = 1000000000;
+
+export const getFirmOperationsResponseRowsItemBillingDraftOneAssigneeShareBasisPointsMin = 0;
+export const getFirmOperationsResponseRowsItemBillingDraftOneAssigneeShareBasisPointsMax = 10000;
+
+
+
 export const GetFirmOperationsResponse = zod.object({
   "rows": zod.array(zod.object({
   "publicId": zod.string(),
@@ -16,6 +143,26 @@ export const GetFirmOperationsResponse = zod.object({
   "client": zod.string(),
   "matter": zod.string(),
   "dueDate": zod.string().nullable(),
+  "priorityDeadline": zod.string().nullish(),
+  "sourceOwnerId": zod.number().nullish(),
+  "billingDraft": zod.union([zod.object({
+  "scheduleId": zod.string().nullable(),
+  "entryId": zod.string().nullable(),
+  "code": zod.string().max(getFirmOperationsResponseRowsItemBillingDraftOneCodeMax),
+  "jurisdiction": zod.string().max(getFirmOperationsResponseRowsItemBillingDraftOneJurisdictionMax),
+  "subjectMatter": zod.string().max(getFirmOperationsResponseRowsItemBillingDraftOneSubjectMatterMax),
+  "itemShort": zod.string().min(1).max(getFirmOperationsResponseRowsItemBillingDraftOneItemShortMax),
+  "description": zod.string().max(getFirmOperationsResponseRowsItemBillingDraftOneDescriptionMax),
+  "details": zod.string().max(getFirmOperationsResponseRowsItemBillingDraftOneDetailsMax),
+  "notes": zod.string().max(getFirmOperationsResponseRowsItemBillingDraftOneNotesMax),
+  "amountCents": zod.number().min(getFirmOperationsResponseRowsItemBillingDraftOneAmountCentsMin).max(getFirmOperationsResponseRowsItemBillingDraftOneAmountCentsMax),
+  "ownerId": zod.number(),
+  "ownerShareBasisPoints": zod.number().min(getFirmOperationsResponseRowsItemBillingDraftOneOwnerShareBasisPointsMin).max(getFirmOperationsResponseRowsItemBillingDraftOneOwnerShareBasisPointsMax),
+  "ownerFixedCents": zod.number().min(getFirmOperationsResponseRowsItemBillingDraftOneOwnerFixedCentsMin).max(getFirmOperationsResponseRowsItemBillingDraftOneOwnerFixedCentsMax).nullable(),
+  "assigneeId": zod.number().nullable(),
+  "assigneeShareBasisPoints": zod.number().min(getFirmOperationsResponseRowsItemBillingDraftOneAssigneeShareBasisPointsMin).max(getFirmOperationsResponseRowsItemBillingDraftOneAssigneeShareBasisPointsMax)
+}),zod.null()]).optional(),
+  "billingLocked": zod.boolean().optional(),
   "sourceOwner": zod.string(),
   "sourceStatus": zod.string(),
   "assignedToId": zod.number().nullable(),
@@ -47,6 +194,33 @@ export const UpdateFirmWorkflowRowParams = zod.object({
 
 export const updateFirmWorkflowRowBodyRevisionMin = 0;
 
+export const updateFirmWorkflowRowBodyPriorityDeadlineRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
+export const updateFirmWorkflowRowBodyBillingDraftCodeMax = 100;
+
+export const updateFirmWorkflowRowBodyBillingDraftJurisdictionMax = 100;
+
+export const updateFirmWorkflowRowBodyBillingDraftSubjectMatterMax = 1000;
+
+export const updateFirmWorkflowRowBodyBillingDraftItemShortMax = 2000;
+
+export const updateFirmWorkflowRowBodyBillingDraftDescriptionMax = 10000;
+
+export const updateFirmWorkflowRowBodyBillingDraftDetailsMax = 10000;
+
+export const updateFirmWorkflowRowBodyBillingDraftNotesMax = 10000;
+
+export const updateFirmWorkflowRowBodyBillingDraftAmountCentsMin = 0;
+export const updateFirmWorkflowRowBodyBillingDraftAmountCentsMax = 1000000000;
+
+export const updateFirmWorkflowRowBodyBillingDraftOwnerShareBasisPointsMin = 0;
+export const updateFirmWorkflowRowBodyBillingDraftOwnerShareBasisPointsMax = 10000;
+
+export const updateFirmWorkflowRowBodyBillingDraftOwnerFixedCentsMin = 0;
+export const updateFirmWorkflowRowBodyBillingDraftOwnerFixedCentsMax = 1000000000;
+
+export const updateFirmWorkflowRowBodyBillingDraftAssigneeShareBasisPointsMin = 0;
+export const updateFirmWorkflowRowBodyBillingDraftAssigneeShareBasisPointsMax = 10000;
+
 export const updateFirmWorkflowRowBodyStatusDateRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
 export const updateFirmWorkflowRowBodyStatusNoteMax = 10000;
 
@@ -61,6 +235,24 @@ export const updateFirmWorkflowRowBodyNotesMax = 10000;
 
 export const UpdateFirmWorkflowRowBody = zod.object({
   "revision": zod.number().min(updateFirmWorkflowRowBodyRevisionMin),
+  "priorityDeadline": zod.string().regex(updateFirmWorkflowRowBodyPriorityDeadlineRegExp).nullish(),
+  "billingDraft": zod.object({
+  "scheduleId": zod.string().nullable(),
+  "entryId": zod.string().nullable(),
+  "code": zod.string().max(updateFirmWorkflowRowBodyBillingDraftCodeMax),
+  "jurisdiction": zod.string().max(updateFirmWorkflowRowBodyBillingDraftJurisdictionMax),
+  "subjectMatter": zod.string().max(updateFirmWorkflowRowBodyBillingDraftSubjectMatterMax),
+  "itemShort": zod.string().min(1).max(updateFirmWorkflowRowBodyBillingDraftItemShortMax),
+  "description": zod.string().max(updateFirmWorkflowRowBodyBillingDraftDescriptionMax),
+  "details": zod.string().max(updateFirmWorkflowRowBodyBillingDraftDetailsMax),
+  "notes": zod.string().max(updateFirmWorkflowRowBodyBillingDraftNotesMax),
+  "amountCents": zod.number().min(updateFirmWorkflowRowBodyBillingDraftAmountCentsMin).max(updateFirmWorkflowRowBodyBillingDraftAmountCentsMax),
+  "ownerId": zod.number(),
+  "ownerShareBasisPoints": zod.number().min(updateFirmWorkflowRowBodyBillingDraftOwnerShareBasisPointsMin).max(updateFirmWorkflowRowBodyBillingDraftOwnerShareBasisPointsMax),
+  "ownerFixedCents": zod.number().min(updateFirmWorkflowRowBodyBillingDraftOwnerFixedCentsMin).max(updateFirmWorkflowRowBodyBillingDraftOwnerFixedCentsMax).nullable(),
+  "assigneeId": zod.number().nullable(),
+  "assigneeShareBasisPoints": zod.number().min(updateFirmWorkflowRowBodyBillingDraftAssigneeShareBasisPointsMin).max(updateFirmWorkflowRowBodyBillingDraftAssigneeShareBasisPointsMax)
+}).optional(),
   "assignedToId": zod.number().nullish(),
   "status": zod.enum(['Unassigned', 'Assigned', 'Strategy', 'Client Review', 'Drafting', 'Proofing', 'Ready to File', 'Filed', 'On Hold', 'Revisions', 'Client Approved']).optional(),
   "statusDate": zod.string().regex(updateFirmWorkflowRowBodyStatusDateRegExp).optional(),
@@ -175,6 +367,13 @@ export const GetFirmBillingResponse = zod.object({
   "prebilledOn": zod.string().nullable(),
   "completedOn": zod.string().nullable(),
   "ownerName": zod.string(),
+  "allocations": zod.array(zod.object({
+  "userId": zod.number(),
+  "name": zod.string(),
+  "role": zod.enum(['OWNER', 'ASSIGNEE']),
+  "amountCents": zod.number()
+})).optional(),
+  "allocatedNetCents": zod.number().nullish(),
   "paidCents": zod.number(),
   "payments": zod.array(zod.object({
   "publicId": zod.string(),

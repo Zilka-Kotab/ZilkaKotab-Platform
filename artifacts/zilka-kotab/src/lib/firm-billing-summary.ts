@@ -43,9 +43,19 @@ export function dollarsToCents(input: string): number | null {
 export const centsToDollarInput = (cents: number) => (cents / 100).toFixed(2);
 export const formatUsd = (cents: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(cents / 100);
 
-/** Net share for a fee: amount * shareBasisPoints / 10000, rounded to the cent. */
-export function netCents(item: Pick<FirmBillingItem, 'kind' | 'amountCents' | 'shareBasisPoints'>): number {
-  return item.kind === 'FEE' ? Math.round((item.amountCents * item.shareBasisPoints) / 10000) : 0;
+/** Net for a fee: allocatedNetCents when allocation-backed, else legacy amount * shareBasisPoints / 10000. */
+export function netCents(item: Pick<FirmBillingItem, 'kind' | 'amountCents' | 'shareBasisPoints'> & { allocatedNetCents?: number | null }): number {
+  if (item.kind !== 'FEE') return 0;
+  if (item.allocatedNetCents != null) return item.allocatedNetCents;
+  return Math.round((item.amountCents * item.shareBasisPoints) / 10000);
+}
+export const hasAllocations = (item: Pick<FirmBillingItem, 'allocations'>) => (item.allocations?.length ?? 0) > 0;
+/** Owner, assignee and firm remainder of the single gross record. */
+export function splitOf(item: Pick<FirmBillingItem, 'amountCents' | 'allocations'>) {
+  const a = item.allocations ?? [];
+  const owner = a.filter((x) => x.role === 'OWNER').reduce((s, x) => s + x.amountCents, 0);
+  const assignee = a.filter((x) => x.role === 'ASSIGNEE').reduce((s, x) => s + x.amountCents, 0);
+  return { owner, assignee, firm: item.amountCents - owner - assignee, ownerName: a.find((x) => x.role === 'OWNER')?.name ?? '', assigneeName: a.find((x) => x.role === 'ASSIGNEE')?.name ?? '' };
 }
 export const balanceCents = (item: Pick<FirmBillingItem, 'amountCents' | 'paidCents'>) => Math.max(0, item.amountCents - item.paidCents);
 export const isLocked = (item: Pick<FirmBillingItem, 'paidCents' | 'invoiceNumber' | 'invoiceDate'>) => item.paidCents > 0 || !!item.invoiceNumber || !!item.invoiceDate;
@@ -111,12 +121,13 @@ export function yearsIn(items: FirmBillingItem[]): number[] {
   return [...set].sort((a, b) => b - a);
 }
 
-export const RAW_HEADERS = ['FILED/COMPLETED', 'CLIENT', 'MATTER', 'FEES', 'CODE', 'JURISDICTION', 'SUBJECT MATTER', 'ITEM', 'ITEM DETAILS', 'NOTES', 'GROSS', '%', 'ASSOCIATE', 'NET', 'INVOICE NUMBER', 'INVOICE DATE', 'PAID', 'BALANCE', 'LAST PAYMENT DATE', 'PAYMENT REFERENCES', 'VOIDED', 'PRE-BILLED', 'PRE-BILL DATE', 'ACTUAL COMPLETION DATE', 'BILLING WORK DATE'] as const;
+export const RAW_HEADERS = ['FILED/COMPLETED', 'CLIENT', 'MATTER', 'FEES', 'CODE', 'JURISDICTION', 'SUBJECT MATTER', 'ITEM', 'ITEM DETAILS', 'NOTES', 'GROSS', '%', 'ASSOCIATE', 'NET', 'INVOICE NUMBER', 'INVOICE DATE', 'PAID', 'BALANCE', 'LAST PAYMENT DATE', 'PAYMENT REFERENCES', 'VOIDED', 'PRE-BILLED', 'PRE-BILL DATE', 'ACTUAL COMPLETION DATE', 'BILLING WORK DATE', 'OWNER', 'OWNER AMOUNT', 'ASSIGNEE', 'ASSIGNEE AMOUNT', 'FIRM REMAINDER'] as const;
 
 export type RawCell = string | number;
 /** Raw billing rows mirroring the uploaded template. Money in dollars (numbers), text as strings. */
 export function rawRows(items: FirmBillingItem[]): RawCell[][] {
   return [...items].sort((a, b) => a.workDate.localeCompare(b.workDate)).map((i) => {
+    const sp = splitOf(i); const alloc = hasAllocations(i);
     const last = [...i.payments].sort((a, b) => b.receivedOn.localeCompare(a.receivedOn))[0];
     return [
       i.workflowPublicId ? i.completedOn ?? '' : i.workDate, i.client, i.matter, i.kind, i.code, i.jurisdiction, i.subjectMatter, (i.kind === 'FEE' ? 'Flat fee' : i.kind === 'EXPENSE' ? 'Expense' : 'Reimbursement to firm') + (i.prebilledOn ? '*' : ''), i.description, i.notes,
@@ -124,6 +135,7 @@ export function rawRows(items: FirmBillingItem[]): RawCell[][] {
       i.invoiceNumber, i.invoiceDate ?? '', i.paidCents / 100, balanceCents(i) / 100, last?.receivedOn ?? '',
       i.payments.map((p) => p.reference).filter(Boolean).join('; '), i.voided ? 'YES' : '',
       i.prebilledOn ? 'YES*' : '', i.prebilledOn ?? '', i.completedOn ?? '', i.workDate,
+      alloc ? sp.ownerName : '', alloc ? sp.owner / 100 : '', alloc ? sp.assigneeName : '', alloc ? sp.assignee / 100 : '', alloc ? sp.firm / 100 : '',
     ];
   });
 }

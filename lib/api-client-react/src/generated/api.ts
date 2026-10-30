@@ -26,6 +26,8 @@ import type {
   FirmBillingUpdate,
   FirmCsvInput,
   FirmCsvResult,
+  FirmFeeScheduleInput,
+  FirmFeeSchedules,
   FirmOperationResult,
   FirmOperations,
   FirmPaymentInput,
@@ -69,6 +71,142 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   }
   return result;
 };
+
+export const getGetFirmFeeSchedulesUrl = () => {
+
+
+
+
+  return `/api/portal/operations/fee-schedules`
+}
+
+export const getFirmFeeSchedules = async ( options?: RequestInit): Promise<FirmFeeSchedules> => {
+
+  return customFetch<FirmFeeSchedules>(getGetFirmFeeSchedulesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetFirmFeeSchedulesQueryKey = () => {
+    return [
+    `/api/portal/operations/fee-schedules`
+    ] as const;
+    }
+
+
+export const getGetFirmFeeSchedulesQueryOptions = <TData = Awaited<ReturnType<typeof getFirmFeeSchedules>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getFirmFeeSchedules>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetFirmFeeSchedulesQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getFirmFeeSchedules>>> = ({ signal }) => getFirmFeeSchedules({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getFirmFeeSchedules>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetFirmFeeSchedulesQueryResult = NonNullable<Awaited<ReturnType<typeof getFirmFeeSchedules>>>
+export type GetFirmFeeSchedulesQueryError = ErrorType<unknown>
+
+
+
+export function useGetFirmFeeSchedules<TData = Awaited<ReturnType<typeof getFirmFeeSchedules>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getFirmFeeSchedules>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetFirmFeeSchedulesQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateFirmFeeScheduleUrl = () => {
+
+
+
+
+  return `/api/portal/operations/fee-schedules`
+}
+
+export const createFirmFeeSchedule = async (firmFeeScheduleInput: FirmFeeScheduleInput, options?: RequestInit): Promise<FirmOperationResult> => {
+
+  return customFetch<FirmOperationResult>(getCreateFirmFeeScheduleUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(firmFeeScheduleInput)
+  }
+);}
+
+
+
+
+
+export const getCreateFirmFeeScheduleMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createFirmFeeSchedule>>, TError,{data: BodyType<FirmFeeScheduleInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createFirmFeeSchedule>>, TError,{data: BodyType<FirmFeeScheduleInput>}, TContext> => {
+
+const mutationKey = ['createFirmFeeSchedule'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createFirmFeeSchedule>>, {data: BodyType<FirmFeeScheduleInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createFirmFeeSchedule(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateFirmFeeScheduleMutationResult = NonNullable<Awaited<ReturnType<typeof createFirmFeeSchedule>>>
+    export type CreateFirmFeeScheduleMutationBody = BodyType<FirmFeeScheduleInput>
+    export type CreateFirmFeeScheduleMutationError = ErrorType<unknown>
+
+    export const useCreateFirmFeeSchedule = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createFirmFeeSchedule>>, TError,{data: BodyType<FirmFeeScheduleInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createFirmFeeSchedule>>,
+        TError,
+        {data: BodyType<FirmFeeScheduleInput>},
+        TContext
+      > => {
+      return useMutation(getCreateFirmFeeScheduleMutationOptions(options));
+    }
 
 export const getGetFirmOperationsUrl = () => {
 

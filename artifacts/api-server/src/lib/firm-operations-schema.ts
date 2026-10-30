@@ -61,6 +61,15 @@ export async function ensureFirmOperationsSchema() {
         created_at timestamptz NOT NULL DEFAULT now()
       );
       ALTER TABLE firm_billing_items ADD COLUMN IF NOT EXISTS prebilled_on date;
+      ALTER TABLE firm_workflow_rows ADD COLUMN IF NOT EXISTS priority_deadline date;
+      ALTER TABLE firm_workflow_rows ADD COLUMN IF NOT EXISTS billing_draft jsonb;
+      ALTER TABLE firm_billing_items ADD COLUMN IF NOT EXISTS allocations jsonb NOT NULL DEFAULT '[]'::jsonb;
+      CREATE TABLE IF NOT EXISTS firm_fee_schedules (
+        id serial PRIMARY KEY, public_id uuid NOT NULL DEFAULT gen_random_uuid() UNIQUE,
+        client text NOT NULL, name text NOT NULL, source_file_name text NOT NULL DEFAULT '',
+        entries jsonb NOT NULL, created_by_id integer NOT NULL REFERENCES portal_users(id),
+        created_at timestamptz NOT NULL DEFAULT now()
+      );
       CREATE UNIQUE INDEX IF NOT EXISTS firm_billing_workflow_unique ON firm_billing_items(workflow_row_id);
       CREATE TABLE IF NOT EXISTS firm_payments (
         id serial PRIMARY KEY, public_id uuid NOT NULL DEFAULT gen_random_uuid() UNIQUE,

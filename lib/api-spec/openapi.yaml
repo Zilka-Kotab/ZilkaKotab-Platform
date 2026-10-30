@@ -13,6 +13,28 @@ tags:
   - name: public-patent-tools
     description: Public USPTO-backed patent intelligence tools
 paths:
+  /portal/operations/fee-schedules:
+    get:
+      operationId: getFirmFeeSchedules
+      responses:
+        "200":
+          description: Client schedules available to authorized staff
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FirmFeeSchedules" }
+    post:
+      operationId: createFirmFeeSchedule
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/FirmFeeScheduleInput" }
+      responses:
+        "201":
+          description: Reviewed fee schedule saved
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FirmOperationResult" }
   /portal/operations:
     get:
       operationId: getFirmOperations
@@ -305,6 +327,8 @@ components:
       required: [revision]
       properties:
         revision: { type: integer, minimum: 0 }
+        priorityDeadline: { type: [string, "null"], pattern: '^\d{4}-\d{2}-\d{2}$' }
+        billingDraft: { $ref: "#/components/schemas/FirmWorkflowBilling" }
         assignedToId: { type: [integer, "null"] }
         status: { $ref: "#/components/schemas/FirmWorkflowStatus" }
         statusDate: { type: string, pattern: '^\d{4}-\d{2}-\d{2}$' }
@@ -325,6 +349,13 @@ components:
         client: { type: string }
         matter: { type: string }
         dueDate: { type: [string, "null"] }
+        priorityDeadline: { type: [string, "null"] }
+        sourceOwnerId: { type: [integer, "null"] }
+        billingDraft:
+          anyOf:
+            - { $ref: "#/components/schemas/FirmWorkflowBilling" }
+            - { type: "null" }
+        billingLocked: { type: boolean }
         sourceOwner: { type: string }
         sourceStatus: { type: string }
         assignedToId: { type: [integer, "null"] }
@@ -343,6 +374,67 @@ components:
     FirmWorkflowStatus:
       type: string
       enum: [Unassigned, Assigned, Strategy, Client Review, Drafting, Proofing, Ready to File, Filed, On Hold, Revisions, Client Approved]
+    FirmFeeEntry:
+      type: object
+      required: [id, code, jurisdiction, subjectMatter, itemShort, description, rateType, rateText, amountCents]
+      properties:
+        id: { type: string, minLength: 1, maxLength: 100 }
+        code: { type: string, minLength: 1, maxLength: 100 }
+        jurisdiction: { type: string, maxLength: 100 }
+        subjectMatter: { type: string, maxLength: 1000 }
+        itemShort: { type: string, minLength: 1, maxLength: 2000 }
+        description: { type: string, maxLength: 10000 }
+        rateType: { type: string, enum: [FLAT, HOURLY, APPROVAL, ADJUSTMENT] }
+        rateText: { type: string, maxLength: 500 }
+        amountCents: { type: [integer, "null"], minimum: 0, maximum: 1000000000 }
+    FirmFeeScheduleInput:
+      type: object
+      required: [client, name, sourceFileName, entries]
+      properties:
+        client: { type: string, minLength: 1, maxLength: 500 }
+        name: { type: string, minLength: 1, maxLength: 240 }
+        sourceFileName: { type: string, maxLength: 240 }
+        entries: { type: array, minItems: 1, maxItems: 1000, items: { $ref: "#/components/schemas/FirmFeeEntry" } }
+    FirmFeeSchedule:
+      allOf:
+        - { $ref: "#/components/schemas/FirmFeeScheduleInput" }
+        - type: object
+          required: [publicId, createdAt]
+          properties:
+            publicId: { type: string }
+            createdAt: { type: string }
+    FirmFeeSchedules:
+      type: object
+      required: [schedules]
+      properties:
+        schedules: { type: array, items: { $ref: "#/components/schemas/FirmFeeSchedule" } }
+    FirmWorkflowBilling:
+      type: object
+      required: [scheduleId, entryId, code, jurisdiction, subjectMatter, itemShort, description, details, notes, amountCents, ownerId, ownerShareBasisPoints, ownerFixedCents, assigneeId, assigneeShareBasisPoints]
+      properties:
+        scheduleId: { type: [string, "null"] }
+        entryId: { type: [string, "null"] }
+        code: { type: string, maxLength: 100 }
+        jurisdiction: { type: string, maxLength: 100 }
+        subjectMatter: { type: string, maxLength: 1000 }
+        itemShort: { type: string, minLength: 1, maxLength: 2000 }
+        description: { type: string, maxLength: 10000 }
+        details: { type: string, maxLength: 10000 }
+        notes: { type: string, maxLength: 10000 }
+        amountCents: { type: integer, minimum: 0, maximum: 1000000000 }
+        ownerId: { type: integer }
+        ownerShareBasisPoints: { type: integer, minimum: 0, maximum: 10000 }
+        ownerFixedCents: { type: [integer, "null"], minimum: 0, maximum: 1000000000 }
+        assigneeId: { type: [integer, "null"] }
+        assigneeShareBasisPoints: { type: integer, minimum: 0, maximum: 10000 }
+    FirmFeeAllocation:
+      type: object
+      required: [userId, name, role, amountCents]
+      properties:
+        userId: { type: integer }
+        name: { type: string }
+        role: { type: string, enum: [OWNER, ASSIGNEE] }
+        amountCents: { type: integer }
     FirmStatusHistory:
       type: object
       required: [events]
@@ -417,6 +509,8 @@ components:
             prebilledOn: { type: [string, "null"] }
             completedOn: { type: [string, "null"] }
             ownerName: { type: string }
+            allocations: { type: array, items: { $ref: "#/components/schemas/FirmFeeAllocation" } }
+            allocatedNetCents: { type: [integer, "null"] }
             paidCents: { type: integer }
             payments: { type: array, items: { $ref: "#/components/schemas/FirmPayment" } }
     FirmPayment:

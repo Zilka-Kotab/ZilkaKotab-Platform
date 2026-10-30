@@ -78,6 +78,7 @@
   "dependencies": {
     "exceljs": "^4.4.0",
     "jspdf": "^4.2.1",
+    "jszip": "^3.10.2",
     "pdf-lib": "^1.17.1",
     "react-helmet-async": "^3.0.0"
   }

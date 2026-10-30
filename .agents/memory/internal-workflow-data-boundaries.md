@@ -9,11 +9,17 @@ AppColl is authoritative for docket and matter fields, and its task export is th
 
 **How to apply:** Match MatterID or AttorneyRef when available; allow task-only CSV imports without a prerequisite matter-import screen. Keep source-owned versus firm-owned fields separate, enforce internal access server-side, and never delete internal progress when a source row is missing.
 
-Dashboard is the global staff area, with Workflow, Time & Billing and Settings as its tabs. Workflow is a single sheet with due date, assignee, current status, date reached and stage note. Management summaries belong above that sheet.
+Dashboard is the global staff area, with Workflow, Time & Billing and Settings as its tabs. Collapsed rows show due date, client, docket ID, task, AppColl owner and a distinct internal-assignee dropdown. Expanded rows hold Status and Billing panes. Management summaries belong above the sheet.
 
-**Why:** The user explicitly rejected separate queues and multiple milestone/date columns as too complex. They want stages to be skipped, revisited and repeated, including separate Client Review rounds for strategy and final documents.
+**Why:** The user rejected separate queues and later clarified that detailed stage checkboxes, dates and billing information should appear within an expanded row rather than cluttering the main sheet. Stages may be skipped, revisited and repeated, including separate Client Review rounds for strategy and final documents.
 
-**How to apply:** Keep tracking, assigning and viewing progress together; use a simple Upload CSV entry point. Never enforce a one-way sequence or require every stage. Preserve each explicit status occurrence with its own reached date and note, including repeated identical statuses, in expandable history. Filed completes work; returning to an earlier status reopens it without deleting invoices or receipts. Preserve older milestone data rather than dropping it. Automatic AppColl email ingestion remains future work.
+**How to apply:** Keep tracking, assigning and viewing progress together; use a simple Upload CSV entry point. Stage dates start blank until explicitly supplied; an assignment must not fabricate a reached-date event. Never enforce a one-way sequence or require every stage. Preserve each explicit status occurrence with its own reached date and note, including repeated identical statuses, in expandable history. Filed completes work; returning to an earlier status reopens it without deleting invoices or receipts. Preserve older milestone data rather than dropping it. Automatic AppColl email ingestion remains future work.
+
+An optional internal priority deadline must be earlier than the actual docket deadline, and must not replace or alter it.
+
+**Why:** The user wants an earlier working deadline while retaining the official due date.
+
+**How to apply:** Keep both dates visible and separate from imported fields. If an import moves the official deadline ahead of a saved priority date, preserve the internal value but flag it for review; operational urgency must never hide the earlier official deadline.
 
 New assignees receive actual portal access through administrator-approved accounts, not assignment-only placeholders. Non-admin dashboards include only tasks they own/contribute to in AppColl, or are assigned to internally; sharing a client or matter alone does not qualify. Administrators retain the firm-wide assignment view.
 
