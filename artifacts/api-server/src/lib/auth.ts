@@ -6,8 +6,9 @@ import * as client from "openid-client";
 
 export type AuthUser = {
   id: string;
-  tenantId: string;
-  objectId: string;
+  tenantId?: string;
+  objectId?: string;
+  clerkUserId?: string;
   email: string | null;
   displayName: string | null;
   firstName: string | null;

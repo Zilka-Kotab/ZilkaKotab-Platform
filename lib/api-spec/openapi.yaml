@@ -13,6 +13,27 @@ tags:
   - name: public-patent-tools
     description: Public USPTO-backed patent intelligence tools
 paths:
+  /auth/activate:
+    post:
+      operationId: requestPortalActivation
+      summary: Request an activation invitation for an approved portal account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PortalActivationRequest"
+      responses:
+        "202":
+          description: Generic response that does not disclose approval or account existence
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PortalActivationResult"
+        "400":
+          description: Invalid email format
+        "429":
+          description: Too many activation requests
   /portal/operations/fee-schedules:
     get:
       operationId: getFirmFeeSchedules
@@ -291,6 +312,16 @@ paths:
           description: Inquiry delivery unavailable
 components:
   schemas:
+    PortalActivationRequest:
+      type: object
+      required: [email]
+      properties:
+        email: { type: string, maxLength: 320 }
+    PortalActivationResult:
+      type: object
+      required: [message]
+      properties:
+        message: { type: string }
     FirmOperationResult:
       type: object
       required: [publicId]

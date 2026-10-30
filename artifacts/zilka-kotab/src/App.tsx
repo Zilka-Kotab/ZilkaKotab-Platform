@@ -8,6 +8,10 @@ import { useAuth } from '@workspace/entra-auth-web';
 import { Loader2, ShieldAlert } from 'lucide-react';
 import { usePortalAccess } from '@/lib/hooks-portal';
 import type { Role } from '@/lib/api-portal';
+import { ClerkProvider } from '@clerk/react';
+import { publishableKeyFromHost } from '@clerk/react/internal';
+import { clerkAppearance } from '@/lib/clerk-appearance';
+import SignUpPage from '@/pages/SignUp';
 
 // Layout Components
 import { Navbar } from '@/components/Navbar';
@@ -41,6 +45,11 @@ import FirmSettings from '@/pages/portal/FirmSettings';
 
 const queryClient = new QueryClient();
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, '');
+const clerkPubKey = publishableKeyFromHost(
+  window.location.hostname,
+  import.meta.env.VITE_CLERK_PUBLISHABLE_KEY,
+);
+const clerkProxyUrl = import.meta.env.VITE_CLERK_PROXY_URL;
 
 function stripBase(path: string): string {
   return basePath && path.startsWith(basePath)
@@ -49,11 +58,12 @@ function stripBase(path: string): string {
 }
 
 function HomeRoute() {
-  return <Home />;
+  const { isAuthenticated } = useAuth();
+  return isAuthenticated ? <Redirect to="/portal" /> : <Home />;
 }
 
 function ProtectedPortalRoute({ component: Component, requiredRole, requiredRoles }: { component: React.ComponentType; requiredRole?: Role; requiredRoles?: Role[] }) {
-  const { isLoading, isAuthenticated } = useAuth();
+  const { isLoading, isAuthenticated, logout } = useAuth();
   const { data: accessData, isLoading: isAccessLoading, error: accessError } = usePortalAccess(isAuthenticated);
 
   if (isLoading || (isAuthenticated && isAccessLoading)) {
@@ -73,6 +83,7 @@ function ProtectedPortalRoute({ component: Component, requiredRole, requiredRole
           <ShieldAlert className="mx-auto mb-4 h-12 w-12 text-red-600" />
           <h1 className="mb-2 text-2xl font-bold text-red-900">Access Not Authorized</h1>
           <p className="text-red-800">Your account is not approved for this private area.</p>
+          <button type="button" onClick={logout} className="mt-6 rounded-md bg-primary px-5 py-2 text-white">Sign out</button>
         </div>
       </div>
     );
@@ -152,6 +163,7 @@ function Router() {
           <Switch>
             <Route path="/" component={HomeRoute} />
             <Route path="/sign-in/*?" component={SignInPage} />
+            <Route path="/sign-up/*?" component={SignUpPage} />
             <Route path="/about" component={About} />
             <Route path="/services" component={Services} />
             <Route path="/team" component={Team} />
@@ -168,9 +180,24 @@ function Router() {
   );
 }
 
-function App() {
+function ClerkProviderWithRoutes() {
+  const [, setLocation] = useLocation();
   return (
-    <WouterRouter base={basePath}>
+    <ClerkProvider
+      publishableKey={clerkPubKey}
+      proxyUrl={clerkProxyUrl}
+      appearance={clerkAppearance}
+      signInUrl={`${basePath}/sign-in`}
+      signUpUrl={`${basePath}/sign-up`}
+      signInFallbackRedirectUrl={`${basePath}/portal`}
+      signUpFallbackRedirectUrl={`${basePath}/portal`}
+      localization={{
+        signIn: { start: { title: 'Firm Portal', subtitle: 'Sign in to your approved Zilka-Kotab account' } },
+        signUp: { start: { title: 'Activate your portal access', subtitle: 'Complete your Zilka-Kotab invitation' } },
+      }}
+      routerPush={(to) => setLocation(stripBase(to))}
+      routerReplace={(to) => setLocation(stripBase(to), { replace: true })}
+    >
       <QueryClientProvider client={queryClient}>
         <AuthQueryClientCacheInvalidator />
         <TooltipProvider>
@@ -180,8 +207,12 @@ function App() {
           <Toaster />
         </TooltipProvider>
       </QueryClientProvider>
-    </WouterRouter>
+    </ClerkProvider>
   );
+}
+
+function App() {
+  return <WouterRouter base={basePath}><ClerkProviderWithRoutes /></WouterRouter>;
 }
 
 export default App;

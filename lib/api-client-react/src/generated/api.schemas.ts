@@ -5,6 +5,15 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+export interface PortalActivationRequest {
+  /** @maxLength 320 */
+  email: string;
+}
+
+export interface PortalActivationResult {
+  message: string;
+}
+
 export interface FirmOperationResult {
   publicId: string;
 }

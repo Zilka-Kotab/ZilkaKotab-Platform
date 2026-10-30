@@ -7,7 +7,7 @@ const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
  * Creates the configured first-admin authorization record once.
  *
  * This does not authenticate anyone and is not an access bypass. The normal
- * Microsoft callback still has to validate the user's identity, then bind its
+ * Clerk session still has to validate the user's identity, then bind its
  * verified email to this authorization record before portal access is granted.
  */
 export async function ensureInitialAdminAuthorization() {

@@ -8,6 +8,22 @@
 import * as zod from 'zod';
 
 
+/**
+ * @summary Request an activation invitation for an approved portal account
+ */
+export const requestPortalActivationBodyEmailMax = 320;
+
+
+
+export const RequestPortalActivationBody = zod.object({
+  "email": zod.string().max(requestPortalActivationBodyEmailMax)
+})
+
+export const RequestPortalActivationResponse = zod.object({
+  "message": zod.string()
+})
+
+
 export const getFirmFeeSchedulesResponseSchedulesItemOneClientMax = 500;
 
 export const getFirmFeeSchedulesResponseSchedulesItemOneNameMax = 240;

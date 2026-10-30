@@ -4,6 +4,7 @@ import { logger } from "./lib/logger";
 import { scheduleFirmRefresh } from "./lib/firm-benchmark-store";
 import { ensureInitialAdminAuthorization, ensurePatentMonitorTool } from "./lib/bootstrap";
 import { ensureFirmOperationsSchema } from "./lib/firm-operations-schema";
+import { ensureClerkSchema } from "./lib/clerk-schema";
 
 const rawPort = process.env["PORT"];
 
@@ -24,6 +25,7 @@ pool.on("error", (err) => {
 });
 
 async function start() {
+  await ensureClerkSchema();
   await ensureFirmOperationsSchema();
   await ensureInitialAdminAuthorization();
   await ensurePatentMonitorTool();

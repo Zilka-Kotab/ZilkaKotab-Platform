@@ -25,7 +25,7 @@ function SettingsPage() {
             <div key={k} className="bg-card px-4 py-3"><dt className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">{k}</dt><dd className="mt-1 truncate text-sm font-medium" data-testid={`text-setting-${k.toLowerCase()}`}>{v}</dd></div>
           ))}
         </dl>
-        <p className="mt-2 text-xs text-muted-foreground">Account details come from firm Microsoft sign-in and are managed by an administrator.</p>
+        <p className="mt-2 text-xs text-muted-foreground">Identity is verified by Clerk. Portal roles and assignments are managed by a firm administrator.</p>
 
         {user?.role === 'ADMIN' && <AddPortalUser />}
         {user?.role === 'ADMIN' && <FeeScheduleImport />}

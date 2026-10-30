@@ -34,6 +34,8 @@ import type {
   FirmStatusHistory,
   FirmWorkflowUpdate,
   HealthStatus,
+  PortalActivationRequest,
+  PortalActivationResult,
   PublicExaminerAnalysis,
   PublicExaminerInput,
   PublicExaminerRceContinuation,
@@ -71,6 +73,77 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   }
   return result;
 };
+
+export const getRequestPortalActivationUrl = () => {
+
+
+
+
+  return `/api/auth/activate`
+}
+
+/**
+ * @summary Request an activation invitation for an approved portal account
+ */
+export const requestPortalActivation = async (portalActivationRequest: PortalActivationRequest, options?: RequestInit): Promise<PortalActivationResult> => {
+
+  return customFetch<PortalActivationResult>(getRequestPortalActivationUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(portalActivationRequest)
+  }
+);}
+
+
+
+
+
+export const getRequestPortalActivationMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof requestPortalActivation>>, TError,{data: BodyType<PortalActivationRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof requestPortalActivation>>, TError,{data: BodyType<PortalActivationRequest>}, TContext> => {
+
+const mutationKey = ['requestPortalActivation'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof requestPortalActivation>>, {data: BodyType<PortalActivationRequest>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  requestPortalActivation(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RequestPortalActivationMutationResult = NonNullable<Awaited<ReturnType<typeof requestPortalActivation>>>
+    export type RequestPortalActivationMutationBody = BodyType<PortalActivationRequest>
+    export type RequestPortalActivationMutationError = ErrorType<void>
+
+    /**
+ * @summary Request an activation invitation for an approved portal account
+ */
+export const useRequestPortalActivation = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof requestPortalActivation>>, TError,{data: BodyType<PortalActivationRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof requestPortalActivation>>,
+        TError,
+        {data: BodyType<PortalActivationRequest>},
+        TContext
+      > => {
+      return useMutation(getRequestPortalActivationMutationOptions(options));
+    }
 
 export const getGetFirmFeeSchedulesUrl = () => {
 

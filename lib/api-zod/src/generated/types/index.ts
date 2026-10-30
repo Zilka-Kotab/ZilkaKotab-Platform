@@ -34,6 +34,8 @@ export * from './firmWorkflowRow';
 export * from './firmWorkflowStatus';
 export * from './firmWorkflowUpdate';
 export * from './healthStatus';
+export * from './portalActivationRequest';
+export * from './portalActivationResult';
 export * from './publicApplicantCandidate';
 export * from './publicCompanyNameDiscovery';
 export * from './publicCompanyNameDiscoverySourcesItem';

@@ -11,15 +11,17 @@ import {
 } from "@workspace/db";
 import operations from "../src/routes/firm-operations";
 import { ensureFirmOperationsSchema } from "../src/lib/firm-operations-schema";
+import { ensureClerkSchema } from "../src/lib/clerk-schema";
 
 // Explicit opt-in: creates/cleans synthetic records in the development database only.
 test("CSV -> assignment -> milestones -> one billing row -> invoice -> partial receipts", { skip: process.env.RUN_FIRM_OPERATIONS_DB_TEST !== "1" }, async () => {
   await ensureFirmOperationsSchema();
+  await ensureClerkSchema();
   const marker = `ops-test-${randomUUID()}`;
   const users = await db.insert(portalUsersTable).values(
     (["ADMIN", "ATTORNEY", "CLIENT"] as const).map((role) => ({
       email: `${marker}-${role.toLowerCase()}@example.invalid`, name: `${marker} ${role}`,
-      role, status: "ACTIVE" as const, active: true, microsoftTenantId: randomUUID(), microsoftObjectId: randomUUID(),
+      role, status: "ACTIVE" as const, active: true, clerkUserId: `user_test_${randomUUID()}`,
     })),
   ).returning();
   const [admin, attorney, client] = users;
@@ -29,7 +31,7 @@ test("CSV -> assignment -> milestones -> one billing row -> invoice -> partial r
   app.use((req, _res, next) => {
     const user = users.find((u) => String(u.id) === req.headers["x-test-actor"]);
     req.isAuthenticated = (() => !!req.user) as typeof req.isAuthenticated;
-    if (user) req.user = { id: user.publicId, tenantId: user.microsoftTenantId!, objectId: user.microsoftObjectId!, email: user.email, displayName: user.name, firstName: null, lastName: null };
+    if (user) req.user = { id: user.clerkUserId!, clerkUserId: user.clerkUserId!, email: user.email, displayName: user.name, firstName: null, lastName: null };
     next();
   });
   app.use(operations);
@@ -160,7 +162,7 @@ test("CSV -> assignment -> milestones -> one billing row -> invoice -> partial r
     assert.equal((await getPreBill())[0].completedOn, "2026-04-06");
     assert.equal((await getPreBill())[0].paidCents, 25000);
     // Unrelated attorneys cannot see this financial record or task.
-    const other = await db.insert(portalUsersTable).values({ email: `${marker}-other@example.invalid`, name: `${marker} Other`, role: "ATTORNEY", status: "ACTIVE", active: true, microsoftTenantId: randomUUID(), microsoftObjectId: randomUUID() }).returning();
+    const other = await db.insert(portalUsersTable).values({ email: `${marker}-other@example.invalid`, name: `${marker} Other`, role: "ATTORNEY", status: "ACTIVE", active: true, clerkUserId: `user_test_${randomUUID()}` }).returning();
     users.push(other[0]!);
     assert.equal((await request("", "GET", undefined, other[0]!)).body.rows.some((r: any) => r.publicId === row.publicId), false);
     assert.equal((await request(`/rows/${preRow.publicId}/history`, "GET", undefined, other[0]!)).status, 404);

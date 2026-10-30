@@ -1,129 +1,78 @@
-import { Router, type Request, type Response } from "express";
-import * as oidc from "openid-client";
-import {
-  authUserFromMicrosoftClaims,
-  clearSession,
-  createCsrfToken,
-  createSession,
-  CSRF_COOKIE,
-  getMicrosoftOidcConfig,
-  getSessionId,
-  SESSION_ABSOLUTE_TTL,
-  SESSION_COOKIE,
-} from "../lib/auth";
+import { Router } from "express";
+import { clerkClient } from "@clerk/express";
+import { db, portalUsersTable } from "@workspace/db";
+import { and, eq, isNull, lt, or, sql } from "drizzle-orm";
+import { getClerkProxyHost } from "../middlewares/clerkProxyMiddleware";
+import { logger } from "../lib/logger";
 
 const router = Router();
-const OIDC_TTL = 10 * 60 * 1000;
-const AUTH_RATE_WINDOW = 15 * 60 * 1000;
-const AUTH_RATE_LIMIT = 20;
-const authAttempts = new Map<string, { count: number; resetsAt: number }>();
-const safeReturn = (value: unknown) =>
-  typeof value === "string" && value.startsWith("/") && !value.startsWith("//") ? value : "/portal";
-const appBaseUrl = () => {
-  const value = process.env.APP_BASE_URL?.replace(/\/+$/, "");
-  if (!value) throw new Error("APP_BASE_URL is required.");
-  return value;
-};
-const callbackUrl = () => `${appBaseUrl()}/api/auth/microsoft/callback`;
-const secureCookie = process.env.NODE_ENV === "production";
-const oidcCookie = (res: Response, name: string, value: string) =>
-  res.cookie(name, value, { httpOnly: true, secure: secureCookie, sameSite: "lax", path: "/", maxAge: OIDC_TTL });
-const clearOidcCookies = (res: Response) => {
-  for (const name of ["microsoft_code_verifier", "microsoft_nonce", "microsoft_state", "microsoft_return_to"]) {
-    res.clearCookie(name, { path: "/" });
-  }
-};
-const authRateLimit = (req: Request, res: Response, next: () => void) => {
-  const key = req.ip || "unknown";
-  const now = Date.now();
-  const current = authAttempts.get(key);
-  if (!current || current.resetsAt <= now) {
-    authAttempts.set(key, { count: 1, resetsAt: now + AUTH_RATE_WINDOW });
-    next();
-    return;
-  }
-  current.count += 1;
-  if (current.count > AUTH_RATE_LIMIT) {
-    res.setHeader("Retry-After", Math.ceil((current.resetsAt - now) / 1000));
-    res.status(429).json({ error: "Too many authentication attempts. Please try again later." });
-    return;
-  }
-  next();
-};
+const attempts = new Map<string, { count: number; until: number }>();
+const genericResponse = { message: "If this email has approved portal access, you will receive an activation invitation. If you already have an account, sign in or use Forgot password." };
 
 router.get("/auth/user", (req, res) => res.json({ user: req.isAuthenticated() ? req.user : null }));
 
-router.get("/auth/microsoft/login", authRateLimit, async (req, res, next) => {
-  try {
-    const config = await getMicrosoftOidcConfig();
-    const state = oidc.randomState();
-    const nonce = oidc.randomNonce();
-    const verifier = oidc.randomPKCECodeVerifier();
-    const url = oidc.buildAuthorizationUrl(config, {
-      redirect_uri: callbackUrl(),
-      scope: "openid email profile",
-      response_type: "code",
-      response_mode: "query",
-      code_challenge: await oidc.calculatePKCECodeChallenge(verifier),
-      code_challenge_method: "S256",
-      state,
-      nonce,
-    });
-    oidcCookie(res, "microsoft_code_verifier", verifier);
-    oidcCookie(res, "microsoft_nonce", nonce);
-    oidcCookie(res, "microsoft_state", state);
-    oidcCookie(res, "microsoft_return_to", safeReturn(req.query.returnTo));
-    res.redirect(url.href);
-  } catch (error) {
-    next(error);
+// Existing approved users can activate their account without a public registration path.
+// No records, roles, client assignments, or privileges are created by this endpoint.
+router.post("/auth/activate", async (req, res, next) => {
+  const now = Date.now();
+  const key = req.ip || "unknown";
+  if (attempts.size > 1000) for (const [ip, item] of attempts) if (item.until < now) attempts.delete(ip);
+  const attempt = attempts.get(key);
+  if (attempt && attempt.until > now && attempt.count >= 6) {
+    res.status(429).json({ error: "Too many activation requests. Please try again later." });
+    return;
   }
+  attempts.set(key, { until: attempt && attempt.until > now ? attempt.until : now + 15 * 60_000, count: attempt && attempt.until > now ? attempt.count + 1 : 1 });
+  const email = typeof req.body?.email === "string" ? req.body.email.trim().toLowerCase() : "";
+  if (email.length > 320 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    res.status(400).json({ error: "Enter a valid email address." });
+    return;
+  }
+  try {
+    const candidates = await db.select({ id: portalUsersTable.id }).from(portalUsersTable)
+      .where(and(
+        sql`lower(btrim(${portalUsersTable.email})) = ${email}`,
+        eq(portalUsersTable.active, true),
+        eq(portalUsersTable.status, "ACTIVE"),
+      )).limit(2);
+    if (candidates.length !== 1) {
+      res.status(202).json(genericResponse);
+      return;
+    }
+    // Persist the per-address limit: works across autoscaled instances.
+    const sentAt = new Date();
+    const [eligible] = await db.update(portalUsersTable).set({ clerkInvitationSentAt: sentAt })
+      .where(and(
+        eq(portalUsersTable.id, candidates[0].id),
+        eq(portalUsersTable.active, true),
+        eq(portalUsersTable.status, "ACTIVE"),
+        isNull(portalUsersTable.clerkUserId),
+        or(isNull(portalUsersTable.clerkInvitationSentAt), lt(portalUsersTable.clerkInvitationSentAt, new Date(now - 60 * 60_000))),
+      )).returning({ id: portalUsersTable.id });
+    if (eligible) {
+      try {
+        const existing = await clerkClient.users.getUserList({ emailAddress: [email], limit: 1 });
+        if (existing.totalCount === 0) {
+          const origin = process.env.NODE_ENV === "production"
+            ? process.env.APP_BASE_URL
+            : `${req.protocol}://${getClerkProxyHost(req)}`;
+          if (!origin) throw new Error("Portal origin is not configured.");
+          const redirectUrl = new URL("/sign-up", origin).href;
+          await clerkClient.invitations.createInvitation({ emailAddress: email, redirectUrl, expiresInDays: 7, ignoreExisting: true });
+        }
+      } catch (error) {
+        await db.update(portalUsersTable).set({ clerkInvitationSentAt: null })
+          .where(and(eq(portalUsersTable.id, eligible.id), eq(portalUsersTable.clerkInvitationSentAt, sentAt)));
+        // Deliberately do not disclose whether an address belongs to the firm.
+        logger.error({ err: error, portalUserId: eligible.id }, "Clerk activation invitation failed");
+      }
+    }
+    res.status(202).json(genericResponse);
+  } catch (error) { next(error); }
 });
 
-router.get("/auth/microsoft/callback", authRateLimit, async (req, res) => {
-  const verifier = req.cookies?.microsoft_code_verifier;
-  const state = req.cookies?.microsoft_state;
-  const nonce = req.cookies?.microsoft_nonce;
-  if (!verifier || !state || !nonce) return void res.redirect("/sign-in?error=invalid_auth_request");
-  try {
-    const currentUrl = new URL(`${callbackUrl()}?${new URL(req.url, "http://localhost").searchParams}`);
-    const tokens = await oidc.authorizationCodeGrant(await getMicrosoftOidcConfig(), currentUrl, {
-      pkceCodeVerifier: verifier,
-      expectedNonce: nonce,
-      expectedState: state,
-      idTokenExpected: true,
-    });
-    const claims = tokens.claims();
-    if (!claims) throw new Error("Microsoft did not return identity claims.");
-    const user = authUserFromMicrosoftClaims(claims as unknown as Record<string, unknown>);
-    const now = Date.now();
-    const sid = await createSession({ user, createdAt: now, lastSeenAt: now });
-    const csrfToken = createCsrfToken();
-    res.cookie(SESSION_COOKIE, sid, {
-      httpOnly: true,
-      secure: secureCookie,
-      sameSite: "lax",
-      path: "/",
-      maxAge: SESSION_ABSOLUTE_TTL,
-    });
-    res.cookie(CSRF_COOKIE, csrfToken, {
-      httpOnly: false,
-      secure: secureCookie,
-      sameSite: "lax",
-      path: "/",
-      maxAge: SESSION_ABSOLUTE_TTL,
-    });
-    const returnTo = safeReturn(req.cookies?.microsoft_return_to);
-    clearOidcCookies(res);
-    res.redirect(returnTo);
-  } catch {
-    clearOidcCookies(res);
-    res.redirect("/sign-in?error=microsoft_auth_failed");
-  }
-});
-
-router.get("/auth/logout", async (req, res) => {
-  await clearSession(res, getSessionId(req));
-  res.redirect(safeReturn(req.query.returnTo));
-});
+// Retired Microsoft URLs do not establish sessions or accept old credentials.
+router.get("/auth/microsoft/login", (_req, res) => res.redirect("/sign-in"));
+router.get("/auth/microsoft/callback", (_req, res) => res.redirect("/sign-in"));
 
 export default router;
