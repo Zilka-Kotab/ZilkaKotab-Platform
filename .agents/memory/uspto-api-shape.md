@@ -5,6 +5,12 @@ description: Non-obvious request and document URL details for USPTO Patent File 
 
 ## Office Action contact evidence
 
+OCR worker termination does not necessarily settle its outstanding recognition promise. A timeout must reject the awaiting caller independently and release any serialized queue, even if the underlying library operation never returns.
+
+**Why:** A network-free reproduction with the installed Tesseract library terminated an active worker but left recognition pending. Awaiting that promise indefinitely can hold the process-wide PDF queue and block unrelated examiner lookups beyond the nominal timeout.
+
+**How to apply:** Exercise cancellation during active recognition and while waiting for the queue. Do not treat worker shutdown alone as a completed timeout. Keep optional document enrichment from making core examiner statistics unavailable.
+
 ODP Office Action PDFs are frequently image-only, even when they were generated electronically. An empty native text layer is not evidence that contact information is absent: use bounded OCR and disclose the sampled-page limits. Keep documents transient and persist only verified contact/provenance metadata.
 
 **Why:** Live examiner actions yielded empty text extraction while OCR recovered the examiner-named telephone paragraph. That paragraph also includes a supervisor's number and help-desk details, which must not be assigned to the selected examiner.
