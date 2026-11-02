@@ -2,7 +2,7 @@ const DIRECTORY = "https://portal.uspto.gov/EmployeeSearch/";
 const SEARCH = "https://portal.uspto.gov/es-services/employees/search/name";
 type Employee = {
   firstName?: string; lastName?: string; middleName?: string; coreAreaCode?: string;
-  email?: string; emailAddress?: string; displayPhoneNo?: string; phoneNo?: string; extension?: string;
+  displayPhoneNo?: string; phoneNo?: string; extension?: string;
 };
 export type ExaminerContact = {
   status: "matched" | "unavailable" | "ambiguous";
@@ -41,7 +41,8 @@ export async function lookupExaminerContact(name: string): Promise<ExaminerConta
   const found = cache.get(key);
   if (found && found.expires > Date.now()) return found.value;
   const value = (async (): Promise<ExaminerContact> => {
-    const base = { email: null, phone: null, sourceUrl: DIRECTORY, checkedAt: new Date().toISOString() };
+    const base = { email: null, phone: null, sourceUrl: DIRECTORY, checkedAt: new Date().toISOString(),
+      confidence: "none" as const, verificationMethod: "unverified" as const, sourceDocuments: [] };
     try {
       const last = name.includes(",") ? name.split(",")[0].trim() : name.trim().split(/\s+/).at(-1)!;
       const first = normalize(name.includes(",") ? name.split(",").slice(1).join(" ") : name).split(" ")[0];
@@ -51,25 +52,31 @@ export async function lookupExaminerContact(name: string): Promise<ExaminerConta
       url.searchParams.set("Employee name", `${last}, ${first}`);
       url.searchParams.set("Page number", "1");
       url.searchParams.set("Page size", "100");
-      const response = await fetch(url, { signal: AbortSignal.timeout(8000) });
+      const response = await fetch(url, { signal: AbortSignal.timeout(4000) });
       if (!response.ok) throw new Error("USPTO directory unavailable");
       const data = await response.json() as { data?: Employee[]; totalRecords?: number; hasNextPage?: boolean };
       if (!Array.isArray(data.data)) throw new Error("Unexpected USPTO directory response");
       const match = !data.hasNextPage && (data.totalRecords ?? data.data.length) <= data.data.length
         ? matchExaminerContact(name, data.data) : null;
       if (!match) return { ...base, status: "ambiguous", note: "A unique patent-examiner identity could not be verified in the USPTO employee directory. Check the official directory; no contact details have been inferred." };
-      const listedEmail = match.email ?? match.emailAddress ?? "";
-      const email = /^[a-z0-9._%+-]+@uspto\.gov$/i.test(listedEmail.trim()) ? listedEmail.trim() : null;
       const rawPhone = (match.displayPhoneNo ?? match.phoneNo ?? "").trim();
       const extension = /^\d{1,6}$/.test(match.extension?.trim() ?? "") ? ` ext. ${match.extension!.trim()}` : "";
       const phone = rawPhone.replace(/\D/g, "").length === 10 ? rawPhone + extension : null;
-      return { ...base, status: "matched", email, phone,
-        note: email ? "Contact information as listed in the USPTO employee directory." : "Email is not published in the returned USPTO directory record; no address has been inferred." };
+      return { ...base, status: phone ? "matched" : "unavailable", phone,
+        confidence: phone ? "moderate" : "none", verificationMethod: "directory",
+        note: phone ? "Phone number as listed for the uniquely matched patent examiner in the USPTO employee directory."
+          : "No valid phone number was published for the matched examiner. Check the official USPTO directory." };
     } catch {
-      return { ...base, status: "unavailable", note: "The USPTO employee directory could not be checked. Contact details are unavailable, not inferred." };
+      return { ...base, status: "unavailable", note: "The USPTO employee directory could not be checked within the lookup limit. Phone number is Not Available; other examiner statistics are unaffected." };
     }
   })();
   if (cache.size >= 300) cache.delete(cache.keys().next().value!);
   cache.set(key, { expires: Date.now() + 15 * 60_000, value });
+  void value.then((result) => {
+    const entry = cache.get(key);
+    // Retry missing/failed lookups sooner without repeatedly hitting a slow
+    // directory. Successful numbers stay cached for fifteen minutes.
+    if (entry?.value === value && !result.phone) entry.expires = Date.now() + 60_000;
+  });
   return value;
 }

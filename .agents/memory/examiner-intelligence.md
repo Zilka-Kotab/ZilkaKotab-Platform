@@ -11,9 +11,9 @@ The public Patent Examiner Intelligence tool is for patent prosecution attorneys
 
 ## Contact details and strategy scope
 
-The user requests official USPTO examiner contact details at the top of results, followed by a **very succinct** AI Recommended Strategy. The example is illustrative, not fixed copy to reuse across examiners.
+The user requests official USPTO examiner **phone only** at the top of results, followed by a **very succinct** AI Recommended Strategy. The example is illustrative, not fixed copy to reuse across examiners. Email retrieval and Office Action PDF/OCR contact scanning are no longer in scope; do not re-enable them without an explicit request.
 
-**Why:** These additions should make the metrics actionable without implying that historical correlations establish causation or case-specific legal conclusions. The public directory can supply a telephone number without supplying an email address.
+**Why:** The user explicitly dropped examiner email retrieval to restore reliable, faster loading after the document/OCR lookup introduced long delays and stuck requests. The public directory supplies phone numbers without that work. Recommendations should remain actionable without implying that historical correlations establish causation or case-specific legal conclusions.
 
 **How to apply:** Use verified directory identity matches, never constructed email addresses. Show explicit unavailable states. Keep the generated recommendation brief and conditional, use only supported metrics, and withhold it for inadequate samples. Do not imply the aggregate interview comparison establishes the optimal interview timing, or recommend Track One for an ineligible already-pending case. Do not include unresolved asynchronous RCE/continuation results as if they were final.
 
