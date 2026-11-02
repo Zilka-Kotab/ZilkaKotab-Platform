@@ -883,6 +883,84 @@ export interface PublicExaminerRceContinuation {
   note: string;
 }
 
+export type PublicExaminerContactConfidence = typeof PublicExaminerContactConfidence[keyof typeof PublicExaminerContactConfidence];
+
+
+export const PublicExaminerContactConfidence = {
+  high: 'high',
+  moderate: 'moderate',
+  none: 'none',
+} as const;
+
+export type PublicExaminerContactVerificationMethod = typeof PublicExaminerContactVerificationMethod[keyof typeof PublicExaminerContactVerificationMethod];
+
+
+export const PublicExaminerContactVerificationMethod = {
+  odp_document: 'odp_document',
+  directory: 'directory',
+  unverified: 'unverified',
+} as const;
+
+export type PublicExaminerContactStatus = typeof PublicExaminerContactStatus[keyof typeof PublicExaminerContactStatus];
+
+
+export const PublicExaminerContactStatus = {
+  matched: 'matched',
+  unavailable: 'unavailable',
+  ambiguous: 'ambiguous',
+} as const;
+
+export type PublicExaminerContactDocumentExtractionMethod = typeof PublicExaminerContactDocumentExtractionMethod[keyof typeof PublicExaminerContactDocumentExtractionMethod];
+
+
+export const PublicExaminerContactDocumentExtractionMethod = {
+  text: 'text',
+  ocr: 'ocr',
+} as const;
+
+export interface PublicExaminerContactDocument {
+  applicationNumber: string;
+  documentIdentifier: string;
+  documentCode: string;
+  documentDate: string;
+  sourceUrl: string;
+  pageNumber: number;
+  evidenceText: string;
+  extractionMethod: PublicExaminerContactDocumentExtractionMethod;
+}
+
+export interface PublicExaminerContact {
+  confidence?: PublicExaminerContactConfidence;
+  verificationMethod?: PublicExaminerContactVerificationMethod;
+  sourceDocuments?: PublicExaminerContactDocument[];
+  status: PublicExaminerContactStatus;
+  /** @nullable */
+  email: string | null;
+  /** @nullable */
+  phone: string | null;
+  sourceUrl: string;
+  checkedAt: string;
+  note: string;
+}
+
+export type PublicExaminerStrategyStatus = typeof PublicExaminerStrategyStatus[keyof typeof PublicExaminerStrategyStatus];
+
+
+export const PublicExaminerStrategyStatus = {
+  ready: 'ready',
+  insufficient_data: 'insufficient_data',
+  unavailable: 'unavailable',
+} as const;
+
+export interface PublicExaminerStrategy {
+  status: PublicExaminerStrategyStatus;
+  /** @nullable */
+  summary: string | null;
+  /** @nullable */
+  approach: string | null;
+  note: string;
+}
+
 export type PublicExaminerAnalysisSearchType = typeof PublicExaminerAnalysisSearchType[keyof typeof PublicExaminerAnalysisSearchType];
 
 
@@ -969,6 +1047,8 @@ export type PublicExaminerAnalysisInterviewAnalytics = {
 };
 
 export interface PublicExaminerAnalysis {
+  examinerContact?: PublicExaminerContact;
+  recommendedStrategy?: PublicExaminerStrategy;
   query: string;
   applicationNumberContext?: string;
   searchType: PublicExaminerAnalysisSearchType;

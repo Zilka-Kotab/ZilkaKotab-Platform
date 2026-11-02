@@ -1171,6 +1171,67 @@ components:
           $ref: "#/components/schemas/PublicExaminerBehaviorMetric"
         note:
           type: string
+    PublicExaminerContact:
+      type: object
+      required: [status, email, phone, sourceUrl, checkedAt, note]
+      properties:
+        confidence:
+          type: string
+          enum: [high, moderate, none]
+        verificationMethod:
+          type: string
+          enum: [odp_document, directory, unverified]
+        sourceDocuments:
+          type: array
+          items:
+            $ref: "#/components/schemas/PublicExaminerContactDocument"
+        status:
+          type: string
+          enum: [matched, unavailable, ambiguous]
+        email:
+          type: ["string", "null"]
+        phone:
+          type: ["string", "null"]
+        sourceUrl:
+          type: string
+        checkedAt:
+          type: string
+        note:
+          type: string
+    PublicExaminerContactDocument:
+      type: object
+      required: [applicationNumber, documentIdentifier, documentCode, documentDate, sourceUrl, pageNumber, evidenceText, extractionMethod]
+      properties:
+        applicationNumber:
+          type: string
+        documentIdentifier:
+          type: string
+        documentCode:
+          type: string
+        documentDate:
+          type: string
+        sourceUrl:
+          type: string
+        pageNumber:
+          type: integer
+        evidenceText:
+          type: string
+        extractionMethod:
+          type: string
+          enum: [text, ocr]
+    PublicExaminerStrategy:
+      type: object
+      required: [status, summary, approach, note]
+      properties:
+        status:
+          type: string
+          enum: [ready, insufficient_data, unavailable]
+        summary:
+          type: ["string", "null"]
+        approach:
+          type: ["string", "null"]
+        note:
+          type: string
     PublicExaminerAnalysis:
       type: object
       additionalProperties: false
@@ -1191,6 +1252,10 @@ components:
         - calculationNote
         - coverage
       properties:
+        examinerContact:
+          $ref: "#/components/schemas/PublicExaminerContact"
+        recommendedStrategy:
+          $ref: "#/components/schemas/PublicExaminerStrategy"
         query:
           type: string
         applicationNumberContext:

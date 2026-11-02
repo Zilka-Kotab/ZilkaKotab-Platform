@@ -6,6 +6,7 @@ import type { PublicExaminerAnalysis } from '@workspace/api-client-react';
 import { CoverageLedger, EmptyPanel, ErrorPanel, Metric, ResultSkeleton, errorMessage, fmtNum } from './shared';
 import { ExaminerSnapshotPdfButton } from './ExaminerSnapshotPdfButton';
 import { ExaminerProsecutionBehavior } from './ExaminerProsecutionBehavior';
+import { ExaminerGuidance } from './ExaminerGuidance';
 import { examinerActivitySpan } from './examiner-activity';
 import { QuestionsWorthAsking, QuestionsContactCTA } from './QuestionsWorthAsking';
 
@@ -90,6 +91,7 @@ function ExaminerResult({ data }: { data: PublicExaminerAnalysis }) {
           <ExaminerSnapshotPdfButton data={data} />
         </div>
         {data.applicationNumberContext && <p className="mt-2 text-sm text-muted-foreground">Profile opened from application <span className="font-mono">{data.applicationNumberContext}</span>. The profile reflects the examiner currently listed; earlier prosecution may have involved another examiner.</p>}
+        <ExaminerGuidance data={data} />
         {data.artUnit && data.allowanceBenchmarks && (
           <section className="mt-5 border-l-4 border-[hsl(var(--zk-brass))] bg-muted/50 p-4 sm:p-5" data-testid="art-unit-overview">
             <div className="flex flex-wrap items-center gap-x-5 gap-y-2">

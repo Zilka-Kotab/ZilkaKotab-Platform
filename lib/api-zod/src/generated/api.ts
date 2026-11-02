@@ -950,6 +950,32 @@ export const analyzePublicExaminerResponseCoverageResultLimitMin = 0;
 
 
 export const AnalyzePublicExaminerResponse = zod.object({
+  "examinerContact": zod.object({
+  "confidence": zod.enum(['high', 'moderate', 'none']).optional(),
+  "verificationMethod": zod.enum(['odp_document', 'directory', 'unverified']).optional(),
+  "sourceDocuments": zod.array(zod.object({
+  "applicationNumber": zod.string(),
+  "documentIdentifier": zod.string(),
+  "documentCode": zod.string(),
+  "documentDate": zod.string(),
+  "sourceUrl": zod.string(),
+  "pageNumber": zod.number(),
+  "evidenceText": zod.string(),
+  "extractionMethod": zod.enum(['text', 'ocr'])
+})).optional(),
+  "status": zod.enum(['matched', 'unavailable', 'ambiguous']),
+  "email": zod.string().nullable(),
+  "phone": zod.string().nullable(),
+  "sourceUrl": zod.string(),
+  "checkedAt": zod.string(),
+  "note": zod.string()
+}).optional(),
+  "recommendedStrategy": zod.object({
+  "status": zod.enum(['ready', 'insufficient_data', 'unavailable']),
+  "summary": zod.string().nullable(),
+  "approach": zod.string().nullable(),
+  "note": zod.string()
+}).optional(),
   "query": zod.string(),
   "applicationNumberContext": zod.string().optional(),
   "searchType": zod.enum(['examiner', 'art-unit']),

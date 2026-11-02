@@ -11,9 +11,13 @@ import type { PublicExaminerAnalysisInterviewAnalytics } from './publicExaminerA
 import type { PublicExaminerAnalysisOfficeActionAnalytics } from './publicExaminerAnalysisOfficeActionAnalytics';
 import type { PublicExaminerAnalysisSearchType } from './publicExaminerAnalysisSearchType';
 import type { PublicExaminerBreakdown } from './publicExaminerBreakdown';
+import type { PublicExaminerContact } from './publicExaminerContact';
 import type { PublicExaminerRoleEvidence } from './publicExaminerRoleEvidence';
+import type { PublicExaminerStrategy } from './publicExaminerStrategy';
 
 export interface PublicExaminerAnalysis {
+  examinerContact?: PublicExaminerContact;
+  recommendedStrategy?: PublicExaminerStrategy;
   query: string;
   applicationNumberContext?: string;
   searchType: PublicExaminerAnalysisSearchType;

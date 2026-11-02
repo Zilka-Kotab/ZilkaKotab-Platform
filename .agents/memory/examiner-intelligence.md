@@ -9,6 +9,14 @@ The public Patent Examiner Intelligence tool is for patent prosecution attorneys
 
 **How to apply:** Show denominators, sample sizes, time periods, source coverage, and unavailable states. Do not infer a zero from missing event data or provide strategy recommendations when the sample is inadequate.
 
+## Contact details and strategy scope
+
+The user requests official USPTO examiner contact details at the top of results, followed by a **very succinct** AI Recommended Strategy. The example is illustrative, not fixed copy to reuse across examiners.
+
+**Why:** These additions should make the metrics actionable without implying that historical correlations establish causation or case-specific legal conclusions. The public directory can supply a telephone number without supplying an email address.
+
+**How to apply:** Use verified directory identity matches, never constructed email addresses. Show explicit unavailable states. Keep the generated recommendation brief and conditional, use only supported metrics, and withhold it for inadequate samples. Do not imply the aggregate interview comparison establishes the optimal interview timing, or recommend Track One for an ineligible already-pending case. Do not include unresolved asynchronous RCE/continuation results as if they were final.
+
 ## Limited illustrative-metric exception
 
 The user permits clearly labeled illustrative **Quarter-End Concentration** values when reliable live calculations are unavailable. This exception does NOT apply to the independent **RCE vs. Continuation Rate** card: each side must show a validated actual rate or **N/A**, never a sample fallback. Timing, action, restriction, and interview metrics also remain evidence-only.

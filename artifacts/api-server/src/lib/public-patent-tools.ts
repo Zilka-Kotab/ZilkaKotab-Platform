@@ -106,6 +106,45 @@ export async function requestUspto(url: URL, signal?: AbortSignal, searchBody?: 
   throw new PublicPatentToolError("USPTO rate limit did not clear.", 502);
 }
 
+/** Download an ODP document without forwarding the API key to a redirect host. */
+export async function downloadUsptoDocument(source: string, signal: AbortSignal): Promise<Uint8Array> {
+  let url = new URL(source);
+  if (url.origin !== USPTO_API_BASE || !url.pathname.startsWith("/api/v1/download/applications/")) throw new Error("Invalid ODP document URL");
+  for (let hop = 0; hop < 4; hop++) {
+    const response = await fetch(url, {
+      headers: { Accept: "application/pdf", ...(url.origin === USPTO_API_BASE ? { "X-API-KEY": apiKey() } : {}) },
+      redirect: "manual", signal,
+    });
+    if ([301, 302, 303, 307, 308].includes(response.status)) {
+      await response.body?.cancel();
+      const next = new URL(response.headers.get("location") ?? "", url);
+      if (next.protocol !== "https:" || next.port !== "" || next.username || next.password ||
+        !(next.hostname.endsWith(".uspto.gov") || /^[a-z0-9.-]+\.s3(?:[.-][a-z0-9-]+)?\.amazonaws\.com$/.test(next.hostname))) throw new Error("Untrusted ODP redirect");
+      url = next;
+      continue;
+    }
+    if (!response.ok || !response.body) throw new Error("ODP document unavailable");
+    const limit = 20 * 1024 * 1024;
+    if (Number(response.headers.get("content-length")) > limit) { await response.body.cancel(); throw new Error("ODP document too large"); }
+    const chunks: Uint8Array[] = [];
+    let size = 0;
+    const reader = response.body.getReader();
+    try {
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        size += value.byteLength;
+        if (size > limit) throw new Error("ODP document too large");
+        chunks.push(value);
+      }
+    } finally { await reader.cancel(); }
+    const bytes = Buffer.concat(chunks);
+    if (!bytes.subarray(0, 1024).includes(Buffer.from("%PDF-"))) throw new Error("Not a PDF document");
+    return new Uint8Array(bytes);
+  }
+  throw new Error("Too many ODP redirects");
+}
+
 function asRecord(value: unknown): JsonRecord | null {
   return value && typeof value === "object" && !Array.isArray(value) ? value as JsonRecord : null;
 }

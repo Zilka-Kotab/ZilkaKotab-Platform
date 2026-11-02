@@ -24,4 +24,5 @@ export * from "./internal-access";
 export * from "./internal-workflow";
 export * from "./firm-operations";
 export * from "./firm-fees";
+export * from "./examiner-contact-cache";
 export * from "./firm-benchmark";
