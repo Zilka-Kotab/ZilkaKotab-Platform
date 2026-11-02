@@ -11,7 +11,6 @@ import {
 import { analyzeExaminer, analyzePortfolio, analyzePortfolioAdvanced, PublicPatentToolError, requestUspto } from "../lib/public-patent-tools";
 import { getExaminerRateJob } from "../lib/examiner-rce-store";
 import { lookupExaminerContact } from "../lib/examiner-contact";
-import { recommendExaminerStrategy } from "../lib/examiner-strategy";
 
 const router: IRouter = Router();
 const SEARCH_WINDOW_MS = 15 * 60 * 1000;
@@ -91,10 +90,8 @@ router.post("/public-tools/examiner/analyze", rateLimit("examiner", 10, SEARCH_W
   try {
     const analysis = AnalyzePublicExaminerResponse.parse(await analyzeExaminer(parsed.data.query, parsed.data.selectedExaminerName));
     if (analysis.searchType === "examiner" && analysis.examinerName && !analysis.selectionRequired && analysis.identifiedApplications > 0) {
-      const [examinerContact, recommendedStrategy] = await Promise.all([
-        lookupExaminerContact(analysis.examinerName), recommendExaminerStrategy(analysis),
-      ]);
-      res.json(AnalyzePublicExaminerResponse.parse({ ...analysis, examinerContact, recommendedStrategy }));
+      const examinerContact = await lookupExaminerContact(analysis.examinerName);
+      res.json(AnalyzePublicExaminerResponse.parse({ ...analysis, examinerContact }));
     } else {
       res.json(analysis);
     }
