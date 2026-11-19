@@ -15,7 +15,7 @@ export interface WorkflowBilling {
 export interface FeeAllocation { userId: number; name: string; role: "OWNER" | "ASSIGNEE"; amountCents: number }
 export const firmFeeSchedulesTable = pgTable("firm_fee_schedules", {
   id: serial("id").primaryKey(),
-  publicId: uuid("public_id").notNull().unique().defaultRandom(),
+  publicId: uuid("public_id").notNull().unique("firm_fee_schedules_public_id_key").defaultRandom(),
   client: text("client").notNull(),
   name: text("name").notNull(),
   sourceFileName: text("source_file_name").notNull().default(""),

@@ -6,8 +6,8 @@ import { internalWorkflowDocketTasksTable, internalWorkflowTasksTable } from "./
 // AppColl fields remain in the source tables; firm-owned progress is never imported over.
 export const firmWorkflowRowsTable = pgTable("firm_workflow_rows", {
   id: serial("id").primaryKey(),
-  publicId: uuid("public_id").defaultRandom().notNull().unique(),
-  sourceKey: text("source_key").notNull().unique(),
+  publicId: uuid("public_id").defaultRandom().notNull().unique("firm_workflow_rows_public_id_key"),
+  sourceKey: text("source_key").notNull().unique("firm_workflow_rows_source_key_key"),
   docketTaskId: integer("docket_task_id").references(() => internalWorkflowDocketTasksTable.id),
   internalTaskId: integer("internal_task_id").references(() => internalWorkflowTasksTable.id),
   assignedToId: integer("assigned_to_id").references(() => portalUsersTable.id),
@@ -27,19 +27,19 @@ export const firmWorkflowRowsTable = pgTable("firm_workflow_rows", {
 
 export const firmWorkflowStatusHistoryTable = pgTable("firm_workflow_status_history", {
   id: serial("id").primaryKey(),
-  publicId: uuid("public_id").defaultRandom().notNull().unique(),
+  publicId: uuid("public_id").defaultRandom().notNull().unique("firm_workflow_status_history_public_id_key"),
   workflowRowId: integer("workflow_row_id").notNull().references(() => firmWorkflowRowsTable.id),
   status: text("status").notNull(),
   statusDate: date("status_date", { mode: "string" }).notNull(),
   note: text("note").notNull().default(""),
   actorId: integer("actor_id").references(() => portalUsersTable.id),
-  migrationKey: text("migration_key").unique(),
+  migrationKey: text("migration_key").unique("firm_workflow_status_history_migration_key_key"),
   recordedAt: timestamp("recorded_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
 export const firmBillingItemsTable = pgTable("firm_billing_items", {
   id: serial("id").primaryKey(),
-  publicId: uuid("public_id").defaultRandom().notNull().unique(),
+  publicId: uuid("public_id").defaultRandom().notNull().unique("firm_billing_items_public_id_key"),
   workflowRowId: integer("workflow_row_id").references(() => firmWorkflowRowsTable.id),
   ownerId: integer("owner_id").notNull().references(() => portalUsersTable.id),
   kind: text("kind").notNull().default("FEE"),
@@ -65,12 +65,12 @@ export const firmBillingItemsTable = pgTable("firm_billing_items", {
 
 export const firmPaymentsTable = pgTable("firm_payments", {
   id: serial("id").primaryKey(),
-  publicId: uuid("public_id").defaultRandom().notNull().unique(),
+  publicId: uuid("public_id").defaultRandom().notNull().unique("firm_payments_public_id_key"),
   billingItemId: integer("billing_item_id").notNull().references(() => firmBillingItemsTable.id),
   amountCents: integer("amount_cents").notNull(),
   receivedOn: date("received_on", { mode: "string" }).notNull(),
   reference: text("reference").notNull().default(""),
-  requestId: uuid("request_id").notNull().unique(),
+  requestId: uuid("request_id").notNull().unique("firm_payments_request_id_key"),
   createdById: integer("created_by_id").notNull().references(() => portalUsersTable.id),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
