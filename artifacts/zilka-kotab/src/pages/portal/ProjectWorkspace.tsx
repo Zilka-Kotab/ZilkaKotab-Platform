@@ -1,4 +1,4 @@
-import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from 'react';
+import { ChangeEvent, FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation, useParams } from 'wouter';
 import {
   ArrowLeft,
@@ -28,6 +28,7 @@ import {
   X,
 } from 'lucide-react';
 import { SEO } from '@/components/SEO';
+import { PortalApiError } from '@/lib/api-portal';
 import { espacenetUrl, googlePatentsUrl } from '@/lib/patent-links';
 import {
   useCommitPatentImport,
@@ -36,6 +37,7 @@ import {
   useCreatePatent,
   usePortalAccess,
   usePreviewPatentImport,
+  useRequestPatentOverview,
   useSearchPatentsByAssignee,
   useProjectWorkspace,
   useRefreshPatent,
@@ -45,6 +47,7 @@ import {
 } from '@/lib/hooks-portal';
 import type { AssigneePatentMatch, AttorneyNote, MonitoredPatent, PatentImportDraft, PatentRecommendation, ProjectWorkspace as ProjectWorkspaceData } from '@/lib/api-portal';
 import { getEligibleAssigneePatentNumbers, getSelectedEligibleAssigneePatentNumbers, isAssigneePatentAlreadyAdded } from '@/lib/assignee-search';
+import { formatPatentDate } from '@/lib/patent-date-format';
 
 const providerLabels = {
   CLIENT_MICROSOFT: 'Client Microsoft environment',
@@ -84,6 +87,81 @@ const metricDetails: Record<MetricKey, { title: string; purpose: string }> = {
 const emptyMetric: MetricLevel = 'NOT_ANALYZED';
 const patentImportBatchSize = 20;
 
+type OverviewRequest = (variables: { patentId: string }) => Promise<unknown>;
+
+async function requestOverviewWithRetry(request: OverviewRequest, patentId: string) {
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    try {
+      return await request({ patentId });
+    } catch (error) {
+      const retryable = error instanceof TypeError
+        || (error instanceof PortalApiError
+          && error.code !== 'OVERVIEW_VALIDATION_FAILED'
+          && [429, 500, 502, 503, 504].includes(error.status));
+      if (!retryable || attempt === 1) throw error;
+      await new Promise((resolve) => setTimeout(resolve, 750));
+    }
+  }
+  throw new Error('Overview request failed.');
+}
+
+function overviewRequestErrorMessage(error: unknown) {
+  return error instanceof PortalApiError
+    ? error.message
+    : 'The overview service could not be reached. Please try again on the next view.';
+}
+
+function currentClaimVersionSnapshot(patent: MonitoredPatent) {
+  return patent.claims
+    .map((claim) => ({
+      claimId: claim.publicId,
+      claimNumber: claim.claimNumber,
+      version: claim.version,
+      selectedForMonitoring: claim.selectedForMonitoring,
+    }))
+    .sort((a, b) => a.claimNumber.localeCompare(b.claimNumber) || a.claimId.localeCompare(b.claimId));
+}
+
+function overviewMatchesCurrentState(
+  run: ProjectWorkspaceData['analysisRuns'][number],
+  patent: MonitoredPatent,
+  currentPromptVersion: string | undefined,
+) {
+  if (!currentPromptVersion || run.promptVersion !== currentPromptVersion) return false;
+  const provenance = run.inputProvenance as { currentClaimVersions?: unknown };
+  if (!Array.isArray(provenance.currentClaimVersions)) return false;
+  const normalize = (entries: unknown[]) => {
+    const snapshot: Array<{
+      claimId: string;
+      claimNumber: string;
+      version: number;
+      selectedForMonitoring: boolean;
+    }> = [];
+    for (const entry of entries) {
+      if (!entry || typeof entry !== 'object' || Array.isArray(entry)) return null;
+      const record = entry as Record<string, unknown>;
+      if (
+        typeof record.claimId !== 'string'
+        || typeof record.claimNumber !== 'string'
+        || typeof record.version !== 'number'
+        || typeof record.selectedForMonitoring !== 'boolean'
+      ) return null;
+      snapshot.push({
+        claimId: record.claimId,
+        claimNumber: record.claimNumber,
+        version: record.version,
+        selectedForMonitoring: record.selectedForMonitoring,
+      });
+    }
+    return snapshot.sort((left, right) =>
+      left.claimNumber.localeCompare(right.claimNumber) || left.claimId.localeCompare(right.claimId),
+    );
+  };
+  const stored = normalize(provenance.currentClaimVersions);
+  const current = normalize(currentClaimVersionSnapshot(patent));
+  return stored !== null && current !== null && JSON.stringify(stored) === JSON.stringify(current);
+}
+
 const recommendationLabel = (value: Recommendation) => value === 'NOT_ANALYZED' ? 'Not analyzed' : value;
 const recommendationTone = (value: Recommendation) => value === 'NOT_ANALYZED'
   ? 'border-slate-200 bg-slate-50 text-slate-500'
@@ -108,7 +186,7 @@ const metricValueTone = (value: string) => {
 };
 
 function dateLabel(value?: string | null) {
-  return value ? new Date(value).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : 'Not recorded';
+  return formatPatentDate(value);
 }
 
 async function downloadPortfolioWorkbook(workspace: ProjectWorkspaceData, includeAttorneyNotes: boolean) {
@@ -169,6 +247,7 @@ async function downloadPortfolioWorkbook(workspace: ProjectWorkspaceData, includ
     'Claim Count', 'Claims Selected for Monitoring', 'Selected Claim Numbers',
     'Latest Analysis Summary', 'Latest Analysis Provider', 'Latest Analysis Date',
   ];
+
   if (includeAttorneyNotes) detailHeaders.push('Attorney Notes', 'Notes Created By', 'Notes Updated By', 'Attorney Notes Updated At', 'Attorney Notes History');
   const detailSheet = workbook.addWorksheet('Patent Details');
   detailSheet.addRow(detailHeaders);
@@ -268,27 +347,6 @@ function addMonthsToDate(value: string, months: number) {
   const targetMonth = targetMonthIndex % 12;
   const finalDay = new Date(Date.UTC(targetYear, targetMonth + 1, 0)).getUTCDate();
   return new Date(Date.UTC(targetYear, targetMonth, Math.min(day, finalDay))).toISOString().slice(0, 10);
-}
-
-function maintenanceFeeWindows(issueDate?: string | null) {
-  if (!issueDate) return [];
-  const todayParts = new Intl.DateTimeFormat('en-US', {
-    timeZone: 'America/New_York',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).formatToParts(new Date());
-  const todayValues = Object.fromEntries(todayParts.map((part) => [part.type, part.value]));
-  const today = `${todayValues.year}-${todayValues.month}-${todayValues.day}`;
-  return [
-    { label: '3.5-year fee', graceMonths: 48 },
-    { label: '7.5-year fee', graceMonths: 96 },
-    { label: '11.5-year fee', graceMonths: 144 },
-  ].map((window) => {
-    const graceEnds = addMonthsToDate(issueDate, window.graceMonths);
-    if (!graceEnds) return null;
-    return { label: window.label, remaining: today <= graceEnds };
-  }).filter((window): window is NonNullable<typeof window> => window !== null);
 }
 
 function estimateMaintenanceCost(
@@ -517,6 +575,7 @@ export default function ProjectWorkspace() {
   const previewPatent = usePreviewPatentImport(projectId);
   const assigneeSearch = useSearchPatentsByAssignee(projectId);
   const commitPatent = useCommitPatentImport(projectId);
+  const requestOverview = useRequestPatentOverview(projectId);
 
   const [filter, setFilter] = useState<PatentFilter>('ALL');
   const [search, setSearch] = useState('');
@@ -536,6 +595,12 @@ export default function ProjectWorkspace() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [claimSelectionId, setClaimSelectionId] = useState<string | null>(null);
   const [selectedMetric, setSelectedMetric] = useState<MetricKey | null>(null);
+  const [overviewAttempts, setOverviewAttempts] = useState<Record<string, {
+    status: 'analyzing' | 'failed';
+    message?: string;
+  }>>({});
+  const [overviewBatchProgress, setOverviewBatchProgress] = useState<{ completed: number; total: number } | null>(null);
+  const automaticOverviewRequests = useRef(new Set<string>());
   const [addOpen, setAddOpen] = useState(false);
   const [patentNumbers, setPatentNumbers] = useState('');
   const [assigneeSearchText, setAssigneeSearchText] = useState('');
@@ -572,6 +637,74 @@ export default function ProjectWorkspace() {
 
   const canCreateWorkProduct = access?.user?.role !== 'CLIENT';
   const canManageMonitoring = access?.user?.role === 'ADMIN' || access?.user?.role === 'ATTORNEY';
+  const analyzePatentsSequentially = async (patentIds: string[]) => {
+    setOverviewBatchProgress({ completed: 0, total: patentIds.length });
+    let completed = 0;
+    for (const patentId of patentIds) {
+      setOverviewAttempts((current) => ({ ...current, [patentId]: { status: 'analyzing' } }));
+      try {
+        await requestOverviewWithRetry(requestOverview.mutateAsync, patentId);
+        setOverviewAttempts((current) => {
+          const next = { ...current };
+          delete next[patentId];
+          return next;
+        });
+      } catch (error) {
+        setOverviewAttempts((current) => ({
+          ...current,
+          [patentId]: { status: 'failed', message: overviewRequestErrorMessage(error) },
+        }));
+      } finally {
+        completed += 1;
+        setOverviewBatchProgress({ completed, total: patentIds.length });
+      }
+    }
+    setOverviewBatchProgress(null);
+  };
+  useEffect(() => {
+    if (
+      !data
+      || !access?.user
+      || !data.aiConfig.connected
+    ) return;
+
+    const pending = data.patents
+      .filter((patent) => !data.analysisRuns.some((run) =>
+        run.patentId === patent.publicId
+        && run.analysisType === 'OVERVIEW'
+        && overviewMatchesCurrentState(run, patent, data.aiConfig.currentOverviewPromptVersion),
+      ))
+      .map((patent) => ({
+        patent,
+        key: `${patent.publicId}:${data.aiConfig.currentOverviewPromptVersion}:${JSON.stringify(currentClaimVersionSnapshot(patent))}`,
+      }))
+      .filter(({ key }) => !automaticOverviewRequests.current.has(key));
+
+    if (!pending.length) return;
+    for (const { key } of pending) automaticOverviewRequests.current.add(key);
+
+    void (async () => {
+      for (const { patent } of pending) {
+        setOverviewAttempts((current) => ({
+          ...current,
+          [patent.publicId]: { status: 'analyzing' },
+        }));
+        try {
+          await requestOverviewWithRetry(requestOverview.mutateAsync, patent.publicId);
+          setOverviewAttempts((current) => {
+            const next = { ...current };
+            delete next[patent.publicId];
+            return next;
+          });
+        } catch (error) {
+          setOverviewAttempts((current) => ({
+            ...current,
+            [patent.publicId]: { status: 'failed', message: overviewRequestErrorMessage(error) },
+          }));
+        }
+      }
+    })();
+  }, [access?.user?.publicId, data, requestOverview.mutateAsync]);
   const exportPortfolio = async () => {
     if (!data || exporting) return;
     setExporting(true);
@@ -796,7 +929,11 @@ export default function ProjectWorkspace() {
   const commitDraft = (draft: PatentImportDraft) => {
     commitPatent.mutate(
       { draftId: draft.publicId, selectedClaimNumbers: selectedClaims[draft.publicId] ?? [] },
-      { onSuccess: () => setDrafts((current) => current.filter((item) => item.publicId !== draft.publicId)) },
+      {
+        onSuccess: () => {
+          setDrafts((current) => current.filter((item) => item.publicId !== draft.publicId));
+        },
+      },
     );
   };
   const submitManual = (event: FormEvent) => {
@@ -923,6 +1060,29 @@ export default function ProjectWorkspace() {
                 <label className="relative min-w-0 sm:w-64"><Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><input type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search patent or title" className="h-9 w-full rounded-lg border border-input bg-background pl-9 pr-3 text-sm outline-none ring-primary/20 transition focus:ring-4" /></label>
                 <button type="button" onClick={() => setFiltersOpen((value) => !value)} className={`inline-flex h-9 items-center justify-center gap-2 rounded-lg border px-3 text-xs font-semibold ${filtersActive ? 'border-primary/30 bg-primary/5 text-primary' : 'border-border bg-card text-foreground hover:bg-muted/50'}`}><SlidersHorizontal className="h-3.5 w-3.5" /> Filters{filtersActive && <span className="rounded-full bg-primary px-1.5 text-[10px] text-primary-foreground">•</span>}</button>
                 {filtersActive && <button type="button" onClick={clearFilters} className="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-border px-3 text-xs font-semibold text-muted-foreground hover:bg-muted/50 hover:text-foreground"><X className="h-3.5 w-3.5" /> Clear</button>}
+                {canManageMonitoring && data?.aiConfig.connected && (
+                  <button
+                    type="button"
+                    disabled={overviewBatchProgress !== null || requestOverview.isPending}
+                    onClick={() => {
+                      const unanalyzed = patents
+                        .filter((patent) => !patent.archivedAt)
+                        .filter((patent) => !data.analysisRuns.some((run) =>
+                          run.patentId === patent.publicId
+                          && run.analysisType === 'OVERVIEW'
+                          && overviewMatchesCurrentState(run, patent, data.aiConfig.currentOverviewPromptVersion),
+                        ))
+                        .map((patent) => patent.publicId);
+                      if (unanalyzed.length) void analyzePatentsSequentially(unanalyzed);
+                    }}
+                    className="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-primary/20 bg-primary/5 px-3 text-xs font-semibold text-primary disabled:opacity-50"
+                  >
+                    <Sparkles className="h-3.5 w-3.5" />
+                    {overviewBatchProgress
+                      ? `Analyzing ${overviewBatchProgress.completed} of ${overviewBatchProgress.total}`
+                      : 'Analyze unanalyzed'}
+                  </button>
+                )}
               </div>
             </div>
             <div className="mt-4 flex max-w-full gap-1 overflow-x-auto rounded-xl bg-muted/70 p-1">
@@ -983,8 +1143,15 @@ export default function ProjectWorkspace() {
               const expanded = expandedId === patent.publicId;
               const selectedClaimsForMonitoring = patent.claims.filter((claim) => claim.selectedForMonitoring);
               const findings = data.analysisRuns.filter((run) => run.patentId === patent.publicId);
-              const latestFinding = findings[0];
-              const feeWindows = maintenanceFeeWindows(patent.issueDate);
+              const currentOverview = findings.find((run) =>
+                run.analysisType === 'OVERVIEW'
+                && overviewMatchesCurrentState(run, patent, data.aiConfig.currentOverviewPromptVersion),
+              );
+              const latestOverview = currentOverview
+                ?? findings.find((run) => run.analysisType === 'OVERVIEW');
+              const overviewAttempt = overviewAttempts[patent.publicId];
+              const latestFinding = latestOverview ?? findings[0];
+              const nextFee = patent.nextMaintenanceFee;
               const toggleExpanded = () => {
                 setExpandedId(expanded ? null : patent.publicId);
                 setSelectedMetric(null);
@@ -1023,9 +1190,22 @@ export default function ProjectWorkspace() {
                           </section>
                            <section className="rounded-xl border border-primary/15 bg-card p-2.5">
                             <div className="flex items-center gap-2"><Sparkles className="h-3.5 w-3.5 text-primary" /><h3 className="text-sm font-semibold">AI overview</h3></div>
-                            {latestFinding?.summary
-                               ? <><p className="mt-1.5 whitespace-pre-wrap text-xs leading-4 text-foreground">{latestFinding.summary}</p><p className="mt-1.5 text-[10px] text-muted-foreground">Recorded {dateLabel(latestFinding.createdAt)} · {latestFinding.provider}</p></>
-                               : <p className="mt-1.5 text-xs leading-4 text-muted-foreground">No AI analysis has been recorded for this patent.</p>}
+                             {latestOverview?.summary ? (
+                               <>
+                                 {!currentOverview && <p className="mt-1.5 text-[10px] font-semibold text-amber-800">Showing a saved overview from an earlier claim or prompt version; it may be out of date.</p>}
+                                 {overviewAttempt?.status === 'analyzing' && <p className="mt-1.5 text-xs leading-4 text-muted-foreground" role="status">Generating the current overview…</p>}
+                                 {overviewAttempt?.status === 'failed' && <p className="mt-1.5 text-xs leading-4 text-red-700" role="alert">Could not generate the current overview: {overviewAttempt.message} The saved overview remains available.</p>}
+                                 <p className="mt-1.5 whitespace-pre-wrap text-xs leading-4 text-foreground">{latestOverview.summary}</p>
+                                 <p className="mt-1.5 text-[10px] font-medium text-muted-foreground">AI-generated summary from public USPTO data. Not legal advice; verify against the file history.</p>
+                                 <p className="mt-1.5 text-[10px] text-muted-foreground">Recorded {dateLabel(latestOverview.createdAt)} · Firm AI (Azure)</p>
+                               </>
+                             ) : overviewAttempt?.status === 'analyzing'
+                               ? <p className="mt-1.5 text-xs leading-4 text-muted-foreground" role="status">Analyzing…</p>
+                               : overviewAttempt?.status === 'failed'
+                                 ? <p className="mt-1.5 text-xs leading-4 text-red-700" role="alert">Not analyzed: {overviewAttempt.message}</p>
+                                 : !data.aiConfig.connected
+                                   ? <p className="mt-1.5 text-xs leading-4 text-muted-foreground">Firm AI is not configured; no overview request was sent.</p>
+                                   : <p className="mt-1.5 text-xs leading-4 text-muted-foreground">No AI overview has been recorded for this patent.</p>}
                           </section>
                           <section className="order-1 rounded-xl border border-border bg-card p-2.5">
                              <div className="flex items-center justify-between gap-2"><div><h3 className="text-sm font-semibold">AI metrics</h3><p className="mt-0.5 text-[10px] text-muted-foreground">Select a score for details.</p></div><Sparkles className="h-3.5 w-3.5 text-primary" /></div>
@@ -1056,7 +1236,7 @@ export default function ProjectWorkspace() {
                             <div><dt className="text-[10px] text-muted-foreground">Issue date</dt><dd className="mt-0.5 font-medium">{dateLabel(patent.issueDate)}</dd></div>
                             <div><dt className="text-[10px] text-muted-foreground">Earliest priority</dt><dd className="mt-0.5 font-medium">{dateLabel(patent.earliestPriorityDate)}</dd></div>
                             <div><dt className="text-[10px] text-muted-foreground">USPTO status</dt><dd className="mt-0.5">{patent.patentStatus && /expired/i.test(patent.patentStatus) ? <span className="inline-flex rounded bg-red-50 px-1.5 py-0.5 font-semibold text-red-700">{patent.patentStatus}</span> : <span className="font-medium">{patent.patentStatus || 'Not recorded'}</span>}</dd></div>
-                            <div title="Estimated from the issue date; payment history is not verified."><dt className="text-[10px] text-muted-foreground">Next Maintenance Fee</dt><dd aria-label="Estimated next maintenance fee; payment history is not verified" className="mt-0.5 font-semibold">{/expired/i.test(patent.patentStatus || '') ? 'No upcoming fee' : (feeWindows.find((window) => window.remaining)?.label || (patent.issueDate ? 'No upcoming fee' : 'Not available'))}</dd></div>
+                            <div title="Estimated from the issue date; payment history is not verified."><dt className="text-[10px] text-muted-foreground">Next Maintenance Fee</dt><dd aria-label="Estimated next maintenance fee; payment history is not verified" className="mt-0.5 font-semibold">{nextFee?.availability === 'UPCOMING' ? `${nextFee.window} · due ${dateLabel(nextFee.dueDate)}${nextFee.graceEndDate ? ` · grace through ${dateLabel(nextFee.graceEndDate)}` : ''}` : nextFee?.availability === 'NONE' ? 'No upcoming fee' : 'Not available'}</dd></div>
                           </dl>
                         </section>
                       </div>
@@ -1135,7 +1315,7 @@ export default function ProjectWorkspace() {
           </div>}
         </section></div>}
 
-        <footer className="mt-8 flex flex-col gap-2 border-t border-border pt-5 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between"><span className="inline-flex items-center gap-2"><LockKeyhole className="h-3.5 w-3.5" /> Data added intentionally to this project stays within its access boundary.</span><span>Processing: {providerLabels[data.aiConfig.selectedProvider]}</span></footer>
+        <footer className="mt-8 flex flex-col gap-2 border-t border-border pt-5 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between"><span className="inline-flex items-center gap-2"><LockKeyhole className="h-3.5 w-3.5" /> Data added intentionally to this project stays within its access boundary.</span><span>Processing: {providerLabels[data.aiConfig.connected ? 'ZK_MANAGED_AI' : data.aiConfig.selectedProvider]}</span></footer>
       </div>
     </div>
   );

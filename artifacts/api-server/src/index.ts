@@ -5,6 +5,7 @@ import { scheduleFirmRefresh } from "./lib/firm-benchmark-store";
 import { ensureInitialAdminAuthorization, ensurePatentMonitorTool } from "./lib/bootstrap";
 import { ensureFirmOperationsSchema } from "./lib/firm-operations-schema";
 import { ensureClerkSchema } from "./lib/clerk-schema";
+import { warnIfAzureUnconfigured } from "./lib/ai/azure-client";
 
 const rawPort = process.env["PORT"];
 
@@ -25,6 +26,7 @@ pool.on("error", (err) => {
 });
 
 async function start() {
+  warnIfAzureUnconfigured();
   await ensureClerkSchema();
   await ensureFirmOperationsSchema();
   await ensureInitialAdminAuthorization();

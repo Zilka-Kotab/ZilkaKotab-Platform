@@ -31,8 +31,13 @@ import { requireAdmin, requirePortalAccess } from "../middlewares/portalAccess";
 import { projectRelations, serializeClient, serializeProject, serializeTool } from "../lib/portal-resources";
 import { logger } from "../lib/logger";
 import { normalizePatentNumbers, normalizePatentStatus, retrievePatent, searchPatentsByAssignee, UsptoImportError, type PatentImportPayload } from "../lib/uspto";
+import { clientCanViewAnalysisRun, effectiveProjectAiProvider, manualAnalysisRunErrorStatus } from "../lib/patent-monitor-security";
 
 import { planClaimRefresh } from "../lib/patent-claim-refresh";
+import { isAzureConfigured, AzureStructuredOutputError } from "../lib/ai/azure-client";
+import { createPatentOverview } from "../lib/ai/patent-overview-service";
+import { PROMPT_VERSION } from "../lib/ai/tasks/patent-overview";
+import { getNextMaintenanceFee } from "../lib/patent-maintenance";
 
 const router = Router();
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -314,6 +319,11 @@ function serializePatent(
   claims: typeof patentClaimsTable.$inferSelect[],
   attorneyNote?: AttorneyNoteView,
 ) {
+  const patentStatus = normalizePatentStatus(
+    patent.issueDate,
+    patent.sourceStatus ?? patent.patentStatus,
+    patent.source === "USPTO" && Boolean(patent.sourceUrl),
+  );
   return {
     publicId: patent.publicId,
     projectId: projectPublicId,
@@ -326,12 +336,12 @@ function serializePatent(
     assignee: patent.assignee,
     inventors: patent.inventors,
     abstract: patent.abstract,
-    patentStatus: normalizePatentStatus(
+    patentStatus,
+    sourceStatus: patent.sourceStatus ?? patent.patentStatus,
+    nextMaintenanceFee: getNextMaintenanceFee(
       patent.issueDate,
       patent.sourceStatus ?? patent.patentStatus,
-      patent.source === "USPTO" && Boolean(patent.sourceUrl),
     ),
-    sourceStatus: patent.sourceStatus ?? patent.patentStatus,
     jurisdiction: patent.jurisdiction,
     sourceUrl: patent.sourceUrl,
     source: patent.source,
@@ -405,9 +415,14 @@ function serializeRun(
     patentId: run.patentId ? patentsById.get(run.patentId) ?? null : null,
     claimId: run.claimId ? claimsById.get(run.claimId) ?? null : null,
     provider: run.provider,
+    analysisType: run.analysisType,
     triage: run.triage,
     reviewStatus: run.reviewStatus,
     summary: run.summary,
+    promptVersion: run.analysisType === "OVERVIEW"
+      ? (run.providerProvenance as Record<string, unknown>).promptVersion ?? null
+      : undefined,
+    inputProvenance: run.analysisType === "OVERVIEW" ? run.inputProvenance : undefined,
     limitationAnalysis: run.limitationAnalysis,
     evidence: run.evidence,
     createdAt: run.createdAt,
@@ -663,6 +678,17 @@ router.get("/portal/projects/:id/workspace", async (req, res) => {
   const reviews = analysisRuns.length
     ? await db.select().from(analysisReviewsTable).where(inArray(analysisReviewsTable.analysisRunId, analysisRuns.map((run) => run.id))).orderBy(asc(analysisReviewsTable.createdAt))
     : [];
+  const reviewerIds = [...new Set(reviews.map((review) => review.reviewerId))];
+  const reviewers = reviewerIds.length
+    ? await db.select({ id: portalUsersTable.id, role: portalUsersTable.role }).from(portalUsersTable).where(inArray(portalUsersTable.id, reviewerIds))
+    : [];
+  const visibleAnalysisRuns = req.portalUser!.role === "CLIENT"
+    ? analysisRuns.filter((run) => clientCanViewAnalysisRun(
+        run,
+        reviews.filter((review) => review.analysisRunId === run.id),
+        reviewers,
+      ))
+    : analysisRuns;
   const visibleReviews = req.portalUser!.role === "CLIENT"
     ? reviews.filter((review) => review.classification !== "ATTORNEY_WORK_PRODUCT")
     : reviews;
@@ -676,12 +702,16 @@ router.get("/portal/projects/:id/workspace", async (req, res) => {
     project: await serializeProject(project),
     tool: serializeTool(tool),
     client: serializeClient(client),
-    aiConfig: aiConfig
-      ? { projectId: project.publicId, selectedProvider: aiConfig.selectedProvider, allowedProviders: aiConfig.allowedProviders }
-      : { projectId: project.publicId, selectedProvider: "MANUAL", allowedProviders: ["MANUAL"] },
+    aiConfig: {
+      projectId: project.publicId,
+      selectedProvider: effectiveProjectAiProvider(aiConfig?.selectedProvider, isAzureConfigured()),
+      allowedProviders: aiConfig?.allowedProviders ?? (isAzureConfigured() ? ["ZK_MANAGED_AI", "MANUAL"] : ["MANUAL"]),
+      connected: isAzureConfigured(),
+      currentOverviewPromptVersion: PROMPT_VERSION,
+    },
     patents: patents.map((patent) => serializePatent(patent, project.publicId, claims.filter((claim) => claim.patentId === patent.id), attorneyNotes.get(patent.id))),
     workspaceItems: workspaceItems.map((item) => serializeWorkspaceItem(item, project.publicId)),
-    analysisRuns: analysisRuns.map((run) => serializeRun(run, project.publicId, patentsById, claimsById, visibleReviews.filter((review) => review.analysisRunId === run.id))),
+    analysisRuns: visibleAnalysisRuns.map((run) => serializeRun(run, project.publicId, patentsById, claimsById, visibleReviews.filter((review) => review.analysisRunId === run.id))),
   });
 });
 
@@ -700,6 +730,20 @@ router.get("/portal/patents/:id", async (req, res) => {
   const reviews = runs.length
     ? await db.select().from(analysisReviewsTable).where(inArray(analysisReviewsTable.analysisRunId, runs.map((run) => run.id))).orderBy(asc(analysisReviewsTable.createdAt))
     : [];
+  const reviewerIds = [...new Set(reviews.map((review) => review.reviewerId))];
+  const reviewers = reviewerIds.length
+    ? await db.select({ id: portalUsersTable.id, role: portalUsersTable.role }).from(portalUsersTable).where(inArray(portalUsersTable.id, reviewerIds))
+    : [];
+  const visibleRuns = req.portalUser!.role === "CLIENT"
+    ? runs.filter((run) => clientCanViewAnalysisRun(
+        run,
+        reviews.filter((review) => review.analysisRunId === run.id),
+        reviewers,
+      ))
+    : runs;
+  const visibleReviews = req.portalUser!.role === "CLIENT"
+    ? reviews.filter((review) => review.classification !== "ATTORNEY_WORK_PRODUCT")
+    : reviews;
   const patentsById = new Map([[patent.id, patent.publicId]]);
   const claimsById = new Map(claims.map((claim) => [claim.id, claim.publicId]));
   const attorneyNotes = req.portalUser!.role === "CLIENT"
@@ -711,7 +755,7 @@ router.get("/portal/patents/:id", async (req, res) => {
     project: await serializeProject(project),
     client: serializeClient(client),
     tool: serializeTool(tool),
-    analysisRuns: runs.map((run) => serializeRun(run, project.publicId, patentsById, claimsById, reviews.filter((review) => review.analysisRunId === run.id))),
+    analysisRuns: visibleRuns.map((run) => serializeRun(run, project.publicId, patentsById, claimsById, visibleReviews.filter((review) => review.analysisRunId === run.id))),
   });
 });
 
@@ -1450,13 +1494,72 @@ router.post("/portal/projects/:id/workspace-items", async (req, res) => {
   res.status(201).json({ item: serializeWorkspaceItem(item, project.publicId) });
 });
 
+router.post("/portal/patents/:id/analyses/overview", async (req, res) => {
+  const patentPublicId = publicIdOf(req.params.id);
+  const patent = patentPublicId ? await patentProject(req.portalUser!, patentPublicId) : null;
+  if (!patent) return void res.status(404).json({ error: "Patent not found." });
+
+  const [project] = await db.select().from(projectsTable).where(eq(projectsTable.id, patent.projectId)).limit(1);
+  if (!project) return void res.status(404).json({ error: "Patent project not found." });
+  if (!isAzureConfigured()) {
+    return void res.status(409).json({
+      error: "AI is not enabled for this project. No data was sent.",
+    });
+  }
+
+  try {
+    const { run, claims, created } = await createPatentOverview({
+      patent,
+      projectId: project.id,
+      createdById: req.portalUser!.id,
+    });
+    const patentsById = new Map([[patent.id, patent.publicId]]);
+    const claimsById = new Map(claims.map((claim) => [claim.id, claim.publicId]));
+    res.status(created ? 201 : 200).json({
+      run: serializeRun(run, project.publicId, patentsById, claimsById, []),
+    });
+  } catch (error) {
+    if (error instanceof AzureStructuredOutputError) {
+      if (error.code === "AZURE_NOT_CONFIGURED" || error.code === "AZURE_RATE_LIMITED") {
+        return void res.status(error.code === "AZURE_NOT_CONFIGURED" ? 409 : 503).json({
+          error: error.code === "AZURE_NOT_CONFIGURED"
+            ? "AI is not enabled for this project. No data was sent."
+            : "Azure AI is temporarily busy. Please try again shortly.",
+          code: error.code,
+        });
+      }
+      return void res.status(502).json({
+        error: "The AI overview could not be generated. Nothing was saved.",
+        code: error.code,
+      });
+    }
+    if (error instanceof Error && error.message.startsWith("Patent overview")) {
+      req.log.warn({
+        code: "OVERVIEW_VALIDATION_FAILED",
+        patentId: patent.publicId,
+        reason: error.message,
+      }, "Patent overview output failed validation");
+      return void res.status(502).json({
+        error: "The AI overview did not meet the required format. Nothing was saved.",
+        code: "OVERVIEW_VALIDATION_FAILED",
+      });
+    }
+    req.log.error({ err: error, route: "patent_overview", patentId: patent.publicId }, "Patent overview generation failed");
+    res.status(502).json({
+      error: "The AI overview could not be generated. Nothing was saved.",
+    });
+  }
+});
+
 router.post("/portal/projects/:id/analysis-runs", async (req, res) => {
   const projectPublicId = publicIdOf(req.params.id);
   const project = projectPublicId ? await accessibleProject(req.portalUser!, projectPublicId) : null;
   if (!project) return void res.status(404).json({ error: "Project not found." });
+  const runErrorStatus = manualAnalysisRunErrorStatus(req.portalUser!.role);
+  if (runErrorStatus) return void res.status(runErrorStatus).json({ error: "Clients cannot create analysis runs." });
   const projectId = project.id;
   const [config] = await db.select().from(projectAiConfigsTable).where(eq(projectAiConfigsTable.projectId, projectId)).limit(1);
-  const selectedProvider = config?.selectedProvider ?? "MANUAL";
+  const selectedProvider = effectiveProjectAiProvider(config?.selectedProvider, isAzureConfigured());
   if (selectedProvider !== "MANUAL") {
     return void res.status(409).json({ error: "The selected external processing environment is not connected. No data was transferred." });
   }
@@ -1480,6 +1583,7 @@ router.post("/portal/projects/:id/analysis-runs", async (req, res) => {
     patentId: patent?.id ?? null,
     claimId: claim?.id ?? null,
     provider: "MANUAL",
+    analysisType: "GENERAL",
     triage: nextTriage,
     summary,
     limitationAnalysis: jsonArray(req.body?.limitationAnalysis),
@@ -1513,13 +1617,22 @@ router.post("/portal/analysis-runs/:id/reviews", async (req, res) => {
   if (!status) return void res.status(400).json({ error: "A valid review status is required." });
   if (req.portalUser!.role === "CLIENT" && status !== "CLIENT_REVIEWED") return void res.status(403).json({ error: "Clients may only record client review." });
   const nextClassification: DataClassification = req.portalUser!.role === "CLIENT" ? "CLIENT_CONFIDENTIAL" : "ATTORNEY_WORK_PRODUCT";
-  const [review] = await db.insert(analysisReviewsTable).values({
-    analysisRunId: run.id,
-    status,
-    note: typeof req.body?.note === "string" ? req.body.note : "",
-    classification: nextClassification,
-    reviewerId: req.portalUser!.id,
-  }).returning();
+  const [review] = await db.transaction(async (tx) => {
+    const [createdReview] = await tx.insert(analysisReviewsTable).values({
+      analysisRunId: run.id,
+      status,
+      note: typeof req.body?.note === "string" ? req.body.note : "",
+      classification: nextClassification,
+      reviewerId: req.portalUser!.id,
+    }).returning();
+    if (
+      (req.portalUser!.role === "ATTORNEY" || req.portalUser!.role === "ADMIN")
+      && (status === "ATTORNEY_REVIEWED" || status === "FINAL")
+    ) {
+      await tx.update(analysisRunsTable).set({ reviewStatus: status }).where(eq(analysisRunsTable.id, run.id));
+    }
+    return [createdReview];
+  });
   res.status(201).json({ review: serializeReview(review, run.publicId) });
 });
 

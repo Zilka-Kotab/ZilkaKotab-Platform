@@ -130,7 +130,7 @@ export function useRefreshPatent(patentId: string) {
   });
 }
 
-function useWorkspaceMutation<T>(projectId: string, mutationFn: (data: T) => Promise<unknown>) {
+function useWorkspaceMutation<T, R>(projectId: string, mutationFn: (data: T) => Promise<R>) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn,
@@ -142,6 +142,17 @@ export const useCreateWorkspaceItem = (projectId: string) =>
   useWorkspaceMutation(projectId, (data: Parameters<typeof api.createWorkspaceItem>[1]) => api.createWorkspaceItem(projectId, data));
 export const useCreateManualAnalysis = (projectId: string) =>
   useWorkspaceMutation(projectId, (data: Parameters<typeof api.createManualAnalysis>[1]) => api.createManualAnalysis(projectId, data));
+export function useRequestPatentOverview(projectId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ patentId }: { patentId: string }) =>
+      api.requestOverview(patentId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: portalKeys.projectWorkspace(projectId) });
+      queryClient.invalidateQueries({ queryKey: portalKeys.projectWorkspace(projectId, true) });
+    },
+  });
+}
 export const useCreatePatent = (projectId: string) =>
   useWorkspaceMutation(projectId, (data: Parameters<typeof api.createPatent>[1]) => api.createPatent(projectId, data));
 export const usePreviewPatentImport = (projectId: string) =>
@@ -213,9 +224,6 @@ export const useUpdatePatentArchive = (patentId: string) => {
 };
 export const useCreateAnalysisReview = (projectId: string) =>
   useWorkspaceMutation(projectId, ({ runId, data }: { runId: string; data: Parameters<typeof api.createAnalysisReview>[1] }) => api.createAnalysisReview(runId, data));
-export const useUpdateProjectAiConfig = (projectId: string) =>
-  useWorkspaceMutation(projectId, (data: Parameters<typeof api.updateProjectAiConfig>[1]) => api.updateProjectAiConfig(projectId, data));
-
 // Admin Hooks
 export function useAdminUsers() {
   return useQuery({

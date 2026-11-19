@@ -40,6 +40,15 @@ export const analysisReviewStatusEnum = pgEnum("analysis_review_status", [
   "ATTORNEY_REVIEWED",
   "FINAL",
 ]);
+export const analysisTypeEnum = pgEnum("analysis_type", [
+  "GENERAL",
+  "OVERVIEW",
+  "CLAIM_SCOPE",
+  "DETECTABILITY",
+  "VALIDITY",
+  "INFRINGEMENT",
+]);
+
 export const patentImportStatusEnum = pgEnum("patent_import_status", ["READY", "FAILED", "COMMITTED"]);
 export const patentVerificationStatusEnum = pgEnum("patent_verification_status", ["PENDING", "VERIFIED", "MANUALLY_CORRECTED"]);
 export const patentClaimTypeEnum = pgEnum("patent_claim_type", ["INDEPENDENT", "DEPENDENT", "UNKNOWN"]);
@@ -288,6 +297,7 @@ export const analysisRunsTable = pgTable(
     patentId: integer("patent_id").references(() => monitoredPatentsTable.id, { onDelete: "set null" }),
     claimId: integer("claim_id").references(() => patentClaimsTable.id, { onDelete: "set null" }),
     provider: aiProcessingProviderEnum("provider").notNull(),
+    analysisType: analysisTypeEnum("analysis_type").notNull().default("GENERAL"),
     triage: analysisTriageEnum("triage").notNull(),
     reviewStatus: analysisReviewStatusEnum("review_status").notNull().default("UNREVIEWED"),
     summary: text("summary").notNull(),
@@ -302,6 +312,7 @@ export const analysisRunsTable = pgTable(
     uniqueIndex("analysis_runs_public_id_unique").on(table.publicId),
     index("analysis_runs_project_created_idx").on(table.projectId, table.createdAt),
     index("analysis_runs_patent_idx").on(table.patentId),
+    index("analysis_runs_patent_type_created_idx").on(table.patentId, table.analysisType, table.createdAt),
   ],
 );
 

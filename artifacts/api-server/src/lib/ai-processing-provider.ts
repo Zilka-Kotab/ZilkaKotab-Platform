@@ -1,4 +1,5 @@
 import type { AiProcessingProvider } from "@workspace/db";
+import { isAzureConfigured } from "./ai/azure-client";
 
 export const PARSE_CLAIM_LIMITATIONS_OPERATION = "PARSE_CLAIM_LIMITATIONS" as const;
 
@@ -56,6 +57,14 @@ class UnconfiguredProvider implements AIProcessingProvider {
 
 export const aiProcessingProviders: Record<AiProcessingProvider, AIProcessingProvider> = {
   CLIENT_MICROSOFT: new UnconfiguredProvider("CLIENT_MICROSOFT"),
-  ZK_MANAGED_AI: new UnconfiguredProvider("ZK_MANAGED_AI"),
+  ZK_MANAGED_AI: {
+    id: "ZK_MANAGED_AI",
+    connected: isAzureConfigured(),
+    async process(input: AnalysisInput): Promise<AnalysisOutput> {
+      if (!isAzureConfigured()) throw new Error("ZK_MANAGED_AI processing is not configured.");
+      if (!input.patentId) throw new Error("Patent ID is required for a patent overview.");
+      throw new Error("Use the patent-overview route task directly.");
+    },
+  },
   MANUAL: new UnconfiguredProvider("MANUAL"),
 };

@@ -98,11 +98,22 @@ export type DataClassification = 'PUBLIC_SOURCE' | 'CLIENT_CONFIDENTIAL' | 'ATTO
 export type PatentRecommendation = 'NOT_ANALYZED' | 'MAINTAIN' | 'REVIEW' | 'PRUNE';
 export type AnalysisTriage = 'HIGH' | 'MEDIUM' | 'LOW';
 export type AnalysisReviewStatus = 'UNREVIEWED' | 'CLIENT_REVIEWED' | 'ATTORNEY_REVIEWED' | 'FINAL';
+export type AnalysisType = 'GENERAL' | 'OVERVIEW' | 'CLAIM_SCOPE' | 'DETECTABILITY' | 'VALIDITY' | 'INFRINGEMENT';
 
 export interface ProjectAiConfig {
   projectId: string;
   selectedProvider: AiProcessingProvider;
   allowedProviders: AiProcessingProvider[];
+  connected?: boolean;
+  currentOverviewPromptVersion?: string;
+}
+
+export interface NextMaintenanceFee {
+  availability: 'UPCOMING' | 'NONE' | 'UNKNOWN';
+  window: string | null;
+  dueDate: string | null;
+  graceEndDate: string | null;
+  amount?: number;
 }
 
 export interface PatentClaim {
@@ -147,6 +158,7 @@ export interface MonitoredPatent {
   filingDate?: string | null;
   issueDate?: string | null;
   earliestPriorityDate?: string | null;
+  nextMaintenanceFee?: NextMaintenanceFee;
   assignee?: string | null;
   inventors: string[];
   abstract?: string | null;
@@ -243,9 +255,12 @@ export interface AnalysisRun {
   patentId?: string | null;
   claimId?: string | null;
   provider: AiProcessingProvider;
+  analysisType: AnalysisType;
   triage: AnalysisTriage;
   reviewStatus: AnalysisReviewStatus;
   summary: string;
+  promptVersion?: string | null;
+  inputProvenance: Record<string, unknown>;
   limitationAnalysis: unknown[];
   evidence: unknown[];
   createdAt: string;
@@ -270,6 +285,13 @@ export interface AuditEntry {
 }
 
 const BASE_URL = '/api/portal';
+export class PortalApiError extends Error {
+  constructor(message: string, readonly status: number, readonly code?: string) {
+    super(message);
+    this.name = 'PortalApiError';
+  }
+}
+
 const csrfToken = () => document.cookie
   .split('; ')
   .find((item) => item.startsWith('zk_csrf='))
@@ -292,7 +314,11 @@ export async function fetchPortal<T>(endpoint: string, options?: RequestInit): P
   
   const body = await response.json().catch(() => ({}));
   if (!response.ok) {
-    throw new Error(body.error || 'API request failed');
+    throw new PortalApiError(
+      typeof body.error === 'string' ? body.error : 'API request failed',
+      response.status,
+      typeof body.code === 'string' ? body.code : undefined,
+    );
   }
   return body as T;
 }
@@ -345,6 +371,11 @@ export const createWorkspaceItem = (projectId: string, data: Pick<WorkspaceItem,
   fetchPortal<{ item: WorkspaceItem }>(`/projects/${projectId}/workspace-items`, { method: 'POST', body: JSON.stringify(data) });
 export const createManualAnalysis = (projectId: string, data: { summary: string; triage: AnalysisTriage; patentId?: string; claimId?: string }) =>
   fetchPortal<{ run: AnalysisRun }>(`/projects/${projectId}/analysis-runs`, { method: 'POST', body: JSON.stringify(data) });
+export const requestOverview = (patentId: string) =>
+  fetchPortal<{ run: AnalysisRun }>(`/patents/${patentId}/analyses/overview`, {
+    method: 'POST',
+    body: JSON.stringify({}),
+  });
 export const previewPatentImport = (projectId: string, patentNumbers: string) =>
   fetchPortal<{ drafts: PatentImportDraft[] }>(`/projects/${projectId}/patent-imports/preview`, { method: 'POST', body: JSON.stringify({ patentNumbers }) });
 export const searchPatentsByAssignee = (
@@ -372,8 +403,6 @@ export const updatePatentArchive = (publicId: string, archived: boolean) =>
   fetchPortal<{ patent: MonitoredPatent }>(`/patents/${publicId}/archive`, { method: 'PATCH', body: JSON.stringify({ archived }) });
 export const createAnalysisReview = (runId: string, data: { status: AnalysisReviewStatus; note?: string }) =>
   fetchPortal<{ review: AnalysisReview }>(`/analysis-runs/${runId}/reviews`, { method: 'POST', body: JSON.stringify(data) });
-export const updateProjectAiConfig = (projectId: string, data: Pick<ProjectAiConfig, 'selectedProvider' | 'allowedProviders'>) =>
-  fetchPortal<{ aiConfig: ProjectAiConfig }>(`/projects/${projectId}/ai-config`, { method: 'PUT', body: JSON.stringify(data) });
 
 // Admin Queries
 export const getAdminUsers = () => fetchPortal<{ users: PortalUser[] }>('/admin/users');

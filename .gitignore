@@ -50,3 +50,9 @@ Thumbs.db
 
 # Generated review/export files
 /generated-artifacts/
+
+# Local environment files (secrets)
+.env*.local
+
+# Replit uploads (kept outside git)
+/attached_assets/
